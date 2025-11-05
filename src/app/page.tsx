@@ -4,32 +4,38 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Navigation } from '@/components/Navigation'
+import { useTheme } from '@/contexts/ThemeContext'
 import { BookOpen, Clock } from 'lucide-react'
+import { getFeaturedStories, genres, ageGroups } from '@/lib/stories'
 
 export default function TaleTimeHome() {
   const [genre, setGenre] = useState('any')
   const [age, setAge] = useState('any')
   const [time, setTime] = useState(20)
+  const { isDarkMode } = useTheme()
 
-  const stories = [
-    { title: 'The Midnight Forest', genre: 'Fantasy', age: 'Teens', time: 10, teaser: 'A young traveler uncovers a glowing secret deep in the woods.' },
-    { title: 'Cup of Courage', genre: 'Inspiration', age: 'Adults', time: 5, teaser: 'A quick tale about bravery found in unexpected places.' },
-    { title: 'Moonlight Parade', genre: 'Adventure', age: 'Kids', time: 15, teaser: 'Animals gather for a secret midnight celebration.' },
-  ]
+  const featuredStories = getFeaturedStories()
 
-  const filteredStories = stories.filter(
+  const filteredStories = featuredStories.filter(
     s => (genre === 'any' || s.genre === genre) &&
       (age === 'any' || s.age === age) &&
       s.time <= time
   )
 
   return (
-    <main className="min-h-screen bg-[#fbfbf3] bg-[url('/girl.jpg')] bg-no-repeat bg-left bg-center bg-fixed p-4 sm:p-6 lg:p-8 relative overflow-hidden">
-      {/* Background decoration - responsive sizes */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 via-purple-400/10 to-pink-400/10 animate-pulse"></div>
-      <div className="absolute top-5 left-5 sm:top-10 sm:left-10 w-32 h-32 sm:w-48 sm:h-48 lg:w-72 lg:h-72 bg-blue-300/20 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-5 right-5 sm:bottom-10 sm:right-10 w-40 h-40 sm:w-64 sm:h-64 lg:w-96 lg:h-96 bg-purple-300/20 rounded-full blur-3xl"></div>
+    <>
+      <Navigation />
+      <main className={`min-h-screen bg-[url('/girl.jpg')] bg-no-repeat bg-left bg-center bg-fixed p-4 sm:p-6 lg:p-8 relative overflow-hidden transition-colors duration-300 ${
+        isDarkMode 
+          ? 'bg-gray-900' 
+          : 'bg-[#fbfbf3]'
+          
+      }`}>
+        {/* Background decoration - responsive sizes */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 via-purple-400/10 to-pink-400/10 animate-pulse"></div>
+        <div className="absolute top-5 left-5 sm:top-10 sm:left-10 w-32 h-32 sm:w-48 sm:h-48 lg:w-72 lg:h-72 bg-blue-300/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-5 right-5 sm:bottom-10 sm:right-10 w-40 h-40 sm:w-64 sm:h-64 lg:w-96 lg:h-96 bg-purple-300/20 rounded-full blur-3xl"></div>
 
       {/* Responsive header container */}
       <div className='mt-8 sm:mt-16 lg:mt-28 ml-0 sm:ml-[200px] md:ml-[400px] lg:ml-[600px] xl:ml-[1000px]'>
@@ -37,9 +43,11 @@ export default function TaleTimeHome() {
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-4 sm:mb-6 tracking-tight">
             TaleTime
           </h1>
-          <p className="text-lg sm:text-xl lg:text-2xl text-gray-900 font-semibold leading-relaxed max-w-xs sm:max-w-md lg:max-w-2xl mx-auto lg:mx-0">
+            <p className={`text-lg sm:text-xl lg:text-2xl font-semibold leading-relaxed max-w-xs sm:max-w-md lg:max-w-2xl mx-auto lg:mx-0 ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
             Find your perfect story, no matter how much time you have to escape reality.
-          </p>
+            </p>
         </header>
 
         {/* Responsive content container */}
@@ -165,5 +173,6 @@ export default function TaleTimeHome() {
         )}
       </div>
     </main>
+    </>
   )
 }
