@@ -43,30 +43,49 @@ export default function BookReader() {
   const [toc, setToc] = useState<NavItem[]>([]);
   const [currentLocation, setCurrentLocation] = useState('');
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  // Handle mounting to prevent hydration issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    console.log('📚 Book reader useEffect triggered for book ID:', id);
     let mounted = true;
 
     const loadBook = async () => {
-      if (!viewerRef.current) return;
+      // Give a brief moment for the ref to attach
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      if (!viewerRef.current) {
+        console.error('Viewer ref is null - this should not happen!');
+        setError('Failed to initialize book viewer');
+        setLoading(false);
+        return;
+      }
 
       try {
+        console.log('Starting book load for ID:', id);
         setLoading(true);
         
         // Fetch book metadata from local database (fast!)
+        console.log('Fetching metadata from /api/catalog...');
         const metaRes = await fetch(`/api/catalog?bookId=${id}`);
         if (!metaRes.ok) {
-          throw new Error('Failed to fetch book metadata');
+          throw new Error(`Failed to fetch book metadata: ${metaRes.status}`);
         }
         
         const data = await metaRes.json();
+        console.log('Metadata received:', data);
         if (!mounted) return;
         
         const meta = data.results?.[0];
         if (!meta) {
-          throw new Error('Book not found');
+          throw new Error('Book not found in database');
         }
         
+        console.log('Book found:', meta.title);
         setTitle(meta.title);
         setAuthor(meta.authors || 'Unknown');
 
@@ -74,6 +93,8 @@ export default function BookReader() {
         if (!epubUrl) {
           throw new Error('EPUB format not available for this book');
         }
+
+        console.log('EPUB URL:', epubUrl);
 
         // Try to load from IndexedDB cache
         let blob: Blob | undefined = await get(`epub:${id}`);
@@ -129,12 +150,23 @@ export default function BookReader() {
         if (!mounted) return;
 
         // Create object URL for epub.js
+        console.log('Creating blob URL and initializing ePub...');
         const url = URL.createObjectURL(blob);
-        const book = ePub(url);
+        console.log('Blob URL created:', url);
+        
+        // Initialize epub.js with the blob URL and openAs option
+        const book = ePub(url, { openAs: 'epub' });
         bookRef.current = book;
+        console.log('ePub instance created');
 
-        // Load the book
+        // Open and load the book
+        console.log('Opening book...');
+        await book.opened;
+        console.log('Book opened!');
+        
+        console.log('Waiting for book.ready...');
         await book.ready;
+        console.log('Book ready!');
         
         if (!mounted) return;
 
@@ -177,6 +209,7 @@ export default function BookReader() {
       }
     };
 
+    console.log('📖 Calling loadBook()...');
     loadBook();
 
     return () => {
@@ -245,11 +278,18 @@ export default function BookReader() {
     }
   };
 
-  if (loading) {
-    return (
-      <>
-        <Navigation />
-        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null;
+  }
+
+  return (
+    <>
+      <Navigation />
+      
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
           <div className="text-center space-y-6 max-w-md mx-auto p-8">
             <BookOpen className="w-16 h-16 mx-auto text-blue-600 animate-pulse" />
             <div className="text-xl font-semibold text-gray-700 dark:text-gray-300">
@@ -275,14 +315,10 @@ export default function BookReader() {
             )}
           </div>
         </div>
-      </>
-    );
-  }
+      )}
 
-  if (error) {
-    return (
-      <>
-        <Navigation />
+      {/* Error State */}
+      {error && (
         <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
           <div className="text-center space-y-4 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-md">
             <div className="text-red-600 text-xl font-semibold">Error Loading Book</div>
@@ -293,14 +329,10 @@ export default function BookReader() {
             </Button>
           </div>
         </div>
-      </>
-    );
-  }
+      )}
 
-  return (
-    <>
-      <Navigation />
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
+      {/* Main Content - Always rendered so viewerRef can attach */}
+      <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 ${loading || error ? 'invisible' : ''}`}>
         <div className="max-w-5xl mx-auto space-y-4">
           {/* Header */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
