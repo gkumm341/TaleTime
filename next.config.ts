@@ -4,6 +4,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: "C:\\dev\\taletime",
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'www.gutenberg.org',
+        pathname: '/cache/epub/**',
+      },
+    ],
+  },
   async headers() {
     return [
       {
