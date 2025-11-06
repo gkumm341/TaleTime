@@ -10,6 +10,7 @@ import { Navigation } from '@/components/Navigation'
 import { useTheme } from '@/contexts/ThemeContext'
 import { BookOpen, Clock, Heart, Filter, ArrowLeft, Search } from 'lucide-react'
 import { filterStories, genres, ageGroups, moods, difficulties, type Story } from '@/lib/stories'
+import { getComponentKey, isDevelopment } from '@/lib/cache-utils'
 
 function SearchContent() {
   const searchParams = useSearchParams()
@@ -19,7 +20,7 @@ function SearchContent() {
   // Initialize filters from URL params
   const [genre, setGenre] = useState(searchParams.get('genre') || 'any')
   const [age, setAge] = useState(searchParams.get('age') || 'any')
-  const [time, setTime] = useState(parseInt(searchParams.get('time') || '20'))
+  const [time, setTime] = useState(parseInt(searchParams.get('time') || '2000'))
   const [mood, setMood] = useState(searchParams.get('mood') || 'any')
   const [difficulty, setDifficulty] = useState(searchParams.get('difficulty') || 'any')
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
@@ -27,6 +28,23 @@ function SearchContent() {
   
   // Get filtered stories
   const [filteredStories, setFilteredStories] = useState<Story[]>([])
+  const [componentKey, setComponentKey] = useState('initial')
+  const [mounted, setMounted] = useState(false)
+  
+  // Initialize mounted state
+  useEffect(() => {
+    setMounted(true)
+    if (isDevelopment()) {
+      setComponentKey(getComponentKey())
+    }
+  }, [])
+  
+  // Force component refresh in development mode
+  useEffect(() => {
+    if (mounted && isDevelopment()) {
+      setComponentKey(getComponentKey())
+    }
+  }, [genre, age, time, mood, difficulty, searchQuery, mounted])
   
   useEffect(() => {
     const filters = {
@@ -38,6 +56,9 @@ function SearchContent() {
     }
     
     let stories = filterStories(filters)
+    
+    console.log('🔍 SEARCH DEBUG: Total filtered stories:', stories.length)
+    console.log('🔍 SEARCH DEBUG: First 5 story titles:', stories.slice(0, 5).map(s => s.title))
     
     // Apply search query if present
     if (searchQuery) {
@@ -199,7 +220,7 @@ function SearchContent() {
                 </label>
                 <Slider
                   min={5}
-                  max={60}
+                  max={2000}
                   step={5}
                   value={[time]}
                   onValueChange={(val) => setTime(val[0])}

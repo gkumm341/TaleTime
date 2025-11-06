@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import { ThemeProvider } from "@/contexts/ThemeContext"
 import { PWAInstallPrompt, OfflineBanner } from "@/components/PWAComponents"
+import { CacheManager } from "@/components/CacheManager"
 
 export const metadata: Metadata = {
   title: "TaleTime - Find Your Perfect Story",
@@ -78,6 +79,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider>
+          <CacheManager />
           <OfflineBanner />
           {children}
           <PWAInstallPrompt />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -13,9 +13,16 @@ interface NavigationProps {
 
 export function Navigation({ className }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isDev, setIsDev] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { isDarkMode } = useTheme()
+
+  useEffect(() => {
+    setIsDev(process.env.NODE_ENV === 'development')
+    setMounted(true)
+  }, [])
 
   const navigationItems = [
     { href: '/', label: 'Home', icon: Home },
@@ -27,6 +34,19 @@ export function Navigation({ className }: NavigationProps) {
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
     return pathname.startsWith(href)
+  }
+
+  const clearCache = () => {
+    if (typeof window === 'undefined') return
+    const keys = Object.keys(localStorage)
+    keys.forEach(key => {
+      if (key.startsWith('taletime-')) {
+        localStorage.removeItem(key)
+      }
+    })
+    console.log('🧹 Cache cleared')
+    alert('Cache cleared! Page will reload.')
+    window.location.reload()
   }
 
   const handleNavigation = (href: string) => {
@@ -70,7 +90,19 @@ export function Navigation({ className }: NavigationProps) {
           </div>
         </div>
 
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          {mounted && isDev && (
+            <Button
+              onClick={clearCache}
+              variant="ghost"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Clear Cache (Dev Mode)"
+            >
+              🧹
+            </Button>
+          )}
+          <ThemeToggle />
+        </div>
       </nav>
 
       {/* Mobile Navigation */}
@@ -88,6 +120,17 @@ export function Navigation({ className }: NavigationProps) {
         </button>
 
         <div className="flex items-center gap-2">
+          {mounted && isDev && (
+            <Button
+              onClick={clearCache}
+              variant="ghost"
+              size="sm"
+              className="text-red-600 hover:text-red-700"
+              title="Clear Cache (Dev Mode)"
+            >
+              🧹
+            </Button>
+          )}
           <ThemeToggle size="sm" />
           <Button
             variant="ghost"

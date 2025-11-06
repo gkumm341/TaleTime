@@ -1,3 +1,5 @@
+import { publicDomainStories, combineWithExistingStories } from './generated-stories';
+
 export interface Story {
   id: string;
   title: string;
@@ -14,7 +16,7 @@ export interface Story {
   featured?: boolean;
 }
 
-export const stories: Story[] = [
+const originalStories: Story[] = [
   {
     id: '1',
     title: 'The Midnight Forest',
@@ -411,6 +413,8 @@ The soil seemed to shimmer with possibility in the fading light, ready to transf
   }
 ];
 
+// Combine manual stories with ALL public domain stories using the generated helper function
+export const stories = combineWithExistingStories(originalStories);
 export const genres = ['Fantasy', 'Adventure', 'Inspiration', 'Mystery', 'Romance', 'Comedy', 'Drama'];
 export const ageGroups = ['Kids', 'Teens', 'Adults'];
 export const moods = ['Whimsical', 'Mystical', 'Uplifting', 'Eerie', 'Hopeful', 'Bittersweet', 'Adventurous'];
@@ -426,8 +430,12 @@ export const getStoriesByAge = (age: string) =>
 export const getStoriesByTime = (maxTime: number) => 
   stories.filter(story => story.time <= maxTime);
 
-export const getFeaturedStories = () => 
-  stories.filter(story => story.featured);
+export const getFeaturedStories = () => {
+  const featured = stories.filter(story => story.featured);
+  console.log('🔍 DEBUG: Featured stories count:', featured.length);
+  console.log('🔍 DEBUG: Featured story titles:', featured.map(s => s.title));
+  return featured;
+};
 
 export const filterStories = (filters: {
   genre?: string;

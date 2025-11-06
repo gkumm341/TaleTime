@@ -1,23 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Navigation } from '@/components/Navigation'
 import { useTheme } from '@/contexts/ThemeContext'
 import { BookOpen, Clock } from 'lucide-react'
-import { getFeaturedStories, genres, ageGroups } from '@/lib/stories'
+import { getFeaturedStories, genres, ageGroups, stories } from '@/lib/stories'
+import { getComponentKey, isDevelopment } from '@/lib/cache-utils'
 
 export default function TaleTimeHome() {
   const [genre, setGenre] = useState('any')
   const [age, setAge] = useState('any')
   const [time, setTime] = useState(20)
+  const [componentKey, setComponentKey] = useState('initial')
+  const [mounted, setMounted] = useState(false)
   const { isDarkMode } = useTheme()
 
-  const featuredStories = getFeaturedStories()
+  // Initialize component key and mounted state
+  useEffect(() => {
+    setMounted(true)
+    if (isDevelopment()) {
+      setComponentKey(getComponentKey())
+    }
+  }, [])
 
-  const filteredStories = featuredStories.filter(
+  // Force component refresh in development mode
+  useEffect(() => {
+    if (mounted && isDevelopment()) {
+      setComponentKey(getComponentKey())
+    }
+  }, [genre, age, time, mounted])
+
+  // Show all stories instead of just featured ones
+  const allStories = stories
+  console.log('🔍 Homepage - Total stories available:', allStories.length)
+  console.log('🔍 Homepage - First 10 story titles:', allStories.slice(0, 10).map(s => s.title))
+
+  const filteredStories = allStories.filter(
     s => (genre === 'any' || s.genre === genre) &&
       (age === 'any' || s.age === age) &&
       s.time <= time
@@ -123,7 +144,7 @@ export default function TaleTimeHome() {
           </section>
         </div>
 
-        {/* <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl">
           {filteredStories.map((story, i) => (
             <Card key={i} className="group backdrop-blur-md bg-white/70 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden border border-white/50 hover:scale-105 hover:-translate-y-2">
               <CardContent className="p-8">
@@ -149,14 +170,17 @@ export default function TaleTimeHome() {
                   </span>
                 </div>
                 
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 px-6 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 flex items-center justify-center group-hover:shadow-blue-500/50">
+                <Button 
+                  onClick={() => window.location.href = `/story/${story.id}`}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 px-6 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 flex items-center justify-center group-hover:shadow-blue-500/50"
+                >
                   <BookOpen className="mr-3 group-hover:rotate-12 transition-transform duration-300" size={20} /> 
                   <span className="text-lg">Read Story</span>
                 </Button>
               </CardContent>
             </Card>
           ))}
-        </section> */}
+        </section>
 
         {filteredStories.length === 0 && (
           <div className="text-center mt-8 sm:mt-12 lg:mt-16 px-4">

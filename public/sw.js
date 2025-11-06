@@ -1,4 +1,4 @@
-const CACHE_NAME = 'taletime-v1'
+const CACHE_NAME = 'taletime-v2'
 const STATIC_CACHE_URLS = [
   '/',
   '/search',
