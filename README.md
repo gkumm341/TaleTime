@@ -1,10 +1,10 @@
-# TaleTime - Project Gutenberg Bedtime Reader
+# TaleTime
 
-A Next.js web application for browsing, estimating reading times, and reading EPUB books from Project Gutenberg with offline caching capabilities.
+A Next.js web application for browsing, estimating reading times, and reading EPUB books with offline caching capabilities.
 
 ## Features
 
-- **Book Catalog**: Browse Project Gutenberg children's books with cover images
+- **Book Catalog**: Browse classic children's books with cover images
 - **Reading Time Estimation**: Pre-download estimates using HEAD/Range requests on text files
 - **EPUB Reader**: In-browser reading with epub.js
 - **Offline Support**: IndexedDB caching for downloaded EPUBs
@@ -26,7 +26,6 @@ A Next.js web application for browsing, estimating reading times, and reading EP
 - **Database**: SQLite with Drizzle ORM (better-sqlite3)
 - **EPUB Rendering**: epub.js
 - **Offline Storage**: IndexedDB via idb-keyval
-- **API Data**: Gutendex (Project Gutenberg metadata API)
 
 ## Project Structure
 
@@ -34,7 +33,7 @@ A Next.js web application for browsing, estimating reading times, and reading EP
 src/
 ├── app/
 │   ├── api/
-│   │   ├── catalog/     # Fetch Gutenberg books, upsert to DB
+│   │   ├── catalog/     # Book catalog from local DB
 │   │   ├── estimate/    # Calculate reading time
 │   │   └── proxy/       # CORS-safe proxy for EPUBs
 │   ├── book/[id]/       # EPUB reader page
@@ -79,19 +78,13 @@ yarn drizzle-kit migrate
 
 3. **Populate the database** (optional but recommended):
 
-The app can work in two modes:
-- **On-demand mode**: Fetches books from Gutendex when you visit the homepage (slower, 30-40s load time)
-- **Pre-populated mode**: Uses local database with pre-fetched books (instant load)
-
-To pre-populate the database with all Project Gutenberg children's books:
+To pre-populate the database with children's books:
 
 ```bash
-# Option 1: Using the provided script (requires Node 18+ for fetch)
+# Using the provided script (requires Node 18+ for fetch)
 node scripts/populate-books.mjs
 
-# Option 2: Let the app populate automatically on first visit
-# Just browse to http://localhost:3000 and wait ~40s for initial load
-# Books will be cached in SQLite for subsequent visits
+# Or browse to http://localhost:3000 and wait for initial data sync
 ```
 
 The populate script will:

@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
         hostname: 'www.gutenberg.org',
         pathname: '/cache/epub/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'standardebooks.org',
+        pathname: '/ebooks/**',
+      },
     ],
   },
   async headers() {

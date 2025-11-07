@@ -5,13 +5,18 @@ import { eq, sql, like, and, or } from 'drizzle-orm';
 
 export const runtime = 'nodejs'; // Required for SQLite
 
-const ITEMS_PER_PAGE = 32;
+const DEFAULT_ITEMS_PER_PAGE = 100;
+const MAX_ITEMS_PER_PAGE = 100;
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
   const page = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || '';
   const bookId = searchParams.get('bookId');
+  const limit = Math.min(
+    parseInt(searchParams.get('limit') || String(DEFAULT_ITEMS_PER_PAGE)),
+    MAX_ITEMS_PER_PAGE
+  );
 
   try {
     // If bookId is provided, return single book
@@ -62,7 +67,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Calculate offset for pagination
-    const offset = (page - 1) * ITEMS_PER_PAGE;
+    const offset = (page - 1) * limit;
 
     // Build query conditions
     const conditions = [];
@@ -95,7 +100,7 @@ export async function GET(req: NextRequest) {
       .leftJoin(estimates, eq(books.id, estimates.bookId))
       .where(whereClause)
       .orderBy(sql`${books.downloadCount} DESC`)
-      .limit(ITEMS_PER_PAGE)
+      .limit(limit)
       .offset(offset);
 
     // Count total for pagination
@@ -105,7 +110,7 @@ export async function GET(req: NextRequest) {
       .where(whereClause);
 
     const total = totalResult[0]?.count || 0;
-    const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(total / limit);
 
     // Format response similar to Gutendex
     const results = allBooks.map((book) => ({
