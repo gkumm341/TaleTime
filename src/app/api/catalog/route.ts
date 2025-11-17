@@ -13,6 +13,10 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || '';
   const bookId = searchParams.get('bookId');
+  const sortBy = searchParams.get('sortBy') || 'popularity';
+  const languages = searchParams.get('languages')?.split(',').filter(Boolean) || [];
+  const durations = searchParams.get('durations')?.split(',').filter(Boolean) || [];
+  const ageCategories = searchParams.get('ageCategories')?.split(',').filter(Boolean) || [];
   const limit = Math.min(
     parseInt(searchParams.get('limit') || String(DEFAULT_ITEMS_PER_PAGE)),
     MAX_ITEMS_PER_PAGE
@@ -80,7 +84,53 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Language filter
+    if (languages.length > 0) {
+      const languageConditions = languages.map(lang => 
+        like(books.languages, `%${lang}%`)
+      );
+      conditions.push(or(...languageConditions));
+    }
+
+    // Age category filter (via subjects)
+    if (ageCategories.length > 0) {
+      const AGE_KEYWORDS: Record<string, string[]> = {
+        'early-readers': ['Nursery rhymes', 'Picture books'],
+        'beginning-readers': ['Fairy tales', 'Fables', 'Children\'s stories', 'Juvenile fiction'],
+        'middle-grade': ['Adventure', 'Fantasy', 'Bildungsromans', 'Pirates', 'Treasure'],
+        'young-adult': ['Young adult', 'Romance', 'Psychological'],
+      };
+      
+      const subjectConditions = ageCategories.flatMap(category => 
+        (AGE_KEYWORDS[category] || []).map(keyword => 
+          like(books.subjects, `%${keyword}%`)
+        )
+      );
+      
+      if (subjectConditions.length > 0) {
+        conditions.push(or(...subjectConditions));
+      }
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Determine sort order
+    let orderByClause;
+    switch (sortBy) {
+      case 'title':
+        orderByClause = sql`${books.title} ASC`;
+        break;
+      case 'author':
+        orderByClause = sql`${books.authors} ASC`;
+        break;
+      case 'length':
+        orderByClause = sql`${estimates.minutes} ASC`;
+        break;
+      case 'popularity':
+      default:
+        orderByClause = sql`${books.downloadCount} DESC`;
+        break;
+    }
 
     // Fetch books from database with estimates
     const allBooks = await db
@@ -99,7 +149,7 @@ export async function GET(req: NextRequest) {
       .from(books)
       .leftJoin(estimates, eq(books.id, estimates.bookId))
       .where(whereClause)
-      .orderBy(sql`${books.downloadCount} DESC`)
+      .orderBy(orderByClause)
       .limit(limit)
       .offset(offset);
 
@@ -112,8 +162,30 @@ export async function GET(req: NextRequest) {
     const total = totalResult[0]?.count || 0;
     const totalPages = Math.ceil(total / limit);
 
+    // Apply duration filter after fetching (since it depends on estimates)
+    let filteredBooks = allBooks;
+    if (durations.length > 0) {
+      filteredBooks = allBooks.filter(book => {
+        if (!book.minutes) return false;
+        const minutes = book.minutes;
+        
+        return durations.some(duration => {
+          switch (duration) {
+            case 'short':
+              return minutes < 10;
+            case 'medium':
+              return minutes >= 10 && minutes <= 25;
+            case 'long':
+              return minutes > 25;
+            default:
+              return true;
+          }
+        });
+      });
+    }
+
     // Format response similar to Gutendex
-    const results = allBooks.map((book) => ({
+    const results = filteredBooks.map((book) => ({
       id: book.id,
       title: book.title,
       authors: book.authors,

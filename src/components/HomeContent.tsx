@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { BookGrid } from '@/components/BookGrid';
+import { BookFilters, FilterState } from '@/components/BookFilters';
+import { ActiveFilters } from '@/components/ActiveFilters';
+import { BookGridSkeleton } from '@/components/ui/skeleton';
 import { Select } from '@/components/ui/select';
 
 export function HomeContent() {
@@ -9,6 +12,12 @@ export function HomeContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [sortBy, setSortBy] = useState('popularity');
+  const [filters, setFilters] = useState<FilterState>({
+    ageCategories: [],
+    durations: [],
+    languages: [],
+  });
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -16,7 +25,24 @@ export function HomeContent() {
       setError(null);
       
       try {
-        const response = await fetch(`/api/catalog?page=1&limit=${itemsPerPage}`, { 
+        // Build query parameters
+        const params = new URLSearchParams({
+          page: '1',
+          limit: itemsPerPage.toString(),
+          sortBy: sortBy,
+        });
+
+        if (filters.ageCategories.length > 0) {
+          params.set('ageCategories', filters.ageCategories.join(','));
+        }
+        if (filters.durations.length > 0) {
+          params.set('durations', filters.durations.join(','));
+        }
+        if (filters.languages.length > 0) {
+          params.set('languages', filters.languages.join(','));
+        }
+
+        const response = await fetch(`/api/catalog?${params.toString()}`, { 
           cache: 'no-store' 
         });
         
@@ -35,7 +61,19 @@ export function HomeContent() {
     };
 
     fetchBooks();
-  }, [itemsPerPage]);
+  }, [itemsPerPage, sortBy, filters]);
+
+  const handleRemoveFilter = (type: 'age' | 'duration' | 'language', value: string) => {
+    setFilters(prev => {
+      if (type === 'age') {
+        return { ...prev, ageCategories: prev.ageCategories.filter(v => v !== value) };
+      } else if (type === 'duration') {
+        return { ...prev, durations: prev.durations.filter(v => v !== value) };
+      } else {
+        return { ...prev, languages: prev.languages.filter(v => v !== value) };
+      }
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
@@ -51,21 +89,45 @@ export function HomeContent() {
           </p>
         </div>
 
-        {/* Items Per Page Selector */}
-        <div className="flex justify-end items-center gap-3">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Books per page:
-          </label>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => setItemsPerPage(Number(e.target.value))}
-            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={75}>75</option>
-            <option value={100}>100</option>
-          </select>
+        {/* Filters */}
+        <BookFilters filters={filters} onChange={setFilters} />
+
+        {/* Active Filters */}
+        <ActiveFilters filters={filters} onRemove={handleRemoveFilter} />
+
+        {/* Sort and Items Per Page Selector */}
+        <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Sort by:
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="popularity">Most Popular</option>
+              <option value="title">Title (A-Z)</option>
+              <option value="author">Author (A-Z)</option>
+              <option value="length">Shortest First</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Books per page:
+            </label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={75}>75</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
 
         {/* Error State */}
@@ -78,12 +140,7 @@ export function HomeContent() {
         )}
 
         {/* Loading State */}
-        {loading && (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading books...</p>
-          </div>
-        )}
+        {loading && <BookGridSkeleton count={itemsPerPage} />}
 
         {/* Book Grid */}
         {!loading && !error && books.length > 0 && (
@@ -99,10 +156,24 @@ export function HomeContent() {
 
         {/* Empty State */}
         {!loading && !error && books.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">
-              No books found. Try running the populate script to add books.
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
+            <div className="text-6xl mb-4">📚</div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              No books found
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              {filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0
+                ? 'Try adjusting your filters to see more results.'
+                : 'Try running the populate script to add books to your catalog.'}
             </p>
+            {(filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0) && (
+              <button
+                onClick={() => setFilters({ ageCategories: [], durations: [], languages: [] })}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
         )}
       </div>
