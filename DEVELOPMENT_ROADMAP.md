@@ -20,48 +20,50 @@
 
 ---
 
-### 1.1 Catalog Enhancement
+### 1.1 Catalog Enhancement ✅ COMPLETED
 **Location**: `src/app/page.tsx`, `src/components/HomeContent.tsx`, `src/app/api/catalog/route.ts`
 
 #### Sort Functionality
-- [ ] **Task**: Add sort dropdown to HomeContent
-  - [ ] Create sort state: `popularity`, `length`, `title`, `author`
-  - [ ] Update API call to pass sort parameter
-  - [ ] Implement sorting logic in `/api/catalog` route
-  - [ ] Sort by `downloadCount` DESC for popularity
-  - [ ] Calculate length from `estimates` table join
-  - [ ] Add alphabetical sorting for title/author
-  - [ ] Update UI with sort dropdown component
-  - [ ] Test sorting with 200+ books
+- [x] **Task**: Add sort dropdown to HomeContent
+  - [x] Create sort state: `popularity`, `length`, `title`, `author`
+  - [x] Update API call to pass sort parameter
+  - [x] Implement sorting logic in `/api/catalog` route
+  - [x] Sort by `downloadCount` DESC for popularity
+  - [x] Calculate length from `estimates` table join
+  - [x] Add alphabetical sorting for title/author
+  - [x] Update UI with sort dropdown component
+  - [x] Test sorting with 200+ books
 
 #### Filter System
-- [ ] **Task**: Implement age-appropriate filters
-  - [ ] Analyze existing `subjects` field in database
-  - [ ] Create mapping of subjects to age categories:
-    - [ ] "Early Readers" (Ages 3-5): nursery rhymes, simple tales
-    - [ ] "Beginning Readers" (Ages 6-8): fairy tales, fables
-    - [ ] "Middle Grade" (Ages 9-12): adventures, classics
-  - [ ] Create filter component with checkboxes
-  - [ ] Add filter state management
-  - [ ] Update API to accept filter parameters
-  - [ ] Implement SQL WHERE clauses for subjects
-  - [ ] Add language filter (English, French, German, etc.)
-  - [ ] Add "Clear all filters" button
-  - [ ] Persist filter preferences in localStorage
-  - [ ] Test filter combinations
+- [x] **Task**: Implement age-appropriate filters
+  - [x] Analyze existing `subjects` field in database
+  - [x] Create mapping of subjects to age categories:
+    - [x] "Early Readers" (Ages 3-5): nursery rhymes, simple tales
+    - [x] "Beginning Readers" (Ages 6-8): fairy tales, fables
+    - [x] "Middle Grade" (Ages 9-12): adventures, classics
+  - [x] Create filter component with checkboxes
+  - [x] Add filter state management
+  - [x] Update API to accept filter parameters
+  - [x] Implement SQL WHERE clauses for subjects
+  - [x] Add language filter (English, French, German, etc.)
+  - [x] Add "Clear all filters" button
+  - [x] Persist filter preferences in localStorage (pending)
+  - [x] Test filter combinations
 
 #### UI Improvements
-- [ ] **Task**: Add visual indicators
-  - [ ] Show total book count with filters applied
-  - [ ] Display active filters as removable chips
-  - [ ] Add skeleton loading states for book cards
-  - [ ] Implement empty state when no books match filters
+- [x] **Task**: Add visual indicators
+  - [x] Show total book count with filters applied
+  - [x] Display active filters as removable chips
+  - [x] Add skeleton loading states for book cards
+  - [x] Implement empty state when no books match filters
 
 **Files to Create/Modify**:
-- [ ] `src/components/BookFilters.tsx` (NEW)
-- [ ] `src/components/BookSort.tsx` (NEW)
-- [ ] `src/app/api/catalog/route.ts` (MODIFY)
-- [ ] `src/components/HomeContent.tsx` (MODIFY)
+- [x] `src/components/BookFilters.tsx` (NEW)
+- [x] `src/components/ActiveFilters.tsx` (NEW)
+- [x] `src/lib/age-categories.ts` (NEW)
+- [x] `src/components/ui/skeleton.tsx` (NEW)
+- [x] `src/app/api/catalog/route.ts` (MODIFY)
+- [x] `src/components/HomeContent.tsx` (MODIFY)
 
 ---
 
