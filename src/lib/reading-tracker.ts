@@ -132,9 +132,18 @@ export function estimateWordsFromCfi(
 }
 
 /**
+ * Check if we're in a browser environment
+ */
+function isBrowser(): boolean {
+  return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+}
+
+/**
  * Save reading session to localStorage
  */
 export function saveSessionToStorage(session: ReadingSession): void {
+  if (!isBrowser()) return;
+  
   try {
     const sessions = getSessionsFromStorage(session.bookId);
     sessions.push(session);
@@ -155,6 +164,8 @@ export function saveSessionToStorage(session: ReadingSession): void {
  * Get reading sessions from localStorage
  */
 export function getSessionsFromStorage(bookId: number): ReadingSession[] {
+  if (!isBrowser()) return [];
+  
   try {
     const data = localStorage.getItem(`reading_sessions_${bookId}`);
     return data ? JSON.parse(data) : [];
@@ -207,6 +218,8 @@ export function getReadingStats(bookId: number): {
  * Clear old sessions (older than 90 days)
  */
 export function clearOldSessions(): void {
+  if (!isBrowser()) return;
+  
   const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
   
   for (let i = 0; i < localStorage.length; i++) {
