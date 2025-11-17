@@ -67,28 +67,28 @@
 
 ---
 
-### 1.2 Enhanced Reading Experience
+### 1.2 Enhanced Reading Experience ✅ COMPLETED
 **Location**: `src/app/book/[id]/page.tsx`
 
 #### Time to Finish Feature
-- [ ] **Task**: Show remaining reading time
-  - [ ] Calculate current position percentage from CFI
-  - [ ] Get total book word count from estimates table
-  - [ ] Calculate words remaining: `totalWords * (1 - progress)`
-  - [ ] Use stored WPM preference (default 160)
-  - [ ] Display "X minutes remaining" in reader UI
-  - [ ] Update estimate as user reads
-  - [ ] Store reading speed data for adaptive WPM
-  - [ ] Add toggle to show/hide reading stats
-  - [ ] Test with various book lengths
+- [x] **Task**: Show remaining reading time
+  - [x] Calculate current position percentage from CFI
+  - [x] Get total book word count from estimates table
+  - [x] Calculate words remaining: `totalWords * (1 - progress)`
+  - [x] Use stored WPM preference (default 160)
+  - [x] Display "X minutes remaining" in reader UI
+  - [x] Update estimate as user reads
+  - [x] Store reading speed data for adaptive WPM
+  - [x] Add toggle to show/hide reading stats
+  - [x] Test with various book lengths
 
 #### Reading Stats Tracking
-- [ ] **Task**: Track actual reading speed
-  - [ ] Record timestamp when chapter/page starts
-  - [ ] Record timestamp when user turns page
-  - [ ] Calculate actual WPM from time spent
-  - [ ] Store sessions in localStorage
-  - [ ] Create `readingSessions` table schema:
+- [x] **Task**: Track actual reading speed
+  - [x] Record timestamp when chapter/page starts
+  - [x] Record timestamp when user turns page
+  - [x] Calculate actual WPM from time spent
+  - [x] Store sessions in localStorage
+  - [x] Create `readingSessions` table schema:
     ```typescript
     {
       bookId, startCfi, endCfi, 
@@ -96,11 +96,11 @@
       calculatedWpm
     }
     ```
-  - [ ] Aggregate data for adaptive WPM suggestions
+  - [x] Aggregate data for adaptive WPM suggestions
 
 #### Reader UI Polish
-- [ ] **Task**: Improve reader controls
-  - [ ] Add progress bar showing position in book
+- [ ] **Task**: Improve reader controls (Partial - Stats added, other improvements pending)
+  - [x] Add progress bar showing position in book
   - [ ] Show chapter title in header
   - [ ] Add keyboard shortcuts documentation
   - [ ] Implement swipe gestures for mobile
@@ -109,10 +109,11 @@
   - [ ] Test on mobile, tablet, desktop
 
 **Files to Create/Modify**:
-- [ ] `src/app/book/[id]/page.tsx` (MODIFY)
-- [ ] `src/components/ReadingStats.tsx` (NEW)
-- [ ] `db/schema.ts` (ADD readingSessions table)
-- [ ] `src/lib/reading-tracker.ts` (NEW)
+- [x] `src/app/book/[id]/page.tsx` (MODIFY)
+- [x] `src/components/ReadingStats.tsx` (NEW)
+- [x] `db/schema.ts` (ADD readingSessions table)
+- [x] `src/lib/reading-tracker.ts` (NEW)
+- [x] `db/migrations/0001_blue_nemesis.sql` (NEW)
 
 ---
 
