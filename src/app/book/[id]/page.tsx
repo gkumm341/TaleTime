@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import ePub, { Book, Rendition } from 'epubjs';
 import { get, set } from 'idb-keyval';
 import { Navigation } from '@/components/Navigation';
+import { ReadingStats } from '@/components/ReadingStats';
 import { Button } from '@/components/ui/button';
 import { 
   ChevronLeft, 
@@ -15,8 +16,17 @@ import {
   Moon,
   ZoomIn,
   ZoomOut,
-  BookOpen
+  BookOpen,
+  BarChart3
 } from 'lucide-react';
+import {
+  startReadingSession,
+  endReadingSession,
+  saveSessionToStorage,
+  getReadingStats,
+  estimateTimeToFinish,
+  type ReadingSession,
+} from '@/lib/reading-tracker';
 
 interface NavItem {
   label: string;
@@ -47,6 +57,16 @@ export default function BookReader() {
   const [currentPage, setCurrentPage] = useState(0); // 0: cover, 1: title, 2: toc, 3+: book content
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [isInCustomPages, setIsInCustomPages] = useState(true);
+
+  // Reading tracker state
+  const [showStats, setShowStats] = useState(false);
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [totalWords, setTotalWords] = useState<number | undefined>();
+  const [wordsRemaining, setWordsRemaining] = useState<number | undefined>();
+  const [minutesRemaining, setMinutesRemaining] = useState<number | undefined>();
+  const [readingWpm, setReadingWpm] = useState(160);
+  const [totalReadTime, setTotalReadTime] = useState(0);
+  const currentSessionRef = useRef<ReadingSession | null>(null);
 
   // Handle mounting to prevent hydration issues
   useEffect(() => {
@@ -91,6 +111,16 @@ export default function BookReader() {
         console.log('Book found:', meta.title);
         setTitle(meta.title);
         setAuthor(meta.authors || 'Unknown');
+        
+        // Set total words for progress tracking
+        if (meta.words) {
+          setTotalWords(meta.words);
+        }
+        
+        // Load reading stats
+        const stats = getReadingStats(parseInt(id));
+        setTotalReadTime(stats.totalTimeMinutes);
+        setReadingWpm(stats.averageWpm);
         
         // Set cover image from metadata
         if (meta.coverUrl) {
@@ -267,8 +297,27 @@ export default function BookReader() {
         // Save position on navigation (only when in book content)
         rendition.on('relocated', (location: any) => {
           if (location && location.start && !isInCustomPages) {
-            set(`cfi:${id}`, location.start.cfi);
+            const cfi = location.start.cfi;
+            set(`cfi:${id}`, cfi);
             setCurrentLocation(location.start.displayed.page + ' of ' + location.start.displayed.total);
+            
+            // Update progress tracking
+            if (location.start.percentage !== undefined) {
+              const percent = location.start.percentage * 100;
+              setProgressPercent(percent);
+              
+              // Calculate time remaining
+              if (totalWords && readingWpm) {
+                const remaining = estimateTimeToFinish(percent, totalWords, readingWpm);
+                setMinutesRemaining(remaining);
+                setWordsRemaining(Math.round(totalWords * (100 - percent) / 100));
+              }
+            }
+            
+            // Start a new session if not already tracking
+            if (!currentSessionRef.current) {
+              currentSessionRef.current = startReadingSession(parseInt(id), cfi);
+            }
           }
         });
 
@@ -285,8 +334,17 @@ export default function BookReader() {
     console.log('📖 Calling loadBook()...');
     loadBook();
 
+    // Cleanup and save session
     return () => {
       mounted = false;
+      
+      // Save current reading session
+      if (currentSessionRef.current) {
+        const completedSession = endReadingSession(currentSessionRef.current);
+        saveSessionToStorage(completedSession);
+        currentSessionRef.current = null;
+      }
+      
       if (renditionRef.current) {
         renditionRef.current.destroy();
       }
@@ -516,6 +574,18 @@ export default function BookReader() {
                   </Button>
                 )}
 
+                {/* Stats Button */}
+                {!isInCustomPages && (
+                  <Button
+                    onClick={() => setShowStats(!showStats)}
+                    variant={showStats ? 'default' : 'outline'}
+                    size="sm"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-1" />
+                    Stats
+                  </Button>
+                )}
+
                 {/* Home Button */}
                 <Button onClick={() => router.push('/')} variant="outline" size="sm">
                   <Home className="w-4 h-4 mr-1" />
@@ -524,6 +594,18 @@ export default function BookReader() {
               </div>
             </div>
           </div>
+
+          {/* Reading Stats Panel */}
+          {showStats && !isInCustomPages && (
+            <ReadingStats
+              progressPercent={progressPercent}
+              minutesRemaining={minutesRemaining}
+              totalTimeMinutes={totalReadTime}
+              averageWpm={readingWpm}
+              totalWords={totalWords}
+              wordsRemaining={wordsRemaining}
+            />
+          )}
 
           {/* Table of Contents Drawer */}
           {showToc && (

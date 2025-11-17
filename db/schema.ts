@@ -30,3 +30,16 @@ export const cacheManifest = sqliteTable('cache_manifest', {
   txtBlobKey: text('txt_blob_key'),
   lastChecked: integer('last_checked'),
 });
+
+export const readingSessions = sqliteTable('reading_sessions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bookId: integer('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().default('default'), // For future multi-user support
+  startCfi: text('start_cfi'),
+  endCfi: text('end_cfi'),
+  startTime: integer('start_time').notNull(), // Unix timestamp
+  endTime: integer('end_time').notNull(), // Unix timestamp
+  wordsRead: integer('words_read'),
+  calculatedWpm: integer('calculated_wpm'),
+  createdAt: integer('created_at').notNull(),
+});

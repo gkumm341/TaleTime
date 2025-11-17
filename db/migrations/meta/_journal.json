@@ -8,6 +8,13 @@
       "when": 1762464361654,
       "tag": "0000_remarkable_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1763418756632,
+      "tag": "0001_blue_nemesis",
+      "breakpoints": true
     }
   ]
 }
