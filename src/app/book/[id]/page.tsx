@@ -302,23 +302,56 @@ export default function BookReader() {
             set(`cfi:${id}`, cfi);
             setCurrentLocation(location.start.displayed.page + ' of ' + location.start.displayed.total);
             
+            console.log('📍 Relocated event:', {
+              cfi,
+              percentage: location.start.percentage,
+              page: location.start.displayed.page,
+              total: location.start.displayed.total,
+            });
+            
             // Update progress tracking
             if (location.start.percentage !== undefined) {
               const percent = location.start.percentage * 100;
               setProgressPercent(percent);
               console.log('📈 Progress updated:', percent.toFixed(2) + '%');
               
-              // Calculate time remaining
+              // Update current session with new position
+              if (currentSessionRef.current) {
+                currentSessionRef.current.endCfi = cfi;
+                currentSessionRef.current.endTime = Date.now();
+                const durationSeconds = Math.round((currentSessionRef.current.endTime - currentSessionRef.current.startTime) / 1000);
+                console.log('✏️ Updated session:', {
+                  duration: durationSeconds + 's',
+                  startCfi: currentSessionRef.current.startCfi,
+                  endCfi: cfi,
+                });
+                
+                // Periodically save the session (every page turn)
+                const sessionCopy = { ...currentSessionRef.current };
+                saveSessionToStorage(sessionCopy);
+                console.log('💾 Session saved to storage');
+                
+                // Recalculate stats from all sessions
+                const updatedStats = getReadingStats(parseInt(id));
+                console.log('📊 Stats recalculated:', updatedStats);
+                setTotalReadTime(updatedStats.totalTimeMinutes);
+                setReadingWpm(updatedStats.averageWpm);
+              }
+              
+              // Calculate time remaining with current stats
               if (totalWords && readingWpm) {
                 const remaining = estimateTimeToFinish(percent, totalWords, readingWpm);
                 setMinutesRemaining(remaining);
                 setWordsRemaining(Math.round(totalWords * (100 - percent) / 100));
-                console.log(`⏱️ Time remaining: ${remaining} minutes`);
+                console.log(`⏱️ Time remaining: ${remaining} minutes (${readingWpm} WPM, ${totalWords} words)`);
+              } else {
+                console.log('⚠️ Cannot calculate time: totalWords =', totalWords, 'readingWpm =', readingWpm);
               }
             }
             
             // Start a new session if not already tracking
             if (!currentSessionRef.current) {
+              console.log('🆕 Starting new reading session');
               currentSessionRef.current = startReadingSession(parseInt(id), cfi);
             }
           }
