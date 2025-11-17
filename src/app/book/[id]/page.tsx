@@ -119,6 +119,7 @@ export default function BookReader() {
         
         // Load reading stats
         const stats = getReadingStats(parseInt(id));
+        console.log('📊 Reading stats loaded:', stats);
         setTotalReadTime(stats.totalTimeMinutes);
         setReadingWpm(stats.averageWpm);
         
@@ -305,12 +306,14 @@ export default function BookReader() {
             if (location.start.percentage !== undefined) {
               const percent = location.start.percentage * 100;
               setProgressPercent(percent);
+              console.log('📈 Progress updated:', percent.toFixed(2) + '%');
               
               // Calculate time remaining
               if (totalWords && readingWpm) {
                 const remaining = estimateTimeToFinish(percent, totalWords, readingWpm);
                 setMinutesRemaining(remaining);
                 setWordsRemaining(Math.round(totalWords * (100 - percent) / 100));
+                console.log(`⏱️ Time remaining: ${remaining} minutes`);
               }
             }
             
