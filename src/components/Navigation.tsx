@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { FeedbackForm } from '@/components/FeedbackForm'
 import { useTheme } from '@/contexts/ThemeContext'
-import { Menu, X, BookOpen, Search, Heart, History, Home, Settings } from 'lucide-react'
+import { Menu, X, BookOpen, Search, Heart, History, Home, Settings, Moon, MessageSquare } from 'lucide-react'
 
 interface NavigationProps {
   className?: string
@@ -15,6 +16,7 @@ export function Navigation({ className }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isDev, setIsDev] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { isDarkMode } = useTheme()
@@ -26,6 +28,7 @@ export function Navigation({ className }: NavigationProps) {
 
   const navigationItems = [
     { href: '/', label: 'Home', icon: Home },
+    { href: '/bedtime', label: 'Bedtime', icon: Moon },
     { href: '/search', label: 'Browse', icon: Search },
     { href: '/favorites', label: 'Favorites', icon: Heart },
     { href: '/history', label: 'History', icon: History },
@@ -102,6 +105,15 @@ export function Navigation({ className }: NavigationProps) {
               🧹
             </Button>
           )}
+          <Button
+            variant="ghost"
+            onClick={() => setShowFeedback(true)}
+            className="flex items-center gap-2"
+            title="Send Feedback"
+          >
+            <MessageSquare size={18} />
+            <span className="hidden xl:inline">Feedback</span>
+          </Button>
           <ThemeToggle />
         </div>
       </nav>
@@ -197,6 +209,9 @@ export function Navigation({ className }: NavigationProps) {
           </div>
         </>
       )}
+      
+      {/* Feedback Form Modal */}
+      {showFeedback && <FeedbackForm onClose={() => setShowFeedback(false)} />}
     </>
   )
 }
