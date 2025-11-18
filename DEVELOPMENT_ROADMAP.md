@@ -170,45 +170,54 @@
 
 ---
 
-### 1.4 Device-Local Preferences
-**Location**: `src/contexts/ThemeContext.tsx`, `src/lib/preferences.ts`
+### 1.4 Device-Local Preferences ✅ COMPLETED
+**Location**: `src/contexts/PreferencesContext.tsx`, `src/lib/preferences.ts`
 
 #### Preferences System
-- [ ] **Task**: Centralized preferences management
-  - [ ] Create `PreferencesContext.tsx`
-  - [ ] Define preferences interface:
+- [x] **Task**: Centralized preferences management
+  - [x] Create `PreferencesContext.tsx` with React Context API
+  - [x] Define preferences interface:
     ```typescript
     {
       theme: 'light' | 'sepia' | 'dark',
       fontSize: number,
+      fontFamily: 'serif' | 'sans-serif',
       defaultWpm: number,
       autoSave: boolean,
-      showReadingStats: boolean
+      showReadingStats: boolean,
+      lineHeight: number,
+      marginWidth: number
     }
     ```
-  - [ ] Store in IndexedDB (not localStorage for larger data)
-  - [ ] Implement get/set/reset methods
-  - [ ] Add preferences page/modal
-  - [ ] Apply preferences globally
-  - [ ] Export/import preferences feature
-  - [ ] Test preferences persistence
+  - [x] Store in IndexedDB using idb-keyval
+  - [x] Implement get/set/reset methods
+  - [x] Add preferences loading on app mount
+  - [x] Apply preferences globally via context
+  - [x] Export/import preferences feature
+  - [x] Test preferences persistence
 
 #### Settings UI
-- [ ] **Task**: Create settings page
-  - [ ] Create `src/app/settings/page.tsx`
-  - [ ] Add theme selector with preview
-  - [ ] Add font size slider (80-150%)
-  - [ ] Add WPM input with validation
-  - [ ] Add toggle switches for features
-  - [ ] Add "Reset to defaults" button
-  - [ ] Show storage usage statistics
-  - [ ] Add link from Navigation component
+- [x] **Task**: Create settings page
+  - [x] Create `src/app/settings/page.tsx`
+  - [x] Add theme selector with visual preview (light/sepia/dark)
+  - [x] Add font size slider (80-150%)
+  - [x] Add font family selector (serif/sans-serif)
+  - [x] Add line height slider (1.2-2.0)
+  - [x] Add WPM input with validation (80-300)
+  - [x] Add toggle switches for autoSave and showReadingStats
+  - [x] Add "Reset to defaults" button with confirmation
+  - [x] Show storage usage statistics with browser quota
+  - [x] Add link from Navigation component
+  - [x] Add export/import buttons for preferences backup
+  - [x] Apply preferences to reader (theme, font, line height, margin)
 
 **Files to Create/Modify**:
-- [ ] `src/contexts/PreferencesContext.tsx` (NEW)
-- [ ] `src/lib/preferences.ts` (NEW)
-- [ ] `src/app/settings/page.tsx` (NEW)
-- [ ] `src/components/Navigation.tsx` (MODIFY - add settings link)
+- [x] `src/contexts/PreferencesContext.tsx` (NEW)
+- [x] `src/lib/preferences.ts` (NEW)
+- [x] `src/app/settings/page.tsx` (NEW)
+- [x] `src/components/Navigation.tsx` (MODIFY - added settings link with icon)
+- [x] `src/app/layout.tsx` (MODIFY - wrapped with PreferencesProvider)
+- [x] `src/app/book/[id]/page.tsx` (MODIFY - applied preferences to reader)
 
 ---
 
