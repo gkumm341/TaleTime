@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Download } from 'lucide-react';
 import { preloadEpub, prefetchBookMetadata } from '@/lib/epub-preloader';
 
 interface Book {
@@ -14,6 +15,7 @@ interface Book {
   minutes?: number;
   words?: number;
   txtUrl?: string;
+  isCached?: boolean;
 }
 
 export function BookGrid({ initialBooks }: { initialBooks: Book[] }) {
@@ -112,6 +114,11 @@ export function BookGrid({ initialBooks }: { initialBooks: Book[] }) {
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               />
+              {book.isCached && (
+                <div className="absolute top-2 right-2 bg-green-600 text-white rounded-full p-1.5 shadow-lg" title="Available offline">
+                  <Download className="w-4 h-4" />
+                </div>
+              )}
             </div>
           )}
           

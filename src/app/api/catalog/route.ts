@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { books, estimates } from '@/db/schema';
+import { books, estimates, cacheManifest } from '@/db/schema';
 import { eq, sql, like, and, or } from 'drizzle-orm';
 
 export const runtime = 'nodejs'; // Required for SQLite
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   const languages = searchParams.get('languages')?.split(',').filter(Boolean) || [];
   const durations = searchParams.get('durations')?.split(',').filter(Boolean) || [];
   const ageCategories = searchParams.get('ageCategories')?.split(',').filter(Boolean) || [];
+  const offlineOnly = searchParams.get('offlineOnly') === 'true';
   const limit = Math.min(
     parseInt(searchParams.get('limit') || String(DEFAULT_ITEMS_PER_PAGE)),
     MAX_ITEMS_PER_PAGE
@@ -37,9 +38,11 @@ export async function GET(req: NextRequest) {
           downloadCount: books.downloadCount,
           minutes: estimates.minutes,
           words: estimates.words,
+          isCached: cacheManifest.epubBlobKey,
         })
         .from(books)
         .leftJoin(estimates, eq(books.id, estimates.bookId))
+        .leftJoin(cacheManifest, eq(books.id, cacheManifest.bookId))
         .where(eq(books.id, parseInt(bookId)))
         .limit(1);
 
@@ -66,6 +69,7 @@ export async function GET(req: NextRequest) {
           downloadCount: result.downloadCount,
           minutes: result.minutes,
           words: result.words,
+          isCached: !!result.isCached,
         }],
       });
     }
@@ -112,6 +116,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Offline filter
+    if (offlineOnly) {
+      conditions.push(sql`${cacheManifest.epubBlobKey} IS NOT NULL`);
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Determine sort order
@@ -145,9 +154,11 @@ export async function GET(req: NextRequest) {
         downloadCount: books.downloadCount,
         minutes: estimates.minutes,
         words: estimates.words,
+        isCached: cacheManifest.epubBlobKey,
       })
       .from(books)
       .leftJoin(estimates, eq(books.id, estimates.bookId))
+      .leftJoin(cacheManifest, eq(books.id, cacheManifest.bookId))
       .where(whereClause)
       .orderBy(orderByClause)
       .limit(limit)
@@ -196,6 +207,7 @@ export async function GET(req: NextRequest) {
       downloadCount: book.downloadCount,
       minutes: book.minutes,
       words: book.words,
+      isCached: !!book.isCached,
     }));
 
     return NextResponse.json({

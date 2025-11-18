@@ -8,6 +8,7 @@ export interface FilterState {
   ageCategories: string[];
   durations: string[];
   languages: string[];
+  offlineOnly: boolean;
 }
 
 interface BookFiltersProps {
@@ -43,13 +44,14 @@ export function BookFilters({ filters, onChange }: BookFiltersProps) {
   };
 
   const clearAll = () => {
-    onChange({ ageCategories: [], durations: [], languages: [] });
+    onChange({ ageCategories: [], durations: [], languages: [], offlineOnly: false });
   };
 
   const hasActiveFilters = 
     filters.ageCategories.length > 0 || 
     filters.durations.length > 0 || 
-    filters.languages.length > 0;
+    filters.languages.length > 0 ||
+    filters.offlineOnly;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-4">
@@ -61,7 +63,7 @@ export function BookFilters({ filters, onChange }: BookFiltersProps) {
           {isExpanded ? '▼' : '▶'} Filters
           {hasActiveFilters && (
             <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
-              ({filters.ageCategories.length + filters.durations.length + filters.languages.length} active)
+              ({filters.ageCategories.length + filters.durations.length + filters.languages.length + (filters.offlineOnly ? 1 : 0)} active)
             </span>
           )}
         </button>
@@ -79,6 +81,21 @@ export function BookFilters({ filters, onChange }: BookFiltersProps) {
 
       {isExpanded && (
         <div className="space-y-6">
+          {/* Offline Only */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.offlineOnly}
+                onChange={(e) => onChange({ ...filters, offlineOnly: e.target.checked })}
+                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+              />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                📥 Available offline only
+              </span>
+            </label>
+          </div>
+
           {/* Age Categories */}
           <div>
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

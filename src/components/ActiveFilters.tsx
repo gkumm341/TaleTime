@@ -6,14 +6,15 @@ import type { FilterState } from './BookFilters';
 
 interface ActiveFiltersProps {
   filters: FilterState;
-  onRemove: (type: 'age' | 'duration' | 'language', value: string) => void;
+  onRemove: (type: 'age' | 'duration' | 'language' | 'offline', value: string) => void;
 }
 
 export function ActiveFilters({ filters, onRemove }: ActiveFiltersProps) {
   const hasActiveFilters = 
     filters.ageCategories.length > 0 || 
     filters.durations.length > 0 || 
-    filters.languages.length > 0;
+    filters.languages.length > 0 ||
+    filters.offlineOnly;
 
   if (!hasActiveFilters) return null;
 
@@ -81,6 +82,21 @@ export function ActiveFilters({ filters, onRemove }: ActiveFiltersProps) {
           </span>
         );
       })}
+
+      {filters.offlineOnly && (
+        <span
+          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200"
+        >
+          📥 Available offline
+          <button
+            onClick={() => onRemove('offline', '')}
+            className="hover:bg-emerald-200 dark:hover:bg-emerald-800 rounded-full p-0.5"
+            aria-label="Remove offline filter"
+          >
+            <X size={14} />
+          </button>
+        </span>
+      )}
     </div>
   );
 }

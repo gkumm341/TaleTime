@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { BookGrid } from '@/components/BookGrid';
 import { BookFilters, FilterState } from '@/components/BookFilters';
 import { ActiveFilters } from '@/components/ActiveFilters';
+import { StorageInfo } from '@/components/StorageInfo';
 import { BookGridSkeleton } from '@/components/ui/skeleton';
 import { Select } from '@/components/ui/select';
 
@@ -17,6 +18,7 @@ export function HomeContent() {
     ageCategories: [],
     durations: [],
     languages: [],
+    offlineOnly: false,
   });
 
   useEffect(() => {
@@ -41,6 +43,9 @@ export function HomeContent() {
         if (filters.languages.length > 0) {
           params.set('languages', filters.languages.join(','));
         }
+        if (filters.offlineOnly) {
+          params.set('offlineOnly', 'true');
+        }
 
         const response = await fetch(`/api/catalog?${params.toString()}`, { 
           cache: 'no-store' 
@@ -63,15 +68,18 @@ export function HomeContent() {
     fetchBooks();
   }, [itemsPerPage, sortBy, filters]);
 
-  const handleRemoveFilter = (type: 'age' | 'duration' | 'language', value: string) => {
+  const handleRemoveFilter = (type: 'age' | 'duration' | 'language' | 'offline', value: string) => {
     setFilters(prev => {
       if (type === 'age') {
         return { ...prev, ageCategories: prev.ageCategories.filter(v => v !== value) };
       } else if (type === 'duration') {
         return { ...prev, durations: prev.durations.filter(v => v !== value) };
-      } else {
+      } else if (type === 'language') {
         return { ...prev, languages: prev.languages.filter(v => v !== value) };
+      } else if (type === 'offline') {
+        return { ...prev, offlineOnly: false };
       }
+      return prev;
     });
   };
 
@@ -91,6 +99,9 @@ export function HomeContent() {
 
         {/* Filters */}
         <BookFilters filters={filters} onChange={setFilters} />
+
+        {/* Storage Info */}
+        <StorageInfo />
 
         {/* Active Filters */}
         <ActiveFilters filters={filters} onRemove={handleRemoveFilter} />
@@ -162,13 +173,13 @@ export function HomeContent() {
               No books found
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0
+              {filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly
                 ? 'Try adjusting your filters to see more results.'
                 : 'Try running the populate script to add books to your catalog.'}
             </p>
-            {(filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0) && (
+            {(filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly) && (
               <button
-                onClick={() => setFilters({ ageCategories: [], durations: [], languages: [] })}
+                onClick={() => setFilters({ ageCategories: [], durations: [], languages: [], offlineOnly: false })}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Clear all filters
