@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useTheme } from '@/contexts/ThemeContext'
-import { Menu, X, BookOpen, Search, Heart, History, Home } from 'lucide-react'
+import { Menu, X, BookOpen, Search, Heart, History, Home, Settings } from 'lucide-react'
 
 interface NavigationProps {
   className?: string
@@ -29,6 +29,7 @@ export function Navigation({ className }: NavigationProps) {
     { href: '/search', label: 'Browse', icon: Search },
     { href: '/favorites', label: 'Favorites', icon: Heart },
     { href: '/history', label: 'History', icon: History },
+    { href: '/settings', label: 'Settings', icon: Settings },
   ]
 
   const isActive = (href: string) => {

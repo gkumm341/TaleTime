@@ -7,6 +7,7 @@ import { get, set } from 'idb-keyval';
 import { Navigation } from '@/components/Navigation';
 import { ReadingStats } from '@/components/ReadingStats';
 import { Button } from '@/components/ui/button';
+import { usePreferences } from '@/contexts/PreferencesContext';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -38,6 +39,7 @@ export default function BookReader() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { preferences } = usePreferences();
   
   const viewerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<Book | null>(null);
@@ -67,6 +69,16 @@ export default function BookReader() {
   const [readingWpm, setReadingWpm] = useState(160);
   const [totalReadTime, setTotalReadTime] = useState(0);
   const currentSessionRef = useRef<ReadingSession | null>(null);
+
+  // Apply preferences on load
+  useEffect(() => {
+    if (preferences) {
+      setTheme(preferences.theme);
+      setFontSize(preferences.fontSize);
+      setShowStats(preferences.showReadingStats);
+      setReadingWpm(preferences.defaultWpm);
+    }
+  }, [preferences]);
 
   // Handle mounting to prevent hydration issues
   useEffect(() => {
@@ -414,12 +426,22 @@ export default function BookReader() {
 
     rendition.themes.default(themes[themeName]);
     
-    // Hide common Project Gutenberg boilerplate sections
+    // Apply font preferences
+    const fontFamily = preferences.fontFamily === 'serif' 
+      ? 'Georgia, "Times New Roman", serif'
+      : '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    
     rendition.themes.default({
+      'body': {
+        'font-family': `${fontFamily} !important`,
+        'line-height': `${preferences.lineHeight} !important`,
+        'padding': `0 ${preferences.marginWidth}% !important`,
+      },
       'p': {
         'text-align': 'left !important',
+        'font-family': `${fontFamily} !important`,
       },
-      // Hide elements containing "Project Gutenberg" or typical legal notices
+      // Hide common Project Gutenberg boilerplate sections
       '.pgheader, .pglegal, .pgfooter': {
         'display': 'none !important',
       },
@@ -428,6 +450,9 @@ export default function BookReader() {
         'font-size': 'inherit !important',
       }
     });
+    
+    // Apply font size
+    rendition.themes.fontSize(`${fontSize}%`);
   };
 
   const changeTheme = (newTheme: 'light' | 'sepia' | 'dark') => {

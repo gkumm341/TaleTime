@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import { ThemeProvider } from "@/contexts/ThemeContext"
+import { PreferencesProvider } from "@/contexts/PreferencesContext"
 import { PWAInstallPrompt, OfflineBanner } from "@/components/PWAComponents"
 import { CacheManager } from "@/components/CacheManager"
 
@@ -78,12 +79,14 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#3b82f6" />
       </head>
       <body className="antialiased">
-        <ThemeProvider>
-          <CacheManager />
-          <OfflineBanner />
-          {children}
-          <PWAInstallPrompt />
-        </ThemeProvider>
+        <PreferencesProvider>
+          <ThemeProvider>
+            <CacheManager />
+            <OfflineBanner />
+            {children}
+            <PWAInstallPrompt />
+          </ThemeProvider>
+        </PreferencesProvider>
       </body>
     </html>
   )
