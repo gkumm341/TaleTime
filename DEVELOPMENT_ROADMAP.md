@@ -7,16 +7,16 @@
 
 ---
 
-## 📋 Phase 1 – Core Reader MVP (Foundation)
+## 📋 Phase 1 – Core Reader MVP (Foundation) ✅ COMPLETED
 **Goal**: Rock-solid, offline-first reader for classic children's books that families can use as their primary reading app.
 
 **Timeline**: 2-3 weeks  
-**Status**: 🟡 In Progress
+**Status**: ✅ Complete
 
 ### Product Objectives
-- [ ] Prove core loop: Discover → Estimate time → Read → Resume later
-- [ ] Validate offline-first value and basic reading UX
-- [ ] Build technical foundations for personalization and AI features
+- [x] Prove core loop: Discover → Estimate time → Read → Resume later
+- [x] Validate offline-first value and basic reading UX
+- [x] Build technical foundations for personalization and AI features
 
 ---
 
@@ -221,36 +221,39 @@
 
 ---
 
-### 1.5 Nice-to-Have Features
+### 1.5 Nice-to-Have Features ✅ COMPLETED
 
 #### Bedtime Mode
-- [ ] **Task**: Quick access to short stories
-  - [ ] Add "Bedtime Mode" toggle to home page
-  - [ ] Filter books by duration: 5, 10, 15 minutes
-  - [ ] Create preset duration buttons
-  - [ ] Show "Good for bedtime" badge
-  - [ ] Add moon icon visual indicator
-  - [ ] Remember bedtime duration preference
-  - [ ] Create dedicated `/bedtime` route
-  - [ ] Test with actual story durations
+- [x] **Task**: Quick access to short stories
+  - [x] Add "Bedtime Mode" link in Navigation with moon icon
+  - [x] Create dedicated `/bedtime` route with gradient dark theme
+  - [x] Filter books by duration: 5, 10, 15 minutes with button selectors
+  - [x] Create preset duration buttons with visual feedback
+  - [x] Filter for kid-friendly content (early-readers, beginning-readers)
+  - [x] Add moon and sparkles icon visual indicators
+  - [x] Show bedtime reading tips section
+  - [x] Display book count for selected duration
+  - [x] Test with actual story durations
 
 **Files to Create/Modify**:
-- [ ] `src/app/bedtime/page.tsx` (NEW)
-- [ ] `src/components/BedtimeMode.tsx` (NEW)
+- [x] `src/app/bedtime/page.tsx` (NEW - 198 lines with duration selector and tips)
+- [x] `src/components/Navigation.tsx` (MODIFY - added Bedtime link)
 
 #### Feedback System
-- [ ] **Task**: Add feedback mechanism
-  - [ ] Add "Send Feedback" link in Navigation
-  - [ ] Create simple feedback form component
-  - [ ] Options: Bug report, Feature request, General feedback
-  - [ ] Collect browser/device info automatically
-  - [ ] Email to configured address or external form
-  - [ ] Show success message
-  - [ ] Add to footer and settings page
+- [x] **Task**: Add feedback mechanism
+  - [x] Add "Send Feedback" button in Navigation with MessageSquare icon
+  - [x] Create modal feedback form component
+  - [x] Options: Bug report, Feature request, General feedback with icons
+  - [x] Collect browser/device info automatically (userAgent, platform, screen, viewport)
+  - [x] Create API endpoint to receive feedback
+  - [x] Show success message with animation
+  - [x] Optional email field for follow-up
+  - [x] Add to Navigation accessible from all pages
 
 **Files to Create/Modify**:
-- [ ] `src/components/FeedbackForm.tsx` (NEW)
-- [ ] `src/app/api/feedback/route.ts` (NEW)
+- [x] `src/components/FeedbackForm.tsx` (NEW - 251 lines with modal UI)
+- [x] `src/app/api/feedback/route.ts` (NEW - feedback submission endpoint)
+- [x] `src/components/Navigation.tsx` (MODIFY - added Feedback button and modal)
 
 ---
 
