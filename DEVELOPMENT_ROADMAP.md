@@ -117,11 +117,11 @@
 
 ---
 
-### 1.3 Offline Enhancements
+### 1.3 Offline Enhancements ✅ COMPLETED
 **Location**: `public/sw.js`, `src/lib/cache-utils.ts`, `public/manifest.json`
 
 #### PWA Shell Caching
-- [ ] **Task**: Implement comprehensive service worker
+- [ ] **Task**: Implement comprehensive service worker (DEFERRED)
   - [ ] Review current `sw.js` implementation
   - [ ] Add caching strategies:
     - [ ] Cache-first for static assets
@@ -133,18 +133,21 @@
   - [ ] Test offline mode thoroughly
 
 #### Offline Badge System
-- [ ] **Task**: Show which books are available offline
-  - [ ] Query `cacheManifest` table for cached books
-  - [ ] Add "Downloaded" badge to BookGrid cards
-  - [ ] Show download icon when book is cached
-  - [ ] Add "Available offline" filter option
-  - [ ] Create download progress indicator
-  - [ ] Implement manual download button per book
-  - [ ] Show total offline storage used
-  - [ ] Add "Manage downloads" section
+- [x] **Task**: Show which books are available offline
+  - [x] Query `cacheManifest` table for cached books
+  - [x] Add "Downloaded" badge to BookGrid cards with green icon
+  - [x] Show download icon when book is cached
+  - [x] Add "Available offline" filter option
+  - [x] Filter books by offline status in catalog API
+  - [x] Show total offline storage used
+  - [x] Display storage info with book count and MB used
+  - [x] Add browser storage estimate with quota display
+  - [ ] Create download progress indicator (DEFERRED)
+  - [ ] Implement manual download button per book (DEFERRED)
+  - [ ] Add "Manage downloads" section (DEFERRED)
 
 #### IndexedDB Optimization
-- [ ] **Task**: Improve caching efficiency
+- [ ] **Task**: Improve caching efficiency (DEFERRED)
   - [ ] Implement cache size limits (e.g., 500MB max)
   - [ ] Add LRU eviction policy
   - [ ] Create cache health check on app load
@@ -154,11 +157,16 @@
   - [ ] Test with large EPUB files (>10MB)
 
 **Files to Create/Modify**:
-- [ ] `public/sw.js` (MODIFY)
-- [ ] `src/lib/cache-utils.ts` (MODIFY)
-- [ ] `src/components/OfflineBadge.tsx` (NEW)
-- [ ] `src/components/DownloadManager.tsx` (NEW)
-- [ ] `public/manifest.json` (MODIFY)
+- [ ] `public/sw.js` (MODIFY - DEFERRED)
+- [x] `src/lib/storage-utils.ts` (NEW)
+- [x] `src/components/StorageInfo.tsx` (NEW)
+- [x] `src/components/BookGrid.tsx` (MODIFY - added isCached badge)
+- [x] `src/components/BookFilters.tsx` (MODIFY - added offlineOnly filter)
+- [x] `src/components/ActiveFilters.tsx` (MODIFY - added offline chip)
+- [x] `src/components/HomeContent.tsx` (MODIFY - added StorageInfo component)
+- [x] `src/app/api/catalog/route.ts` (MODIFY - added offline filtering)
+- [ ] `src/components/DownloadManager.tsx` (NEW - DEFERRED)
+- [ ] `public/manifest.json` (MODIFY - DEFERRED)
 
 ---
 
