@@ -161,6 +161,37 @@ export function saveSessionToStorage(session: ReadingSession): void {
 }
 
 /**
+ * Update reading history in database
+ */
+export async function updateReadingHistory(
+  bookId: number,
+  currentCfi: string,
+  progressPercent: number
+): Promise<void> {
+  try {
+    const sessions = getSessionsFromStorage(bookId);
+    const totalTimeMs = sessions.reduce(
+      (sum, s) => sum + (s.endTime - s.startTime),
+      0
+    );
+    const totalMinutes = Math.round(totalTimeMs / 1000 / 60);
+
+    await fetch('/api/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookId,
+        currentCfi,
+        progressPercent: Math.round(progressPercent),
+        totalReadingTime: totalMinutes,
+      }),
+    });
+  } catch (error) {
+    console.error('Failed to update reading history:', error);
+  }
+}
+
+/**
  * Get reading sessions from localStorage
  */
 export function getSessionsFromStorage(bookId: number): ReadingSession[] {

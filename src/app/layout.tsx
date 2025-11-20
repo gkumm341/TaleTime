@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import "./globals.css"
-import { ThemeProvider } from "@/contexts/ThemeContext"
-import { PreferencesProvider } from "@/contexts/PreferencesContext"
-import { PWAInstallPrompt, OfflineBanner } from "@/components/PWAComponents"
-import { CacheManager } from "@/components/CacheManager"
+import { Providers } from "@/components/Providers"
 
 export const metadata: Metadata = {
   title: "TaleTime - Find Your Perfect Story",
@@ -79,14 +76,9 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#3b82f6" />
       </head>
       <body className="antialiased">
-        <PreferencesProvider>
-          <ThemeProvider>
-            <CacheManager />
-            <OfflineBanner />
-            {children}
-            <PWAInstallPrompt />
-          </ThemeProvider>
-        </PreferencesProvider>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )

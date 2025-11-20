@@ -33,7 +33,13 @@ export async function preloadEpub(bookId: number, epubUrl: string) {
     const response = await fetch(proxyUrl);
 
     if (!response.ok) {
-      throw new Error(`Failed to preload: ${response.status}`);
+      // Don't throw error for 404s - just log and skip
+      if (response.status === 404) {
+        console.warn(`Book ${bookId} EPUB not found (404) - skipping preload`);
+        return;
+      }
+      console.error(`Failed to preload book ${bookId}: ${response.status}`);
+      return;
     }
 
     const blob = await response.blob();
@@ -43,7 +49,8 @@ export async function preloadEpub(bookId: number, epubUrl: string) {
     console.log(`Book ${bookId} pre-downloaded and cached`);
 
   } catch (error) {
-    console.error(`Failed to preload book ${bookId}:`, error);
+    // Silently handle errors - preloading is optional
+    console.warn(`Failed to preload book ${bookId}:`, error);
   } finally {
     preloadingBooks.delete(bookId);
   }

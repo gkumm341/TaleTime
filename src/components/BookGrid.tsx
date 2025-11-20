@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Download } from 'lucide-react';
 import { preloadEpub, prefetchBookMetadata } from '@/lib/epub-preloader';
+import FavoriteButton from './FavoriteButton';
 
 interface Book {
   id: number;
@@ -16,6 +17,7 @@ interface Book {
   words?: number;
   txtUrl?: string;
   isCached?: boolean;
+  subjects?: string[];
 }
 
 export function BookGrid({ initialBooks }: { initialBooks: Book[] }) {
@@ -72,8 +74,8 @@ export function BookGrid({ initialBooks }: { initialBooks: Book[] }) {
   }, [initialBooks]);
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {books.map((book) => (
+    <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {books.map((book, index) => (
         <Link
           key={book.id}
           href={`/book/${book.id}`}
@@ -103,45 +105,59 @@ export function BookGrid({ initialBooks }: { initialBooks: Book[] }) {
               }
             }
           }}
-          className="group rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-800"
+          className="group rounded-2xl border-2 border-pink-200/50 dark:border-pink-900/50 overflow-hidden hover:shadow-2xl hover:shadow-pink-300/50 dark:hover:shadow-pink-900/50 transition-all duration-500 bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 hover:border-pink-400 dark:hover:border-pink-600 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700"
+          style={{ animationDelay: `${index * 50}ms` }}
         >
           {book.coverUrl && (
-            <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-700">
+            <div className="relative w-full h-32 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
               <Image
                 src={book.coverUrl}
                 alt={book.title}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                className="object-cover group-hover:scale-110 group-hover:rotate-2 transition-all duration-700"
+                sizes="20vw"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-pink-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               {book.isCached && (
-                <div className="absolute top-2 right-2 bg-green-600 text-white rounded-full p-1.5 shadow-lg" title="Available offline">
-                  <Download className="w-4 h-4" />
+                <div className="absolute top-1 right-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full p-1.5 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all" title="Available offline">
+                  <Download className="w-3 h-3" />
                 </div>
               )}
+              {/* Favorite button - top left */}
+              <div className="absolute top-1 left-1 z-10" onClick={(e) => e.preventDefault()}>
+                <FavoriteButton bookId={book.id} size="sm" />
+              </div>
             </div>
           )}
           
-          <div className="p-4 space-y-2">
-            <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <div className="p-2 space-y-1 relative">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-pink-400/10 to-purple-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+            <h3 className="font-bold text-xs lg:text-lg line-clamp-2 group-hover:bg-gradient-to-r group-hover:from-pink-600 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all relative z-10">
               {book.title}
             </h3>
             
-            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
+            <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 font-medium relative z-10 lg:flex items-center gap-1.5">
+              <span className="text-xs lg:text-base">✍️</span>
               {book.authors}
             </p>
             
-            <div className="flex items-center gap-2 text-xs pt-2">
+            {book.subjects && book.subjects.length > 0 && (
+              <p className="hidden lg:block text-xs text-gray-500 dark:text-gray-400 line-clamp-2 relative z-10 pt-1">
+                {book.subjects.slice(0, 2).join(', ')}
+              </p>
+            )}
+            
+            <div className="hidden lg:flex items-center gap-2 text-xs pt-2 relative z-10">
               {book.minutes ? (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-100 to-pink-100 dark:from-rose-900 dark:to-pink-900 text-rose-800 dark:text-rose-200 font-semibold shadow-md hover:shadow-lg transition-shadow border border-rose-200 dark:border-rose-800">
                   📖 {book.minutes} min
                 </span>
               ) : loading.has(book.id) ? (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 animate-pulse">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 animate-pulse font-semibold">
                   ⏳ Estimating...
                 </span>
               ) : (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
                   📖 Estimate pending
                 </span>
               )}

@@ -63,15 +63,15 @@ export function Navigation({ className }: NavigationProps) {
       {/* Desktop Navigation */}
       <nav className={`hidden lg:flex items-center justify-between p-4 backdrop-blur-md border-b transition-colors duration-300 ${
         isDarkMode 
-          ? 'bg-gray-900/90 border-gray-700' 
-          : 'bg-white/80 border-gray-200'
+          ? 'bg-gray-900/90 border-pink-900/50' 
+          : 'bg-white/80 border-pink-200'
       } ${className}`}>
         <div className="flex items-center gap-8">
           <button
             onClick={() => handleNavigation('/')}
-            className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:scale-105 transition-transform"
+            className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent hover:scale-105 transition-transform"
           >
-            <BookOpen className="text-blue-600" size={24} />
+            <BookOpen className="text-pink-600" size={24} />
             TaleTime
           </button>
           

@@ -7,6 +7,8 @@ import { ActiveFilters } from '@/components/ActiveFilters';
 import { StorageInfo } from '@/components/StorageInfo';
 import { BookGridSkeleton } from '@/components/ui/skeleton';
 import { Select } from '@/components/ui/select';
+import ContinueReading from '@/components/ContinueReading';
+import { Sidebar } from '@/components/Sidebar';
 
 export function HomeContent() {
   const [books, setBooks] = useState<any[]>([]);
@@ -84,24 +86,53 @@ export function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white">
+    <div className="min-h-screen relative">
+      {/* Background Image with Overlay */}
+      <div className="fixed inset-0 z-0">
+        <img 
+          src="/girl.jpg" 
+          alt="Background" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/85 via-pink-50/90 to-purple-50/85 dark:from-gray-900/90 dark:via-purple-900/80 dark:to-gray-900/90 backdrop-blur-sm"></div>
+      </div>
+
+      {/* Responsive Sidebar Navigation */}
+      <Sidebar activePage="home">
+        {/* Filters */}
+        <div className="pt-4 border-t border-pink-300/30 dark:border-pink-900/30">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-lg">🎯</span>
+            <h3 className="text-sm font-semibold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">Find Your Story</h3>
+          </div>
+          <BookFilters filters={filters} onChange={setFilters} />
+        </div>
+        
+        {/* Storage Info */}
+        <div className="pt-4 border-t border-pink-300/30 dark:border-pink-900/30 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 dark:from-emerald-900/20 dark:to-teal-900/20 p-3 rounded-lg">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-base">📚</span>
+            <h3 className="text-xs font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Your Library</h3>
+          </div>
+          <StorageInfo />
+        </div>
+      </Sidebar>
+
+      {/* Main Content */}
+      <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Mobile Header - TaleTime Logo */}
+        <div className="md:hidden text-center mb-6 animate-in fade-in slide-in-from-top duration-700">
+          <div className="text-5xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
+          <h1 className="text-4xl font-black bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg">
             TaleTime
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Browse classic children's books with reading-time estimates. 
-            Download and read EPUBs offline with your personalized reading preferences.
-          </p>
+          <p className="text-sm font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mt-2">Your story telling companion</p>
         </div>
-
-        {/* Filters */}
-        <BookFilters filters={filters} onChange={setFilters} />
-
-        {/* Storage Info */}
-        <StorageInfo />
+        
+        {/* Continue Reading Widget */}
+        <ContinueReading />
 
         {/* Active Filters */}
         <ActiveFilters filters={filters} onRemove={handleRemoveFilter} />
@@ -115,7 +146,7 @@ export function HomeContent() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 rounded-lg border border-pink-200 dark:border-pink-800 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-400 focus:border-transparent shadow-sm"
             >
               <option value="popularity">Most Popular</option>
               <option value="title">Title (A-Z)</option>
@@ -131,7 +162,7 @@ export function HomeContent() {
             <select
               value={itemsPerPage}
               onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 rounded-lg border border-pink-200 dark:border-pink-800 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-400 focus:border-transparent shadow-sm"
             >
               <option value={25}>25</option>
               <option value={50}>50</option>
@@ -143,8 +174,8 @@ export function HomeContent() {
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
-            <p className="text-red-800 dark:text-red-200 font-semibold">
+          <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-6 text-center shadow-sm">
+            <p className="text-rose-800 dark:text-rose-200 font-semibold">
               {error}
             </p>
           </div>
@@ -167,9 +198,9 @@ export function HomeContent() {
 
         {/* Empty State */}
         {!loading && !error && books.length === 0 && (
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center shadow-lg border border-pink-100 dark:border-pink-900">
             <div className="text-6xl mb-4">📚</div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-xl font-semibold bg-gradient-to-r from-rose-600 to-purple-600 bg-clip-text text-transparent mb-2">
               No books found
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -180,7 +211,7 @@ export function HomeContent() {
             {(filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly) && (
               <button
                 onClick={() => setFilters({ ageCategories: [], durations: [], languages: [], offlineOnly: false })}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg"
               >
                 Clear all filters
               </button>
@@ -188,6 +219,7 @@ export function HomeContent() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

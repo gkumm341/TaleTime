@@ -10,23 +10,33 @@ interface PreferencesContextType {
   loading: boolean;
 }
 
+const DEFAULT_PREFS: UserPreferences = {
+  theme: 'light',
+  fontSize: 100,
+  fontFamily: 'serif',
+  defaultWpm: 160,
+  autoSave: true,
+  showReadingStats: false,
+  lineHeight: 1.6,
+  marginWidth: 10,
+};
+
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined);
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    theme: 'light',
-    fontSize: 100,
-    fontFamily: 'serif',
-    defaultWpm: 160,
-    autoSave: true,
-    showReadingStats: false,
-    lineHeight: 1.6,
-    marginWidth: 10,
-  });
+  const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFS);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Load preferences on mount
   useEffect(() => {
+    if (!mounted) return;
+    
     const loadPrefs = async () => {
       try {
         const prefs = await getPreferences();
@@ -39,7 +49,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     };
 
     loadPrefs();
-  }, []);
+  }, [mounted]);
 
   const updatePreferences = async (updates: Partial<UserPreferences>) => {
     try {

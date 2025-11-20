@@ -1,259 +1,298 @@
-'use client'
+﻿'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Navigation } from '@/components/Navigation'
-import { useTheme } from '@/contexts/ThemeContext'
-import { BookOpen, Clock, Trash2, Calendar } from 'lucide-react'
-import { getStoryById, type Story } from '@/lib/stories'
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Trash2, Clock } from 'lucide-react';
+import { Sidebar } from '@/components/Sidebar';
 
-interface HistoryEntry {
-  storyId: string
-  title: string
-  startedAt: string
-  progress: number
-  lastReadAt?: string
+interface HistoryBook {
+  id: number;
+  bookId: number;
+  lastReadAt: string;
+  lastPosition?: string;
+  progressPercent: number;
+  timeSpent: number;
+  book: {
+    id: number;
+    title: string;
+    authors: string;
+    coverUrl?: string;
+    epubUrl?: string;
+    estimatedMinutes?: number;
+  };
+}
+
+interface GroupedHistory {
+  today: HistoryBook[];
+  last7Days: HistoryBook[];
+  earlier: HistoryBook[];
 }
 
 export default function HistoryPage() {
-  const [history, setHistory] = useState<(HistoryEntry & { story?: Story })[]>([])
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
-  const { isDarkMode } = useTheme()
+  const [history, setHistory] = useState<GroupedHistory>({
+    today: [],
+    last7Days: [],
+    earlier: []
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load reading history from localStorage
-    const historyData = JSON.parse(localStorage.getItem('taletime-history') || '[]')
-    const enrichedHistory = historyData.map((entry: HistoryEntry) => ({
-      ...entry,
-      story: getStoryById(entry.storyId)
-    })).filter((entry: HistoryEntry & { story?: Story }) => entry.story)
-    
-    setHistory(enrichedHistory)
-    setLoading(false)
-  }, [])
+    loadHistory();
+  }, []);
 
-  const removeFromHistory = (storyId: string) => {
-    const historyData = JSON.parse(localStorage.getItem('taletime-history') || '[]')
-    const newHistory = historyData.filter((entry: HistoryEntry) => entry.storyId !== storyId)
-    localStorage.setItem('taletime-history', JSON.stringify(newHistory))
-    
-    setHistory(prev => prev.filter(entry => entry.storyId !== storyId))
-  }
-
-  const clearAllHistory = () => {
-    if (confirm('Are you sure you want to clear your entire reading history?')) {
-      localStorage.removeItem('taletime-history')
-      setHistory([])
+  async function loadHistory() {
+    try {
+      const response = await fetch('/api/history');
+      if (!response.ok) throw new Error('Failed to load history');
+      
+      const data = await response.json();
+      setHistory(data.history);
+    } catch (error) {
+      console.error('Failed to load history:', error);
+    } finally {
+      setLoading(false);
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays === 1) return 'Today'
-    if (diffDays === 2) return 'Yesterday'
-    if (diffDays <= 7) return `${diffDays - 1} days ago`
-    return date.toLocaleDateString()
+  async function removeFromHistory(historyId: number) {
+    try {
+      const response = await fetch('/api/history', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ historyId }),
+      });
+
+      if (response.ok) {
+        loadHistory();
+      }
+    } catch (error) {
+      console.error('Failed to remove from history:', error);
+    }
   }
 
-  if (loading) {
-    return (
-      <>
-        <Navigation />
-        <div className={`min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-300 ${
-          isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'
-        }`}>
-          <div className="max-w-4xl mx-auto">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-300 rounded w-64 mb-8"></div>
-              <div className="space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="bg-white/70 rounded-xl p-6 shadow-xl">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="h-6 bg-gray-300 rounded w-1/2 mb-2"></div>
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-                      </div>
-                      <div className="h-4 bg-gray-200 rounded w-16"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    )
-  }
+  const totalBooks = history.today.length + history.last7Days.length + history.earlier.length;
+  const totalMinutesRead = [...history.today, ...history.last7Days, ...history.earlier]
+    .reduce((sum, item) => sum + item.timeSpent, 0);
 
   return (
-    <>
-      <Navigation />
-      <div className={`min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-300 ${
-        isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'
-      }`}>
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+    <div className="min-h-screen relative">
+      <div className="fixed inset-0 z-0">
+        <img 
+          src="/girl.jpg" 
+          alt="Background" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/85 via-pink-50/90 to-purple-50/85 dark:from-gray-900/90 dark:via-purple-900/80 dark:to-gray-900/90 backdrop-blur-sm"></div>
+      </div>
+
+      <Sidebar activePage="history" />
+
+      <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+        
+          {/* Mobile Header - TaleTime Logo */}
+          <div className="md:hidden text-center mb-6 animate-in fade-in slide-in-from-top duration-700">
+            <div className="text-5xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
+            <h1 className="text-4xl font-black bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg">
+              TaleTime
+            </h1>
+            <p className="text-sm font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mt-2">Your story telling companion</p>
+          </div>
+        
+          <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom duration-700">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl animate-pulse"></span>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent">
                 Reading History
               </h1>
-              <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                Track your reading journey and continue where you left off
-              </p>
             </div>
             
-            {history.length > 0 && (
-              <Button
-                onClick={clearAllHistory}
-                variant="outline"
-                className="text-red-600 border-red-300 hover:bg-red-50"
-              >
-                <Trash2 size={16} className="mr-2" />
-                Clear All
-              </Button>
+            {totalBooks > 0 && (
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 border border-purple-200 dark:border-purple-800 font-semibold shadow-md">
+                   {totalBooks} {totalBooks === 1 ? 'book' : 'books'}
+                </div>
+                <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-rose-100 to-pink-100 dark:from-rose-900 dark:to-pink-900 border border-rose-200 dark:border-rose-800 font-semibold shadow-md">
+                   {Math.round(totalMinutesRead)} min total
+                </div>
+              </div>
             )}
           </div>
 
-          {history.length > 0 ? (
-            <>
-              <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                {history.length} {history.length === 1 ? 'story' : 'stories'} in your reading history
-              </p>
-              
-              <div className="space-y-4">
-                {history.map((entry) => {
-                  if (!entry.story) return null
-                  
-                  return (
-                    <Card key={entry.storyId} className={`backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-300 border ${
-                      isDarkMode 
-                        ? 'bg-gray-800/80 border-gray-600' 
-                        : 'bg-white/80 border-white/50'
-                    }`}>
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start gap-4">
-                              <div className="flex-1">
-                                <h3 className="text-xl font-bold bg-gradient-to-r from-blue-800 to-indigo-800 bg-clip-text text-transparent leading-tight mb-2">
-                                  {entry.story.title}
-                                </h3>
-                                
-                                <p className={`text-sm leading-relaxed mb-3 line-clamp-2 ${
-                                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
-                                  {entry.story.teaser}
-                                </p>
-
-                                <div className="flex flex-wrap items-center gap-4 text-sm mb-3">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar size={14} />
-                                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                                      Started {formatDate(entry.startedAt)}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-1">
-                                    <Clock size={14} />
-                                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                                      {entry.story.time} min read
-                                    </span>
-                                  </div>
-
-                                  <span className="px-2 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 text-xs rounded-full">
-                                    {entry.story.genre}
-                                  </span>
-
-                                  <span className={`px-2 py-1 text-xs rounded-full ${
-                                    isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                                  }`}>
-                                    {entry.story.author}
-                                  </span>
-                                </div>
-
-                                {/* Progress Bar */}
-                                <div className="mb-4">
-                                  <div className="flex justify-between items-center mb-1">
-                                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                      Reading Progress
-                                    </span>
-                                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                      {Math.round(entry.progress)}%
-                                    </span>
-                                  </div>
-                                  <div className={`w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                    <div 
-                                      className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
-                                      style={{ width: `${entry.progress}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col gap-2 ml-4">
-                            <Button 
-                              onClick={() => router.push(`/story/${entry.story!.id}`)}
-                              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2 text-sm font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
-                            >
-                              <BookOpen className="mr-2" size={14} /> 
-                              {entry.progress > 0 ? 'Continue' : 'Start'}
-                            </Button>
-                            <Button
-                              onClick={() => removeFromHistory(entry.storyId)}
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 border-red-300 hover:bg-red-50 px-2 py-1"
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+            </div>
+          ) : totalBooks === 0 ? (
+            <div className="text-center py-20 animate-in fade-in duration-700">
+              <div className="inline-block bg-gradient-to-br from-white/90 via-pink-50/80 to-purple-50/80 dark:from-gray-800/90 dark:via-gray-800/80 dark:to-gray-900/80 backdrop-blur-xl rounded-2xl p-12 border-2 border-purple-300/50 dark:border-purple-900/50 shadow-2xl">
+                <div className="text-6xl mb-4"></div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No reading history yet</h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">Start reading books to build your history!</p>
+                <Link 
+                  href="/"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                >
+                  <span className="text-lg"></span>
+                  Browse Stories
+                </Link>
               </div>
-            </>
+            </div>
           ) : (
-            <div className="text-center py-16">
-              <Card className={`backdrop-blur-md shadow-xl border max-w-md mx-auto ${
-                isDarkMode 
-                  ? 'bg-gray-800/60 border-gray-600' 
-                  : 'bg-white/60 border-white/50'
-              }`}>
-                <CardContent className="p-12 text-center">
-                  <div className="text-6xl mb-4">📚</div>
-                  <h3 className={`text-2xl font-bold mb-2 ${
-                    isDarkMode ? 'text-gray-200' : 'text-gray-700'
-                  }`}>
-                    No reading history yet
-                  </h3>
-                  <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Start reading stories to track your progress and build your reading history!
-                  </p>
-                  <Button 
-                    onClick={() => router.push('/search')}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  >
-                    <BookOpen className="mr-2" size={16} />
-                    Start Reading
-                  </Button>
-                </CardContent>
-              </Card>
+            <div className="space-y-8">
+              {history.today.length > 0 && (
+                <div className="animate-in fade-in slide-in-from-bottom duration-700">
+                  <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center gap-2">
+                    <span className="text-2xl"></span>
+                    Today
+                  </h2>
+                  <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    {history.today.map((item, index) => (
+                      <HistoryCard 
+                        key={item.id} 
+                        item={item} 
+                        onRemove={removeFromHistory}
+                        animationDelay={index * 50}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {history.last7Days.length > 0 && (
+                <div className="animate-in fade-in slide-in-from-bottom duration-700 delay-150">
+                  <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center gap-2">
+                    <span className="text-2xl"></span>
+                    Last 7 Days
+                  </h2>
+                  <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    {history.last7Days.map((item, index) => (
+                      <HistoryCard 
+                        key={item.id} 
+                        item={item} 
+                        onRemove={removeFromHistory}
+                        animationDelay={index * 50}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {history.earlier.length > 0 && (
+                <div className="animate-in fade-in slide-in-from-bottom duration-700 delay-300">
+                  <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center gap-2">
+                    <span className="text-2xl"></span>
+                    Earlier
+                  </h2>
+                  <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    {history.earlier.map((item, index) => (
+                      <HistoryCard 
+                        key={item.id} 
+                        item={item} 
+                        onRemove={removeFromHistory}
+                        animationDelay={index * 50}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
-    </>
-  )
+    </div>
+  );
+}
+
+interface HistoryCardProps {
+  item: HistoryBook;
+  onRemove: (id: number) => void;
+  animationDelay: number;
+}
+
+function HistoryCard({ item, onRemove, animationDelay }: HistoryCardProps) {
+  const estimatedMinutes = item.book.estimatedMinutes || 0;
+  const timeLeft = Math.ceil((estimatedMinutes * (100 - item.progressPercent)) / 100);
+  const isCompleted = item.progressPercent >= 100;
+
+  return (
+    <div
+      className="group rounded-2xl border-2 border-purple-200/50 dark:border-purple-900/50 overflow-hidden hover:shadow-2xl hover:shadow-purple-300/50 dark:hover:shadow-purple-900/50 transition-all duration-500 bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 hover:border-purple-400 dark:hover:border-purple-600 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700"
+      style={{ animationDelay: `${animationDelay}ms` }}
+    >
+      <Link href={`/book/${item.bookId}`}>
+        {item.book.coverUrl && (
+          <div className="relative w-full h-32 bg-gradient-to-br from-purple-100 via-pink-100 to-rose-100 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
+            <Image
+              src={item.book.coverUrl}
+              alt={item.book.title}
+              fill
+              className="object-cover group-hover:scale-110 group-hover:rotate-2 transition-all duration-700"
+              sizes="20vw"
+            />
+            <div className="absolute bottom-0 left-0 right-0 h-2 bg-gray-200 dark:bg-gray-700">
+              <div 
+                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                style={{ width: `${item.progressPercent}%` }}
+              />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          </div>
+        )}
+      </Link>
+      
+      <div className="p-2 space-y-1 relative">
+        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+        
+        <button
+          onClick={() => onRemove(item.id)}
+          className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 z-10"
+          title="Remove from history"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+        
+        <Link href={`/book/${item.bookId}`}>
+          <h3 className="font-bold text-xs line-clamp-2 group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-pink-600 group-hover:bg-clip-text group-hover:text-transparent transition-all relative z-10 pr-6">
+            {item.book.title}
+          </h3>
+        </Link>
+        
+        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 font-medium relative z-10 lg:flex items-center gap-1.5">
+          <span className="text-xs lg:text-base">✍️</span>
+          {item.book.authors}
+        </p>
+        
+        <div className="flex flex-wrap items-center gap-1 lg:gap-2 text-xs pt-1 lg:pt-2 relative z-10">
+          {isCompleted ? (
+            <span className="inline-flex items-center px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 text-green-800 dark:text-green-200 font-semibold shadow-md border border-green-200 dark:border-green-800 text-xs">
+              <span className="lg:hidden">✓</span><span className="hidden lg:inline">✅ Completed</span>
+            </span>
+          ) : (
+            <>
+              <span className="inline-flex items-center px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-800 dark:text-purple-200 font-semibold shadow-md border border-purple-200 dark:border-purple-800 text-xs">
+                <span className="lg:hidden">📊 </span>{item.progressPercent}%
+              </span>
+              {timeLeft > 0 && (
+                <span className="hidden lg:inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-100 to-pink-100 dark:from-rose-900 dark:to-pink-900 text-rose-800 dark:text-rose-200 font-semibold shadow-md border border-rose-200 dark:border-rose-800 text-xs">
+                  ⏱️ {timeLeft} min left
+                </span>
+              )}
+            </>
+          )}
+        </div>
+        
+        <div className="hidden lg:flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 relative z-10">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {Math.round(item.timeSpent)} min read
+          </span>
+          <span>
+            {new Date(item.lastReadAt).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }

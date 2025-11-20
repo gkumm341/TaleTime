@@ -26,6 +26,7 @@ import {
   saveSessionToStorage,
   getReadingStats,
   estimateTimeToFinish,
+  updateReadingHistory,
   type ReadingSession,
 } from '@/lib/reading-tracker';
 
@@ -348,6 +349,13 @@ export default function BookReader() {
                 console.log('📊 Stats recalculated:', updatedStats);
                 setTotalReadTime(updatedStats.totalTimeMinutes);
                 setReadingWpm(updatedStats.averageWpm);
+                
+                // Update reading history in database
+                updateReadingHistory(
+                  parseInt(id),
+                  cfi,
+                  Math.round(percent),
+                ).catch(err => console.error('Failed to update history:', err));
               }
               
               // Calculate time remaining with current stats

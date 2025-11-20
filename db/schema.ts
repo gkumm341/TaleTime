@@ -43,3 +43,21 @@ export const readingSessions = sqliteTable('reading_sessions', {
   calculatedWpm: integer('calculated_wpm'),
   createdAt: integer('created_at').notNull(),
 });
+
+export const favorites = sqliteTable('favorites', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bookId: integer('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().default('default'), // For future multi-user support
+  addedAt: integer('added_at').notNull(), // Unix timestamp
+  notes: text('notes'),
+});
+
+export const readingHistory = sqliteTable('reading_history', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bookId: integer('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().default('default'), // For future multi-user support
+  lastReadAt: integer('last_read_at').notNull(), // Unix timestamp
+  currentCfi: text('current_cfi'),
+  progressPercent: integer('progress_percent').default(0), // 0-100
+  totalReadingTime: integer('total_reading_time').default(0), // seconds
+});

@@ -1,212 +1,197 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Navigation } from '@/components/Navigation'
-import { useTheme } from '@/contexts/ThemeContext'
-import { BookOpen, Clock, Trash2, Heart } from 'lucide-react'
-import { getStoryById, type Story } from '@/lib/stories'
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Trash2 } from 'lucide-react';
+import { Sidebar } from '@/components/Sidebar';
+
+interface FavoriteBook {
+  id: number;
+  bookId: number;
+  addedAt: string;
+  notes?: string;
+  book: {
+    id: number;
+    title: string;
+    authors: string;
+    coverUrl?: string;
+    epubUrl?: string;
+    estimatedMinutes?: number;
+  };
+}
 
 export default function FavoritesPage() {
-  const [favorites, setFavorites] = useState<Story[]>([])
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
-  const { isDarkMode } = useTheme()
+  const [favorites, setFavorites] = useState<FavoriteBook[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<'recent' | 'title'>('recent');
 
   useEffect(() => {
-    // Load favorites from localStorage
-    const bookmarks = JSON.parse(localStorage.getItem('taletime-bookmarks') || '[]')
-    const favoriteStories = bookmarks
-      .map((id: string) => getStoryById(id))
-      .filter((story: Story | undefined): story is Story => story !== undefined)
-    
-    setFavorites(favoriteStories)
-    setLoading(false)
-  }, [])
+    loadFavorites();
+  }, [sortBy]);
 
-  const removeFromFavorites = (storyId: string) => {
-    const bookmarks = JSON.parse(localStorage.getItem('taletime-bookmarks') || '[]')
-    const newBookmarks = bookmarks.filter((id: string) => id !== storyId)
-    localStorage.setItem('taletime-bookmarks', JSON.stringify(newBookmarks))
-    
-    setFavorites(prev => prev.filter(story => story.id !== storyId))
-  }
-
-  const clearAllFavorites = () => {
-    if (confirm('Are you sure you want to remove all favorites?')) {
-      localStorage.removeItem('taletime-bookmarks')
-      setFavorites([])
+  async function loadFavorites() {
+    try {
+      const response = await fetch(`/api/favorites?sortBy=${sortBy}`);
+      if (!response.ok) throw new Error('Failed to load favorites');
+      
+      const data = await response.json();
+      setFavorites(data.favorites);
+    } catch (error) {
+      console.error('Failed to load favorites:', error);
+    } finally {
+      setLoading(false);
     }
   }
 
-  if (loading) {
-    return (
-      <>
-        <Navigation />
-        <div className={`min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-300 ${
-          isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-pink-50 via-white to-purple-50'
-        }`}>
-          <div className="max-w-7xl mx-auto">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-300 rounded w-64 mb-8"></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-white/70 rounded-3xl p-6 shadow-xl">
-                    <div className="h-6 bg-gray-300 rounded w-3/4 mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    )
+  async function removeFavorite(favoriteId: number) {
+    try {
+      const response = await fetch('/api/favorites', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favoriteId }),
+      });
+
+      if (response.ok) {
+        setFavorites(prev => prev.filter(f => f.id !== favoriteId));
+      }
+    } catch (error) {
+      console.error('Failed to remove favorite:', error);
+    }
   }
 
   return (
-    <>
-      <Navigation />
-      <div className={`min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-300 ${
-        isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-pink-50 via-white to-purple-50'
-      }`}>
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                Favorite Stories
+    <div className="min-h-screen relative">
+      {/* Background Image with Overlay */}
+      <div className="fixed inset-0 z-0">
+        <img 
+          src="/girl.jpg" 
+          alt="Background" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/85 via-pink-50/90 to-purple-50/85 dark:from-gray-900/90 dark:via-purple-900/80 dark:to-gray-900/90 backdrop-blur-sm"></div>
+      </div>
+
+      {/* Responsive Sidebar Navigation */}
+      <Sidebar activePage="favorites" />
+
+      {/* Main Content */}
+      <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+        
+          {/* Mobile Header - TaleTime Logo */}
+          <div className="md:hidden text-center mb-6 animate-in fade-in slide-in-from-top duration-700">
+            <div className="text-5xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
+            <h1 className="text-4xl font-black bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg">
+              TaleTime
+            </h1>
+            <p className="text-sm font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mt-2">Your story telling companion</p>
+          </div>
+        
+          {/* Header */}
+          <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom duration-700">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl animate-pulse">❤️</span>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
+                Your Favorites
               </h1>
-              <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                Your bookmarked tales for later reading
-              </p>
             </div>
             
             {favorites.length > 0 && (
-              <Button
-                onClick={clearAllFavorites}
-                variant="outline"
-                className="text-red-600 border-red-300 hover:bg-red-50"
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'recent' | 'title')}
+                className="px-4 py-2 rounded-lg border border-pink-200 dark:border-pink-800 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-400 focus:border-transparent shadow-sm font-medium"
               >
-                <Trash2 size={16} className="mr-2" />
-                Clear All
-              </Button>
+                <option value="recent">Recently Added</option>
+                <option value="title">Title (A-Z)</option>
+              </select>
             )}
           </div>
 
-          {favorites.length > 0 ? (
-            <>
-              <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                {favorites.length} {favorites.length === 1 ? 'story' : 'stories'} in your favorites
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favorites.map((story) => (
-                  <Card key={story.id} className={`group backdrop-blur-md shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden border hover:scale-105 hover:-translate-y-1 ${
-                    isDarkMode 
-                      ? 'bg-gray-800/80 border-gray-600' 
-                      : 'bg-white/70 border-white/50'
-                  }`}>
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <h3 className="text-xl font-bold bg-gradient-to-r from-pink-800 to-purple-800 bg-clip-text text-transparent leading-tight flex-1 group-hover:from-pink-600 group-hover:to-purple-600 transition-all duration-300">
-                          {story.title}
-                        </h3>
-                        <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-full p-2 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                          <Clock className="text-white" size={16} />
-                        </div>
-                      </div>
-                      
-                      <p className={`text-sm leading-relaxed mb-4 group-hover:text-opacity-80 transition-colors duration-300 line-clamp-3 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        {story.teaser}
-                      </p>
-
-                      <div className="flex items-center justify-between mb-4 text-xs">
-                        <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                          by {story.author}
-                        </span>
-                        <span className={`px-2 py-1 rounded-full ${
-                          isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {story.mood}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="px-3 py-1 bg-gradient-to-r from-pink-100 to-purple-100 text-pink-800 font-medium text-sm rounded-full border border-pink-200/50">
-                          {story.genre}
-                        </span>
-                        <span className="px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 font-medium text-sm rounded-full border border-green-200/50">
-                          {story.time} min
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {story.tags.slice(0, 3).map(tag => (
-                          <span key={tag} className={`px-2 py-1 text-xs rounded-full ${
-                            isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          onClick={() => router.push(`/story/${story.id}`)}
-                          className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white py-2 px-4 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center group-hover:shadow-pink-500/50"
-                        >
-                          <BookOpen className="mr-2 group-hover:rotate-12 transition-transform duration-300" size={16} /> 
-                          Read
-                        </Button>
-                        <Button
-                          onClick={() => removeFromFavorites(story.id)}
-                          variant="outline"
-                          size="sm"
-                          className="p-2 text-pink-600 border-pink-300 hover:bg-pink-50"
-                        >
-                          <Heart size={16} fill="currentColor" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+          {/* Content */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-pink-500 border-t-transparent"></div>
+            </div>
+          ) : favorites.length === 0 ? (
+            <div className="text-center py-20 animate-in fade-in duration-700">
+              <div className="inline-block bg-gradient-to-br from-white/90 via-pink-50/80 to-purple-50/80 dark:from-gray-800/90 dark:via-gray-800/80 dark:to-gray-900/80 backdrop-blur-xl rounded-2xl p-12 border-2 border-pink-300/50 dark:border-pink-900/50 shadow-2xl">
+                <div className="text-6xl mb-4">💔</div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No favorites yet</h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">Start adding books to your favorites by clicking the heart icon!</p>
+                <Link 
+                  href="/"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                >
+                  <span className="text-lg">🏠</span>
+                  Browse Stories
+                </Link>
               </div>
-            </>
+            </div>
           ) : (
-            <div className="text-center py-16">
-              <Card className={`backdrop-blur-md shadow-xl border max-w-md mx-auto ${
-                isDarkMode 
-                  ? 'bg-gray-800/60 border-gray-600' 
-                  : 'bg-white/60 border-white/50'
-              }`}>
-                <CardContent className="p-12 text-center">
-                  <div className="text-6xl mb-4">💖</div>
-                  <h3 className={`text-2xl font-bold mb-2 ${
-                    isDarkMode ? 'text-gray-200' : 'text-gray-700'
-                  }`}>
-                    No favorites yet
-                  </h3>
-                  <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Start bookmarking stories you love to build your personal collection!
-                  </p>
-                  <Button 
-                    onClick={() => router.push('/search')}
-                    className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
-                  >
-                    <BookOpen className="mr-2" size={16} />
-                    Discover Stories
-                  </Button>
-                </CardContent>
-              </Card>
+            <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {favorites.map((favorite, index) => (
+                <div
+                  key={favorite.id}
+                  className="group rounded-2xl border-2 border-pink-200/50 dark:border-pink-900/50 overflow-hidden hover:shadow-2xl hover:shadow-pink-300/50 dark:hover:shadow-pink-900/50 transition-all duration-500 bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 hover:border-pink-400 dark:hover:border-pink-600 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <Link href={`/book/${favorite.bookId}`}>
+                    {favorite.book.coverUrl && (
+                      <div className="relative w-full h-32 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
+                        <Image
+                          src={favorite.book.coverUrl}
+                          alt={favorite.book.title}
+                          fill
+                          className="object-cover group-hover:scale-110 group-hover:rotate-2 transition-all duration-700"
+                          sizes="20vw"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-pink-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      </div>
+                    )}
+                  </Link>
+                  
+                  <div className="p-2 space-y-1 relative">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-pink-400/10 to-purple-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                    
+                    {/* Remove button */}
+                    <button
+                      onClick={() => removeFavorite(favorite.id)}
+                      className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 z-10"
+                      title="Remove from favorites"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                    
+                    <Link href={`/book/${favorite.bookId}`}>
+                      <h3 className="font-bold text-xs line-clamp-2 group-hover:bg-gradient-to-r group-hover:from-pink-600 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all relative z-10 pr-6">
+                        {favorite.book.title}
+                      </h3>
+                    </Link>
+                    
+                    <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 font-medium relative z-10">
+                      <span className="text-xs lg:text-base">✍️</span> {favorite.book.authors}
+                    </p>
+                    
+                    <div className="hidden lg:flex items-center gap-2 text-xs pt-2 relative z-10">
+                      {favorite.book.estimatedMinutes && (
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-100 to-pink-100 dark:from-rose-900 dark:to-pink-900 text-rose-800 dark:text-rose-200 text-xs font-semibold shadow-sm border border-rose-200 dark:border-rose-800">
+                          📖 {favorite.book.estimatedMinutes} min
+                        </span>
+                      )}
+                    </div>
+                    
+                    <p className="hidden lg:block text-xs text-gray-500 dark:text-gray-400 pt-2 relative z-10">
+                      Added {new Date(favorite.addedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </div>
-    </>
-  )
+    </div>
+  );
 }
