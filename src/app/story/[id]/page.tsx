@@ -151,7 +151,7 @@ export default function StoryPage({ params }: StoryPageProps) {
 
   const formatContent = (content: string) => {
     return content.split('\n\n').map((paragraph, index) => (
-      <p key={index} className="mb-6 leading-relaxed text-justify">
+      <p key={index} className="mb-8 leading-loose text-lg text-justify" style={{ lineHeight: '2' }}>
         {paragraph}
       </p>
     ))
@@ -179,13 +179,13 @@ export default function StoryPage({ params }: StoryPageProps) {
     <div className={`min-h-screen transition-colors duration-300 ${
       isDarkMode 
         ? 'bg-gray-900 text-gray-100' 
-        : 'bg-gradient-to-br from-blue-50 via-white to-purple-50 text-gray-900'
+        : 'bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 text-gray-900'
     }`}>
       {/* Header */}
-      <div className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors duration-300 ${
+      <div className={`sticky top-0 z-50 backdrop-blur-md border-b shadow-sm transition-colors duration-300 ${
         isDarkMode 
           ? 'bg-gray-900/90 border-gray-700' 
-          : 'bg-white/80 border-gray-200'
+          : 'bg-white/90 border-amber-200'
       }`}>
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -247,15 +247,15 @@ export default function StoryPage({ params }: StoryPageProps) {
           {/* Progress Bar */}
           {isReading && (
             <div className="mt-4">
-              <div className={`w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+              <div className={`w-full rounded-full h-2.5 ${isDarkMode ? 'bg-gray-700' : 'bg-amber-100'}`}>
                 <div 
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-300"
                   style={{ width: `${readingProgress}%` }}
                 />
               </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>{Math.round(readingProgress)}% complete</span>
-                <span>~{estimatedTimeLeft} min remaining</span>
+              <div className="flex justify-between text-xs mt-2">
+                <span className={isDarkMode ? 'text-gray-400' : 'text-amber-700'}>{Math.round(readingProgress)}% complete</span>
+                <span className={isDarkMode ? 'text-gray-400' : 'text-amber-700'}>~{estimatedTimeLeft} min remaining</span>
               </div>
             </div>
           )}
@@ -311,45 +311,45 @@ export default function StoryPage({ params }: StoryPageProps) {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {!isReading ? (
           /* Story Preview */
-          <Card className={`backdrop-blur-md shadow-2xl border transition-colors duration-300 ${
+          <Card className={`backdrop-blur-md shadow-2xl border transition-colors duration-300 rounded-2xl ${
             isDarkMode 
               ? 'bg-gray-800/80 border-gray-600' 
-              : 'bg-white/80 border-white/50'
+              : 'bg-white/90 border-white/50'
           }`}>
-            <CardContent className="p-8">
-              <div className="text-center mb-8">
-                <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+            <CardContent className="p-10 sm:p-12">
+              <div className="text-center mb-10">
+                <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4">
                   {story.title}
                 </h1>
-                <p className="text-xl text-gray-600 mb-2">by {story.author}</p>
+                <p className="text-xl text-amber-700 mb-4">by {story.author}</p>
                 
-                <div className="flex flex-wrap justify-center gap-4 text-sm">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                <div className="flex flex-wrap justify-center gap-3 text-sm">
+                  <span className="px-4 py-2 bg-amber-100 text-amber-800 rounded-full font-medium">
                     {story.genre}
                   </span>
-                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full">
+                  <span className="px-4 py-2 bg-orange-100 text-orange-800 rounded-full font-medium">
                     {story.age}
                   </span>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full">
+                  <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full font-medium">
                     {story.time} min read
                   </span>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full">
+                  <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full font-medium">
                     {story.mood}
                   </span>
-                  <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full">
+                  <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full font-medium">
                     {story.difficulty}
                   </span>
                 </div>
               </div>
               
               <div className="max-w-2xl mx-auto">
-                <p className="text-lg text-gray-700 leading-relaxed mb-8 text-center italic">
+                <p className="text-xl text-gray-700 leading-relaxed mb-10 text-center italic">
                   {story.teaser}
                 </p>
                 
-                <div className="flex flex-wrap gap-2 justify-center mb-8">
+                <div className="flex flex-wrap gap-2 justify-center mb-10">
                   {story.tags.map(tag => (
-                    <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">
+                    <span key={tag} className="px-3 py-1.5 bg-amber-50 text-amber-700 text-sm rounded-full font-medium">
                       #{tag}
                     </span>
                   ))}
@@ -359,9 +359,9 @@ export default function StoryPage({ params }: StoryPageProps) {
                   <Button
                     onClick={startReading}
                     size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 px-8 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white py-6 px-10 text-lg font-semibold rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
                   >
-                    <BookOpen className="mr-3" size={20} />
+                    <BookOpen className="mr-3" size={24} />
                     Start Reading
                   </Button>
                 </div>
@@ -370,37 +370,40 @@ export default function StoryPage({ params }: StoryPageProps) {
           </Card>
         ) : (
           /* Reading View */
-          <Card className={`backdrop-blur-md shadow-2xl border transition-colors duration-300 ${
+          <Card className={`backdrop-blur-md shadow-2xl border transition-colors duration-300 rounded-2xl ${
             isDarkMode 
               ? 'bg-gray-800/90 border-gray-600' 
-              : 'bg-white/90 border-white/50'
+              : 'bg-white/95 border-white/50'
           }`}>
             <div 
               ref={scrollRef}
-              className="max-h-screen overflow-y-auto p-8 sm:p-12"
+              className="max-h-screen overflow-y-auto p-10 sm:p-16"
               style={{ maxHeight: 'calc(100vh - 200px)' }}
             >
               <div ref={contentRef} style={{ fontSize: `${fontSize}px` }}>
-                <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-center">
+                <h1 className="text-3xl sm:text-4xl font-bold mb-3 text-center bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
                   {story.title}
                 </h1>
-                <p className="text-center text-gray-600 mb-8">by {story.author}</p>
+                <p className={`text-center mb-12 text-lg ${isDarkMode ? 'text-gray-400' : 'text-amber-600'}`}>by {story.author}</p>
                 
-                <div className="max-w-3xl mx-auto leading-relaxed">
+                <div className="max-w-2xl mx-auto">
                   {formatContent(story.content)}
                 </div>
                 
-                <div className="text-center mt-12 pt-8 border-t border-gray-200">
-                  <h3 className="text-2xl font-semibold mb-4">The End</h3>
-                  <p className="text-gray-600 mb-6">Thank you for reading "{story.title}"</p>
+                <div className={`text-center mt-16 pt-12 border-t ${isDarkMode ? 'border-gray-700' : 'border-amber-200'}`}>
+                  <h3 className="text-3xl font-semibold mb-4 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">The End</h3>
+                  <p className={`mb-8 text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Thank you for reading "{story.title}"</p>
                   
                   <div className="flex flex-wrap justify-center gap-4">
-                    <Button onClick={resetReading} variant="outline">
-                      <RotateCcw className="mr-2" size={16} />
+                    <Button onClick={resetReading} variant="outline" className="rounded-lg px-6 py-3">
+                      <RotateCcw className="mr-2" size={18} />
                       Read Again
                     </Button>
-                    <Button onClick={() => router.push('/search')}>
-                      <BookOpen className="mr-2" size={16} />
+                    <Button 
+                      onClick={() => router.push('/search')}
+                      className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg px-6 py-3"
+                    >
+                      <BookOpen className="mr-2" size={18} />
                       Find More Stories
                     </Button>
                   </div>

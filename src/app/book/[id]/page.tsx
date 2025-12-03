@@ -8,6 +8,7 @@ import { Navigation } from '@/components/Navigation';
 import { ReadingStats } from '@/components/ReadingStats';
 import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/contexts/PreferencesContext';
+import './epub-styles.css';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -60,6 +61,7 @@ export default function BookReader() {
   const [currentPage, setCurrentPage] = useState(0); // 0: cover, 1: title, 2: toc, 3+: book content
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [isInCustomPages, setIsInCustomPages] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
 
   // Reading tracker state
   const [showStats, setShowStats] = useState(false);
@@ -87,8 +89,9 @@ export default function BookReader() {
   }, []);
 
   useEffect(() => {
-    console.log('📚 Book reader useEffect triggered for book ID:', id);
+    console.log('� Book reader useEffect triggered for book ID:', id);
     let mounted = true;
+    let resizeHandler: (() => void) | null = null;
 
     const loadBook = async () => {
       // Give a brief moment for the ref to attach
@@ -222,19 +225,45 @@ export default function BookReader() {
         
         if (!mounted) return;
 
+        // Generate locations for cumulative progress tracking
+        console.log('Generating locations for progress tracking...');
+        await book.locations.generate(1024); // Generate locations with 1024 characters per page
+        console.log('Locations generated:', book.locations.length());
+
         // Get table of contents
         const navigation = await book.loaded.navigation;
         if (navigation && navigation.toc) {
           setToc(navigation.toc as NavItem[]);
         }
 
+        // Determine spread mode based on screen size
+        const getSpreadMode = () => {
+          if (typeof window === 'undefined') return 'none';
+          const width = window.innerWidth;
+          // Desktop and tablet: two pages side by side
+          // Mobile: single page
+          return width >= 768 ? 'auto' : 'none';
+        };
+
         // Render the book (hidden initially)
         const rendition = book.renderTo(viewerRef.current, {
           width: '100%',
-          height: '80vh',
-          spread: 'none',
+          height: 'calc(100vh - 140px)',
+          spread: getSpreadMode(),
+          minSpreadWidth: 768,
+          flow: 'paginated',
         });
         renditionRef.current = rendition;
+
+        // Handle window resize to adjust spread mode
+        const handleResize = () => {
+          if (renditionRef.current) {
+            const newSpread = getSpreadMode();
+            renditionRef.current.spread(newSpread);
+          }
+        };
+        resizeHandler = handleResize;
+        window.addEventListener('resize', handleResize);
 
         // Apply theme
         applyTheme(rendition, theme);
@@ -310,63 +339,89 @@ export default function BookReader() {
 
         // Save position on navigation (only when in book content)
         rendition.on('relocated', (location: any) => {
-          if (location && location.start && !isInCustomPages) {
+          console.log('🔄 Relocated event fired:', location);
+          
+          if (location && location.start) {
             const cfi = location.start.cfi;
             set(`cfi:${id}`, cfi);
-            setCurrentLocation(location.start.displayed.page + ' of ' + location.start.displayed.total);
             
-            console.log('📍 Relocated event:', {
+            // Calculate cumulative progress across the entire book
+            let percent = 0;
+            
+            // Use epub.js locations to get book-wide progress
+            if (bookRef.current && location.start.location !== undefined) {
+              const locations = bookRef.current.locations;
+              if (locations && locations.length() > 0) {
+                const currentLocation = location.start.location;
+                const totalLocations = locations.length();
+                percent = (currentLocation / totalLocations) * 100;
+                setProgressPercent(percent);
+                console.log('📈 Cumulative progress from locations:', percent.toFixed(2) + '%', `(${currentLocation}/${totalLocations})`);
+              }
+            }
+            
+            // Fallback to percentage API if locations not available
+            if (percent === 0 && location.start.percentage !== undefined) {
+              percent = location.start.percentage * 100;
+              setProgressPercent(percent);
+              console.log('📈 Progress from percentage:', percent.toFixed(2) + '%');
+            }
+            
+            // Update page display (chapter-relative page numbers for user)
+            if (location.start.displayed && location.start.displayed.page && location.start.displayed.total) {
+              const currentPage = location.start.displayed.page;
+              const totalPages = location.start.displayed.total;
+              setCurrentLocation(`${currentPage} of ${totalPages}`);
+            }
+            
+            console.log('📍 Relocated details:', {
               cfi,
               percentage: location.start.percentage,
-              page: location.start.displayed.page,
-              total: location.start.displayed.total,
+              page: location.start.displayed?.page,
+              total: location.start.displayed?.total,
+              calculatedPercent: percent,
             });
-            
-            // Update progress tracking
-            if (location.start.percentage !== undefined) {
-              const percent = location.start.percentage * 100;
-              setProgressPercent(percent);
-              console.log('📈 Progress updated:', percent.toFixed(2) + '%');
               
-              // Update current session with new position
-              if (currentSessionRef.current) {
-                currentSessionRef.current.endCfi = cfi;
-                currentSessionRef.current.endTime = Date.now();
-                const durationSeconds = Math.round((currentSessionRef.current.endTime - currentSessionRef.current.startTime) / 1000);
-                console.log('✏️ Updated session:', {
-                  duration: durationSeconds + 's',
-                  startCfi: currentSessionRef.current.startCfi,
-                  endCfi: cfi,
-                });
-                
-                // Periodically save the session (every page turn)
-                const sessionCopy = { ...currentSessionRef.current };
-                saveSessionToStorage(sessionCopy);
-                console.log('💾 Session saved to storage');
-                
-                // Recalculate stats from all sessions
-                const updatedStats = getReadingStats(parseInt(id));
-                console.log('📊 Stats recalculated:', updatedStats);
-                setTotalReadTime(updatedStats.totalTimeMinutes);
-                setReadingWpm(updatedStats.averageWpm);
-                
-                // Update reading history in database
+            // Update current session with new position
+            if (currentSessionRef.current) {
+              currentSessionRef.current.endCfi = cfi;
+              currentSessionRef.current.endTime = Date.now();
+              const durationSeconds = Math.round((currentSessionRef.current.endTime - currentSessionRef.current.startTime) / 1000);
+              console.log('✏️ Updated session:', {
+                duration: durationSeconds + 's',
+                startCfi: currentSessionRef.current.startCfi,
+                endCfi: cfi,
+              });
+              
+              // Periodically save the session (every page turn)
+              const sessionCopy = { ...currentSessionRef.current };
+              saveSessionToStorage(sessionCopy);
+              console.log('💾 Session saved to storage');
+              
+              // Recalculate stats from all sessions
+              const updatedStats = getReadingStats(parseInt(id));
+              console.log('📊 Stats recalculated:', updatedStats);
+              setTotalReadTime(updatedStats.totalTimeMinutes);
+              setReadingWpm(updatedStats.averageWpm);
+              
+              // Update reading history in database
+              if (percent > 0) {
                 updateReadingHistory(
                   parseInt(id),
                   cfi,
                   Math.round(percent),
                 ).catch(err => console.error('Failed to update history:', err));
               }
-              
-              // Calculate time remaining with current stats
-              if (totalWords && readingWpm) {
-                const remaining = estimateTimeToFinish(percent, totalWords, readingWpm);
-                setMinutesRemaining(remaining);
-                setWordsRemaining(Math.round(totalWords * (100 - percent) / 100));
-                console.log(`⏱️ Time remaining: ${remaining} minutes (${readingWpm} WPM, ${totalWords} words)`);
-              } else {
-                console.log('⚠️ Cannot calculate time: totalWords =', totalWords, 'readingWpm =', readingWpm);
-              }
+            }
+            
+            // Calculate time remaining with current stats
+            if (totalWords && readingWpm && percent > 0) {
+              const remaining = estimateTimeToFinish(percent, totalWords, readingWpm);
+              setMinutesRemaining(remaining);
+              setWordsRemaining(Math.round(totalWords * (100 - percent) / 100));
+              console.log(`⏱️ Time remaining: ${remaining} minutes (${readingWpm} WPM, ${totalWords} words)`);
+            } else {
+              console.log('⚠️ Cannot calculate time: totalWords =', totalWords, 'readingWpm =', readingWpm);
             }
             
             // Start a new session if not already tracking
@@ -394,6 +449,11 @@ export default function BookReader() {
     return () => {
       mounted = false;
       
+      // Remove resize listener
+      if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler);
+      }
+      
       // Save current reading session
       if (currentSessionRef.current) {
         const completedSession = endReadingSession(currentSessionRef.current);
@@ -414,19 +474,19 @@ export default function BookReader() {
     const themes = {
       light: {
         body: {
-          background: '#ffffff',
-          color: '#000000',
+          background: '#fafafa',
+          color: '#212121',
         },
       },
       sepia: {
         body: {
-          background: '#f4ecd8',
-          color: '#5c4a33',
+          background: '#f5ead6',
+          color: '#4a4034',
         },
       },
       dark: {
         body: {
-          background: '#1a1a1a',
+          background: '#1e1e1e',
           color: '#e0e0e0',
         },
       },
@@ -434,26 +494,62 @@ export default function BookReader() {
 
     rendition.themes.default(themes[themeName]);
     
-    // Apply font preferences
+    // Apply font preferences - ReadEra style with Literata (Bookerly-like font)
     const fontFamily = preferences.fontFamily === 'serif' 
-      ? 'Georgia, "Times New Roman", serif'
-      : '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ? 'Literata, Georgia, Palatino, "Book Antiqua", serif'
+      : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
     
     rendition.themes.default({
       'body': {
         'font-family': `${fontFamily} !important`,
-        'line-height': `${preferences.lineHeight} !important`,
-        'padding': `0 ${preferences.marginWidth}% !important`,
+        'line-height': '1.8 !important',
+        'padding': `3rem 6% !important`,
+        'font-size': '1.15rem !important',
+        'max-width': '100% !important',
+        'margin': '0 auto !important',
       },
       'p': {
-        'text-align': 'left !important',
+        'text-align': 'justify !important',
         'font-family': `${fontFamily} !important`,
+        'margin-bottom': '1.5em !important',
+        'margin-top': '0 !important',
+        'line-height': '1.8 !important',
+        'text-indent': '2em !important',
+        'hyphens': 'auto !important',
+        'word-spacing': '0.05em !important',
+      },
+      'p:first-of-type, h1 + p, h2 + p, h3 + p': {
+        'text-indent': '0 !important',
+      },
+      'h1, h2, h3, h4, h5, h6': {
+        'text-align': 'left !important',
+        'margin-top': '2.5em !important',
+        'margin-bottom': '1em !important',
+        'line-height': '1.3 !important',
+        'font-weight': '600 !important',
+      },
+      'h1': {
+        'font-size': '1.8em !important',
+        'text-align': 'center !important',
+      },
+      'h2': {
+        'font-size': '1.5em !important',
+      },
+      'blockquote': {
+        'margin': '1.5em 2em !important',
+        'font-style': 'italic !important',
+      },
+      'em, i': {
+        'font-style': 'italic !important',
+      },
+      'strong, b': {
+        'font-weight': '600 !important',
       },
       // Hide common Project Gutenberg boilerplate sections
       '.pgheader, .pglegal, .pgfooter': {
         'display': 'none !important',
       },
-      // Hide paragraphs that are likely PG boilerplate (centered, small text)
+      // Hide paragraphs that are likely PG boilerplate
       'p[style*="text-align: center"]': {
         'font-size': 'inherit !important',
       }
@@ -526,8 +622,6 @@ export default function BookReader() {
 
   return (
     <>
-      <Navigation />
-      
       {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -573,39 +667,118 @@ export default function BookReader() {
       )}
 
       {/* Main Content - Always rendered so viewerRef can attach */}
-      <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 ${loading || error ? 'invisible' : ''}`}>
-        <div className="max-w-7xl mx-auto space-y-4">
-          {/* Combined Header and Controls */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              {/* Title Section */}
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
+      <div className={`min-h-screen bg-white dark:bg-gray-900 ${loading || error ? 'invisible' : ''}`}>
+        <div className="max-w-full mx-auto">
+          {/* Combined Header with Navigation and Controls */}
+          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 sticky top-0 z-50">
+            <div className="flex items-center justify-between gap-3 max-w-[1920px] mx-auto">
+              {/* Left: Logo and Navigation */}
+              <div className="flex items-center gap-3 relative">
+                <div className="flex items-center">
+                  <Button
+                    onClick={() => router.push('/')}
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 px-2.5 py-1.5"
+                  >
+                    <BookOpen className="w-4 h-4 text-pink-600" />
+                    <span className="font-semibold text-gray-900 dark:text-white text-sm">TaleTime</span>
+                  </Button>
+                  <Button
+                    onClick={() => setShowMenu(!showMenu)}
+                    variant="ghost"
+                    size="sm"
+                    className="px-1.5 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    title="Menu"
+                  >
+                    <ChevronRight className={`w-4 h-4 transition-transform ${showMenu ? 'rotate-90' : ''}`} />
+                  </Button>
+                </div>
+                
+                {/* Dropdown Menu */}
+                {showMenu && (
+                  <>
+                    {/* Backdrop to close menu when clicking outside */}
+                    <div 
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowMenu(false)}
+                    />
+                    <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                      <button
+                        onClick={() => { router.push('/'); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm"
+                      >
+                        <Home className="w-4 h-4" />
+                        Home
+                      </button>
+                      <button
+                        onClick={() => { router.push('/bedtime'); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm"
+                      >
+                        <Moon className="w-4 h-4" />
+                        Bedtime
+                      </button>
+                      <button
+                        onClick={() => { router.push('/search'); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm"
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        Browse
+                      </button>
+                      <button
+                        onClick={() => { router.push('/favorites'); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm"
+                      >
+                        ❤️ <span className="ml-1">Favorites</span>
+                      </button>
+                      <button
+                        onClick={() => { router.push('/history'); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm"
+                      >
+                        📚 <span className="ml-1">History</span>
+                      </button>
+                      <button
+                        onClick={() => { router.push('/settings'); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm"
+                      >
+                        ⚙️ <span className="ml-1">Settings</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {/* Center: Book Title */}
+              <div className="flex-1 min-w-0 text-center px-4">
+                <h1 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-white truncate">
                   {title}
                 </h1>
                 {author && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 truncate hidden sm:block">
                     by {author}
                   </p>
                 )}
               </div>
 
-              {/* Controls Section */}
-              <div className="flex items-center gap-2 flex-wrap">
+              {/* Right: Reading Controls */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 {/* Theme Controls */}
-                <div className="flex items-center gap-1">
+                <div className="hidden md:flex items-center gap-0.5">
                   <Button
                     onClick={() => changeTheme('light')}
                     variant={theme === 'light' ? 'default' : 'outline'}
                     size="sm"
+                    title="Light theme"
+                    className="px-2 py-1.5"
                   >
-                    <Sun className="w-4 h-4" />
+                    <Sun className="w-3.5 h-3.5" />
                   </Button>
                   <Button
                     onClick={() => changeTheme('sepia')}
                     variant={theme === 'sepia' ? 'default' : 'outline'}
                     size="sm"
-                    className={theme === 'sepia' ? 'bg-amber-100 text-amber-900 hover:bg-amber-200' : ''}
+                    className={`px-2 py-1.5 ${theme === 'sepia' ? 'bg-amber-100 text-amber-900 hover:bg-amber-200' : ''}`}
+                    title="Sepia theme"
                   >
                     📖
                   </Button>
@@ -613,23 +786,29 @@ export default function BookReader() {
                     onClick={() => changeTheme('dark')}
                     variant={theme === 'dark' ? 'default' : 'outline'}
                     size="sm"
+                    title="Dark theme"
+                    className="px-2 py-1.5"
                   >
-                    <Moon className="w-4 h-4" />
+                    <Moon className="w-3.5 h-3.5" />
                   </Button>
                 </div>
 
+                <div className="hidden md:block border-l border-gray-300 dark:border-gray-600 h-6 mx-1"></div>
+
                 {/* Font Size Controls */}
-                <div className="flex items-center gap-1">
-                  <Button onClick={() => changeFontSize(-10)} variant="outline" size="sm">
-                    <ZoomOut className="w-4 h-4" />
+                <div className="hidden sm:flex items-center gap-0.5">
+                  <Button onClick={() => changeFontSize(-10)} variant="outline" size="sm" title="Decrease font size" className="px-2 py-1.5">
+                    <ZoomOut className="w-3.5 h-3.5" />
                   </Button>
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-10 text-center">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-12 text-center">
                     {fontSize}%
                   </span>
-                  <Button onClick={() => changeFontSize(10)} variant="outline" size="sm">
-                    <ZoomIn className="w-4 h-4" />
+                  <Button onClick={() => changeFontSize(10)} variant="outline" size="sm" title="Increase font size" className="px-2 py-1.5">
+                    <ZoomIn className="w-3.5 h-3.5" />
                   </Button>
                 </div>
+
+                <div className="hidden sm:block border-l border-gray-300 dark:border-gray-600 h-6 mx-1"></div>
 
                 {/* TOC Button */}
                 {toc.length > 0 && (
@@ -637,9 +816,11 @@ export default function BookReader() {
                     onClick={() => setShowToc(!showToc)}
                     variant="outline"
                     size="sm"
+                    title="Table of contents"
+                    className="px-2.5 py-1.5"
                   >
-                    <List className="w-4 h-4 mr-1" />
-                    Contents
+                    <List className="w-3.5 h-3.5" />
+                    <span className="hidden xl:inline ml-1.5 text-sm">Contents</span>
                   </Button>
                 )}
 
@@ -649,17 +830,13 @@ export default function BookReader() {
                     onClick={() => setShowStats(!showStats)}
                     variant={showStats ? 'default' : 'outline'}
                     size="sm"
+                    title="Reading stats"
+                    className="px-2.5 py-1.5"
                   >
-                    <BarChart3 className="w-4 h-4 mr-1" />
-                    Stats
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    <span className="hidden xl:inline ml-1.5 text-sm">Stats</span>
                   </Button>
                 )}
-
-                {/* Home Button */}
-                <Button onClick={() => router.push('/')} variant="outline" size="sm">
-                  <Home className="w-4 h-4 mr-1" />
-                  Home
-                </Button>
               </div>
             </div>
           </div>
@@ -696,33 +873,13 @@ export default function BookReader() {
             </div>
           )}
 
-          {/* Reader Layout with Sidebar */}
-          <div className="flex gap-4">
-            {/* Chapter Sidebar - on the left */}
-            {toc.length > 0 && !isInCustomPages && (
-              <div className="hidden lg:block w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 overflow-y-auto flex-shrink-0" style={{ maxHeight: '80vh' }}>
-                <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-white sticky top-0 bg-white dark:bg-gray-800 pb-2">
-                  Chapters
-                </h3>
-                <nav className="space-y-1">
-                  {toc.map((item, index) => (
-                    <button
-                      key={index}
-                      onClick={() => goToChapter(item.href)}
-                      className="block w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </nav>
-              </div>
-            )}
-
-            {/* Main Reader Container - wider now */}
-            <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden max-w-none">
+          {/* Reader Layout - Full Width */}
+          <div className="flex">
+            {/* Main Reader Container - Clean, minimal like ReadEra */}
+            <div className="flex-1 bg-white dark:bg-gray-900 overflow-hidden">
               {/* Custom Pages (Cover, Title, TOC) - shown as overlay */}
               {isInCustomPages && (
-                <div className="w-full p-8 md:p-16 flex items-center justify-center" style={{ minHeight: '80vh' }}>
+                <div className="w-full p-8 md:p-16 flex items-center justify-center" style={{ minHeight: '90vh' }}>
                   {currentPage === 0 && (
                     // Cover Page
                     <div className="text-center space-y-8 max-w-2xl">
@@ -786,22 +943,34 @@ export default function BookReader() {
               {/* EPUB Viewer - always rendered but hidden when showing custom pages */}
               <div 
                 ref={viewerRef} 
-                className={`w-full ${isInCustomPages ? 'hidden' : ''}`} 
-                style={{ minHeight: '80vh' }} 
+                className={`w-full epub-reader ${isInCustomPages ? 'hidden' : ''}`} 
+                style={{ height: 'calc(100vh - 140px)', overflow: 'hidden' }} 
               />
             </div>
           </div>
 
-          {/* Navigation Buttons */}
-          <div className="flex justify-center gap-4 pb-8">
-            <Button onClick={goToPrevPage} size="lg" variant="outline">
-              <ChevronLeft className="w-5 h-5 mr-2" />
-              Previous
-            </Button>
-            <Button onClick={goToNextPage} size="lg" variant="outline">
-              Next
-              <ChevronRight className="w-5 h-5 ml-2" />
-            </Button>
+          {/* Navigation Buttons - Minimal, bottom fixed */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 px-4 z-40">
+            <div className="max-w-7xl mx-auto flex justify-between items-center">
+              <Button onClick={goToPrevPage} variant="ghost" className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <ChevronLeft className="w-5 h-5" />
+                <span className="hidden sm:inline">Previous</span>
+              </Button>
+              <div className="flex flex-col items-center gap-1">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {progressPercent > 0 ? `${Math.round(progressPercent)}%` : '0%'}
+                </div>
+                {currentLocation && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {currentLocation}
+                  </div>
+                )}
+              </div>
+              <Button onClick={goToNextPage} variant="ghost" className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
