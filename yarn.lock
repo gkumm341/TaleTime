@@ -5331,6 +5331,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"page-flip@npm:latest":
+  version: 2.0.7
+  resolution: "page-flip@npm:2.0.7"
+  checksum: 10c0/bc3538ae85679356c263d2a8e50f6338c2769511825d6112da8958e8f2eef8e29ae8d6cbd7f664af08dad4d86727ffe9dc09d72783182097f69eea3edf4012d5
+  languageName: node
+  linkType: hard
+
 "pako@npm:~1.0.2":
   version: 1.0.11
   resolution: "pako@npm:1.0.11"
@@ -5641,6 +5648,15 @@ __metadata:
   version: 16.13.1
   resolution: "react-is@npm:16.13.1"
   checksum: 10c0/33977da7a5f1a287936a0c85639fec6ca74f4f15ef1e59a6bc20338fc73dc69555381e211f7a3529b8150a1f71e4225525b41b60b52965bda53ce7d47377ada1
+  languageName: node
+  linkType: hard
+
+"react-pageflip@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "react-pageflip@npm:2.0.3"
+  dependencies:
+    page-flip: "npm:latest"
+  checksum: 10c0/e92e35e967786fc7d62694b6cea042fcd73b697faa8474ed03cf7ee1360bc999c6e0ab29b61f11d403382e47464b62bbc20ec332b6c33e4b803ad491135a6506
   languageName: node
   linkType: hard
 
@@ -6533,6 +6549,7 @@ __metadata:
     postcss: "npm:^8.5.6"
     react: "npm:19.2.0"
     react-dom: "npm:19.2.0"
+    react-pageflip: "npm:^2.0.3"
     styled-jsx: "npm:^5.1.7"
     tailwind-merge: "npm:^3.3.1"
     tailwindcss: "npm:^3"

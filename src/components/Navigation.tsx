@@ -69,9 +69,9 @@ export function Navigation({ className }: NavigationProps) {
         <div className="flex items-center gap-8">
           <button
             onClick={() => handleNavigation('/')}
-            className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent hover:scale-105 transition-transform"
+            className="flex items-center gap-2 text-xl font-bold text-[#6BA8A9] hover:scale-105 transition-transform"
           >
-            <BookOpen className="text-pink-600" size={24} />
+            <BookOpen className="text-[#6BA8A9]" size={24} />
             TaleTime
           </button>
           
@@ -83,7 +83,7 @@ export function Navigation({ className }: NavigationProps) {
                 onClick={() => handleNavigation(href)}
                 className={`flex items-center gap-2 ${
                   isActive(href) 
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
+                    ? 'bg-[#6BA8A9] text-white' 
                     : ''
                 }`}
               >
@@ -126,9 +126,9 @@ export function Navigation({ className }: NavigationProps) {
       } ${className}`}>
         <button
           onClick={() => handleNavigation('/')}
-          className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+          className="flex items-center gap-2 text-xl font-bold text-[#6BA8A9]"
         >
-          <BookOpen className="text-blue-600" size={24} />
+          <BookOpen className="text-[#6BA8A9]" size={24} />
           TaleTime
         </button>
 
@@ -187,7 +187,7 @@ export function Navigation({ className }: NavigationProps) {
                   onClick={() => handleNavigation(href)}
                   className={`w-full justify-start flex items-center gap-3 ${
                     isActive(href) 
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
+                      ? 'bg-[#6BA8A9] text-white' 
                       : ''
                   }`}
                 >

@@ -28,7 +28,7 @@ export default function StoryPage({ params }: StoryPageProps) {
   const [isReading, setIsReading] = useState(false)
   const [readingProgress, setReadingProgress] = useState(0)
   const [estimatedTimeLeft, setEstimatedTimeLeft] = useState(storyData?.time || 0)
-  const [fontSize, setFontSize] = useState(16)
+  const [fontSize, setFontSize] = useState(18.4) // Match book reader 1.15rem ~ 18.4px base
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [startTime, setStartTime] = useState<Date | null>(null)
@@ -151,7 +151,19 @@ export default function StoryPage({ params }: StoryPageProps) {
 
   const formatContent = (content: string) => {
     return content.split('\n\n').map((paragraph, index) => (
-      <p key={index} className="mb-8 leading-loose text-lg text-justify" style={{ lineHeight: '2' }}>
+      <p 
+        key={index} 
+        className="mb-6 text-justify" 
+        style={{ 
+          lineHeight: '1.8',
+          textIndent: index === 0 ? '0' : '2em',
+          fontSize: `${fontSize}px`,
+          fontFamily: 'Literata, Georgia, Palatino, "Book Antiqua", serif',
+          hyphens: 'auto',
+          wordSpacing: '0.05em',
+          marginTop: '0'
+        }}
+      >
         {paragraph}
       </p>
     ))
@@ -159,7 +171,7 @@ export default function StoryPage({ params }: StoryPageProps) {
 
   if (!story) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#F5E9DA] via-white to-[#F5E9DA] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
             <div className="text-6xl mb-4">📖</div>
@@ -178,14 +190,14 @@ export default function StoryPage({ params }: StoryPageProps) {
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
       isDarkMode 
-        ? 'bg-gray-900 text-gray-100' 
-        : 'bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 text-gray-900'
+        ? 'bg-[#1e1e1e] text-[#e0e0e0]' 
+        : 'bg-[#F5E9DA] text-[#3E3E3E]'
     }`}>
       {/* Header */}
       <div className={`sticky top-0 z-50 backdrop-blur-md border-b shadow-sm transition-colors duration-300 ${
         isDarkMode 
-          ? 'bg-gray-900/90 border-gray-700' 
-          : 'bg-white/90 border-amber-200'
+          ? 'bg-[#1e1e1e]/90 border-gray-700' 
+          : 'bg-white/90 border-[#B5CDA3]'
       }`}>
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -230,7 +242,7 @@ export default function StoryPage({ params }: StoryPageProps) {
                 onClick={toggleBookmark}
                 variant="outline"
                 size="sm"
-                className={isBookmarked ? 'text-pink-600 border-pink-300' : ''}
+                className={isBookmarked ? 'text-[#FF8B7B] border-[#FF8B7B]' : ''}
               >
                 <Heart size={16} fill={isBookmarked ? 'currentColor' : 'none'} />
               </Button>
@@ -247,15 +259,15 @@ export default function StoryPage({ params }: StoryPageProps) {
           {/* Progress Bar */}
           {isReading && (
             <div className="mt-4">
-              <div className={`w-full rounded-full h-2.5 ${isDarkMode ? 'bg-gray-700' : 'bg-amber-100'}`}>
+              <div className={`w-full rounded-full h-2.5 ${isDarkMode ? 'bg-gray-700' : 'bg-[#B5CDA3]/30'}`}>
                 <div 
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-300"
+                  className={`h-2.5 rounded-full transition-all duration-300 ${isDarkMode ? 'bg-[#6BA8A9]' : 'bg-[#6BA8A9]'}`}
                   style={{ width: `${readingProgress}%` }}
                 />
               </div>
               <div className="flex justify-between text-xs mt-2">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-amber-700'}>{Math.round(readingProgress)}% complete</span>
-                <span className={isDarkMode ? 'text-gray-400' : 'text-amber-700'}>~{estimatedTimeLeft} min remaining</span>
+                <span className={isDarkMode ? 'text-gray-400' : 'text-[#3E3E3E]'}>{Math.round(readingProgress)}% complete</span>
+                <span className={isDarkMode ? 'text-gray-400' : 'text-[#3E3E3E]'}>~{estimatedTimeLeft} min remaining</span>
               </div>
             </div>
           )}
@@ -266,8 +278,8 @@ export default function StoryPage({ params }: StoryPageProps) {
       {showSettings && (
         <div className={`fixed top-20 right-4 z-40 p-4 rounded-xl shadow-xl border transition-colors duration-300 ${
           isDarkMode 
-            ? 'bg-gray-800 border-gray-600' 
-            : 'bg-white border-gray-200'
+            ? 'bg-[#1e1e1e] border-gray-700' 
+            : 'bg-white border-[#B5CDA3]'
         }`}>
           <h3 className="font-semibold mb-3">Reading Settings</h3>
           
@@ -276,15 +288,15 @@ export default function StoryPage({ params }: StoryPageProps) {
               <label className="block text-sm font-medium mb-2">Font Size</label>
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={() => setFontSize(Math.max(12, fontSize - 2))}
+                  onClick={() => setFontSize(Math.max(14, fontSize - 2))}
                   variant="outline"
                   size="sm"
                 >
                   A-
                 </Button>
-                <span className="text-sm w-8 text-center">{fontSize}</span>
+                <span className="text-sm w-12 text-center">{Math.round(fontSize)}px</span>
                 <Button
-                  onClick={() => setFontSize(Math.min(24, fontSize + 2))}
+                  onClick={() => setFontSize(Math.min(28, fontSize + 2))}
                   variant="outline"
                   size="sm"
                 >
@@ -310,46 +322,46 @@ export default function StoryPage({ params }: StoryPageProps) {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {!isReading ? (
-          /* Story Preview */
+          // Story Preview
           <Card className={`backdrop-blur-md shadow-2xl border transition-colors duration-300 rounded-2xl ${
             isDarkMode 
-              ? 'bg-gray-800/80 border-gray-600' 
-              : 'bg-white/90 border-white/50'
+              ? 'bg-[#1e1e1e]/90 border-gray-700' 
+              : 'bg-white/90 border-[#B5CDA3]'
           }`}>
             <CardContent className="p-10 sm:p-12">
               <div className="text-center mb-10">
-                <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4">
+                <h1 className="text-4xl sm:text-5xl font-bold text-[#6BA8A9] mb-4">
                   {story.title}
                 </h1>
-                <p className="text-xl text-amber-700 mb-4">by {story.author}</p>
+                <p className="text-xl text-[#B5CDA3] mb-4">by {story.author}</p>
                 
                 <div className="flex flex-wrap justify-center gap-3 text-sm">
-                  <span className="px-4 py-2 bg-amber-100 text-amber-800 rounded-full font-medium">
+                  <span className="px-4 py-2 bg-[#6BA8A9]/10 text-[#6BA8A9] rounded-full font-medium">
                     {story.genre}
                   </span>
-                  <span className="px-4 py-2 bg-orange-100 text-orange-800 rounded-full font-medium">
+                  <span className="px-4 py-2 bg-[#FF8B7B]/10 text-[#FF8B7B] rounded-full font-medium">
                     {story.age}
                   </span>
-                  <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full font-medium">
+                  <span className="px-4 py-2 bg-[#B5CDA3]/20 text-[#6BA8A9] rounded-full font-medium">
                     {story.time} min read
                   </span>
-                  <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full font-medium">
+                  <span className="px-4 py-2 bg-[#6BA8A9]/10 text-[#6BA8A9] rounded-full font-medium">
                     {story.mood}
                   </span>
-                  <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full font-medium">
+                  <span className="px-4 py-2 bg-[#FF8B7B]/10 text-[#FF8B7B] rounded-full font-medium">
                     {story.difficulty}
                   </span>
                 </div>
               </div>
               
               <div className="max-w-2xl mx-auto">
-                <p className="text-xl text-gray-700 leading-relaxed mb-10 text-center italic">
+                <p className="text-xl text-[#3E3E3E] leading-relaxed mb-10 text-center italic">
                   {story.teaser}
                 </p>
                 
                 <div className="flex flex-wrap gap-2 justify-center mb-10">
                   {story.tags.map(tag => (
-                    <span key={tag} className="px-3 py-1.5 bg-amber-50 text-amber-700 text-sm rounded-full font-medium">
+                    <span key={tag} className="px-3 py-1.5 bg-[#B5CDA3]/20 text-[#6BA8A9] text-sm rounded-full font-medium">
                       #{tag}
                     </span>
                   ))}
@@ -359,7 +371,7 @@ export default function StoryPage({ params }: StoryPageProps) {
                   <Button
                     onClick={startReading}
                     size="lg"
-                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white py-6 px-10 text-lg font-semibold rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    className="bg-[#6BA8A9] hover:bg-[#5F9798] text-white py-6 px-10 text-lg font-semibold rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
                   >
                     <BookOpen className="mr-3" size={24} />
                     Start Reading
@@ -369,30 +381,51 @@ export default function StoryPage({ params }: StoryPageProps) {
             </CardContent>
           </Card>
         ) : (
-          /* Reading View */
+          // Reading View
           <Card className={`backdrop-blur-md shadow-2xl border transition-colors duration-300 rounded-2xl ${
             isDarkMode 
-              ? 'bg-gray-800/90 border-gray-600' 
-              : 'bg-white/95 border-white/50'
+              ? 'bg-[#1e1e1e]/95 border-gray-700' 
+              : 'bg-white/95 border-[#B5CDA3]'
           }`}>
             <div 
               ref={scrollRef}
-              className="max-h-screen overflow-y-auto p-10 sm:p-16"
-              style={{ maxHeight: 'calc(100vh - 200px)' }}
+              className="max-h-screen overflow-y-auto"
+              style={{ 
+                maxHeight: 'calc(100vh - 200px)',
+                padding: '3rem 6%',
+                fontFamily: 'Literata, Georgia, Palatino, "Book Antiqua", serif'
+              }}
             >
-              <div ref={contentRef} style={{ fontSize: `${fontSize}px` }}>
-                <h1 className="text-3xl sm:text-4xl font-bold mb-3 text-center bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
+              <div ref={contentRef}>
+                <h1 
+                  className="text-3xl sm:text-4xl font-semibold mb-3 text-center"
+                  style={{
+                    fontFamily: 'Literata, Georgia, Palatino, "Book Antiqua", serif',
+                    marginTop: '0',
+                    marginBottom: '0.5em',
+                    lineHeight: '1.3'
+                  }}
+                >
                   {story.title}
                 </h1>
-                <p className={`text-center mb-12 text-lg ${isDarkMode ? 'text-gray-400' : 'text-amber-600'}`}>by {story.author}</p>
+                <p 
+                  className={`text-center mb-12 ${isDarkMode ? 'text-gray-400' : 'text-[#B5CDA3]'}`}
+                  style={{
+                    fontFamily: 'Literata, Georgia, Palatino, "Book Antiqua", serif',
+                    fontSize: `${fontSize * 0.9}px`,
+                    marginBottom: '3em'
+                  }}
+                >
+                  by {story.author}
+                </p>
                 
                 <div className="max-w-2xl mx-auto">
                   {formatContent(story.content)}
                 </div>
                 
-                <div className={`text-center mt-16 pt-12 border-t ${isDarkMode ? 'border-gray-700' : 'border-amber-200'}`}>
-                  <h3 className="text-3xl font-semibold mb-4 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">The End</h3>
-                  <p className={`mb-8 text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Thank you for reading "{story.title}"</p>
+                <div className={`text-center mt-16 pt-12 border-t ${isDarkMode ? 'border-gray-700' : 'border-[#B5CDA3]'}`}>
+                  <h3 className="text-3xl font-semibold mb-4 text-[#6BA8A9]">The End</h3>
+                  <p className={`mb-8 text-lg ${isDarkMode ? 'text-gray-400' : 'text-[#3E3E3E]'}`}>Thank you for reading "{story.title}"</p>
                   
                   <div className="flex flex-wrap justify-center gap-4">
                     <Button onClick={resetReading} variant="outline" className="rounded-lg px-6 py-3">
@@ -401,7 +434,7 @@ export default function StoryPage({ params }: StoryPageProps) {
                     </Button>
                     <Button 
                       onClick={() => router.push('/search')}
-                      className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg px-6 py-3"
+                      className="bg-[#6BA8A9] hover:bg-[#5F9798] text-white rounded-lg px-6 py-3"
                     >
                       <BookOpen className="mr-2" size={18} />
                       Find More Stories

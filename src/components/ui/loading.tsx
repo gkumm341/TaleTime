@@ -71,7 +71,7 @@ interface LoadingPageProps {
 
 export function LoadingPage({ title = "Loading...", description }: LoadingPageProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5E9DA] via-white to-[#F5E9DA] flex items-center justify-center p-4">
       <div className="text-center">
         <LoadingSpinner size="lg" className="mx-auto mb-4" />
         <h2 className="text-2xl font-semibold text-gray-700 mb-2">{title}</h2>

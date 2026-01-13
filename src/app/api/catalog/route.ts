@@ -1,14 +1,189 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { books, estimates, cacheManifest } from '@/db/schema';
-import { eq, sql, like, and, or } from 'drizzle-orm';
+import { eq, sql, like, and, or, inArray } from 'drizzle-orm';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { syncLocalByTitleToDb } from '@/lib/local-book-sync';
 
 export const runtime = 'nodejs'; // Required for SQLite
 
 const DEFAULT_ITEMS_PER_PAGE = 100;
 const MAX_ITEMS_PER_PAGE = 100;
 
+function normalizeTitleKey(input: string): string {
+  return input
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function buildTitleCandidates(rawTitle: string): string[] {
+  const candidates = [
+    rawTitle,
+    rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+    rawTitle.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+    rawTitle.split(':')[0]?.trim() || rawTitle,
+    rawTitle.replace(/\s*:\s*\$[a-z]\b\s*/gi, ' ').trim(),
+    rawTitle.replace(/\$[a-z]\b/gi, ' ').trim(),
+  ]
+    .map((t) => t.replace(/\s*\[[^\]]*\]\s*$/, '').trim())
+    .filter(Boolean);
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const c of candidates) {
+    const k = normalizeTitleKey(c);
+    if (!k) continue;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(c);
+  }
+  return out;
+}
+
+async function getLocalBookIdsWithFullText(): Promise<number[]> {
+  const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
+  const rootDir = path.resolve(process.cwd(), baseDir);
+
+  let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
+  try {
+    entries = (await fs.readdir(rootDir, { withFileTypes: true })) as unknown as typeof entries;
+  } catch {
+    return [];
+  }
+
+  const candidates = entries
+    .filter((e) => e.isDirectory() && /^\d+$/.test(e.name))
+    .map((e) => ({ id: Number(e.name), dir: path.join(rootDir, e.name) }))
+    .filter((x) => Number.isFinite(x.id) && x.id > 0);
+
+  const exists = async (p: string) => {
+    try {
+      await fs.access(p);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const checks = await Promise.all(
+    candidates.map(async (c) => ({ id: c.id, ok: await exists(path.join(c.dir, 'full.txt')) }))
+  );
+
+  const numericIds = checks.filter((c) => c.ok).map((c) => c.id);
+
+  // Also support: ${LOCAL_TEXT_DIR}/by-title/<Title>/full.txt
+  const byTitleRoot = path.join(rootDir, 'by-title');
+  let byTitleEntries: Array<{ name: string; isDirectory: () => boolean }> = [];
+  try {
+    byTitleEntries = (await fs.readdir(byTitleRoot, { withFileTypes: true })) as unknown as typeof byTitleEntries;
+  } catch {
+    byTitleEntries = [];
+  }
+
+  const byTitleFolders = byTitleEntries
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+
+  const byTitleWithFull = await Promise.all(
+    byTitleFolders.map(async (folder) => {
+      const fullPath = path.join(byTitleRoot, folder, 'full.txt');
+      return { folder, ok: await exists(fullPath) };
+    })
+  );
+
+  const availableFolders = byTitleWithFull.filter((x) => x.ok).map((x) => x.folder);
+  if (availableFolders.length === 0) {
+    return Array.from(new Set(numericIds));
+  }
+
+  const foldersByKey = new Map<string, string>();
+  for (const f of availableFolders) {
+    const k = normalizeTitleKey(f);
+    if (!k) continue;
+    if (!foldersByKey.has(k)) foldersByKey.set(k, f);
+  }
+
+  // Resolve folder names to book IDs via DB titles (exact-ish, with simple title variants).
+  const resolvedIds: number[] = [];
+  for (const folder of availableFolders) {
+    const folderKey = normalizeTitleKey(folder);
+    if (!folderKey) continue;
+
+    // 1) Try case-insensitive exact title match.
+    const exact = await db
+      .select({ id: books.id, title: books.title })
+      .from(books)
+      .where(sql`lower(${books.title}) = ${folder.toLowerCase()}`)
+      .orderBy(books.id)
+      .limit(1);
+    if (exact.length > 0) {
+      resolvedIds.push(exact[0].id);
+      continue;
+    }
+
+    // 2) Try matching against simple title candidates for a small pool of likely books.
+    //    (Avoid scanning the full DB.)
+    const folderWords = folderKey.split(' ').filter(Boolean);
+    const stop = new Set(['the', 'a', 'an', 'and', 'of', 'in', 'to', 'on', 'for', 'with']);
+    const needle =
+      folderWords.find((w) => w.length >= 4 && !stop.has(w)) ||
+      folderWords.find((w) => w.length >= 3) ||
+      folderWords[0] ||
+      folderKey;
+    const pool = await db
+      .select({ id: books.id, title: books.title })
+      .from(books)
+      .where(like(books.title, `%${needle}%`))
+      .orderBy(books.id)
+      .limit(200);
+
+    let bestId: number | null = null;
+    for (const b of pool) {
+      const candidates = buildTitleCandidates(b.title);
+      for (const c of candidates) {
+        if (normalizeTitleKey(c) === folderKey) {
+          bestId = bestId == null ? b.id : Math.min(bestId, b.id);
+          break;
+        }
+      }
+    }
+    if (bestId != null) resolvedIds.push(bestId);
+  }
+
+  return Array.from(new Set([...numericIds, ...resolvedIds]));
+}
+
+let lastLocalSyncAt = 0;
+let localSyncInFlight: Promise<void> | null = null;
+
+async function maybeSyncLocalByTitle(): Promise<void> {
+  const contentMode = (process.env.CONTENT_MODE || 'remote').toLowerCase();
+  if (contentMode !== 'local') return;
+
+  const now = Date.now();
+  // avoid re-scanning on every request
+  if (now - lastLocalSyncAt < 10_000) return;
+
+  if (!localSyncInFlight) {
+    localSyncInFlight = (async () => {
+      await syncLocalByTitleToDb();
+      lastLocalSyncAt = Date.now();
+    })().finally(() => {
+      localSyncInFlight = null;
+    });
+  }
+
+  await localSyncInFlight;
+}
+
+// inside your GET handler, near the top:
 export async function GET(req: NextRequest) {
+  await maybeSyncLocalByTitle();
   const searchParams = req.nextUrl.searchParams;
   const page = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || '';
@@ -24,8 +199,19 @@ export async function GET(req: NextRequest) {
   );
 
   try {
+    const contentMode = (process.env.CONTENT_MODE || 'remote').toLowerCase();
+    const localIds = contentMode === 'local' ? await getLocalBookIdsWithFullText() : null;
+
     // If bookId is provided, return single book
     if (bookId) {
+      const parsedId = parseInt(bookId);
+      if (contentMode === 'local' && localIds && !localIds.includes(parsedId)) {
+        return NextResponse.json(
+          { error: 'Book not found (no local full.txt)' },
+          { status: 404 }
+        );
+      }
+
       const book = await db
         .select({
           id: books.id,
@@ -43,7 +229,7 @@ export async function GET(req: NextRequest) {
         .from(books)
         .leftJoin(estimates, eq(books.id, estimates.bookId))
         .leftJoin(cacheManifest, eq(books.id, cacheManifest.bookId))
-        .where(eq(books.id, parseInt(bookId)))
+        .where(eq(books.id, parsedId))
         .limit(1);
 
       if (book.length === 0) {
@@ -121,7 +307,15 @@ export async function GET(req: NextRequest) {
       conditions.push(sql`${cacheManifest.epubBlobKey} IS NOT NULL`);
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    let whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Local mode: only return books that have local text present on disk.
+    if (contentMode === 'local') {
+      if (!localIds || localIds.length === 0) {
+        return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
+      }
+      whereClause = whereClause ? and(whereClause, inArray(books.id, localIds)) : inArray(books.id, localIds);
+    }
 
     // Determine sort order
     let orderByClause;

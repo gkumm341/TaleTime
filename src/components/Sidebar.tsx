@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { X, Menu } from 'lucide-react';
 
 interface SidebarProps {
-  activePage?: 'home' | 'favorites' | 'history';
+  activePage?: 'home' | 'favorites' | 'history' | 'continue';
   children?: ReactNode;
 }
 
@@ -20,7 +20,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-30 md:hidden p-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110"
+        className="fixed top-4 left-4 z-30 md:hidden p-3 bg-[#6BA8A9] hover:bg-[#5F9798] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110"
         aria-label="Toggle menu"
       >
         <Menu className="w-6 h-6" />
@@ -38,10 +38,10 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
       <div 
         className={`
           fixed left-0 top-0 bottom-0 z-30 w-64 
-          bg-gradient-to-b from-white/95 via-pink-50/95 to-purple-50/95 
-          dark:from-gray-800/95 dark:via-gray-900/95 dark:to-gray-900/95 
-          backdrop-blur-xl border-r border-pink-300/30 dark:border-pink-900/50 
-          shadow-2xl overflow-y-auto
+          bg-white/95 
+          dark:from-gray-900/95 dark:via-gray-900/95 dark:to-gray-900/95 
+          backdrop-blur-xl border-r border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 
+          shadow-xl overflow-y-auto
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
@@ -50,23 +50,23 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
           {/* Close button for mobile */}
           <button
             onClick={closeSidebar}
-            className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-pink-100 dark:hover:bg-pink-900/30 rounded-full transition-colors mb-4"
+            className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/30 rounded-full transition-colors mb-4"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
 
           {/* Logo - desktop only */}
-          <div className="hidden md:block text-center pb-4 border-b border-pink-300/30 dark:border-pink-900/30 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-pink-400/20 to-purple-400/20 rounded-full blur-2xl animate-pulse"></div>
-            <div className="absolute -top-2 -left-2 w-20 h-20 bg-gradient-to-br from-purple-400/20 to-rose-400/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="hidden md:block text-center pb-4 border-b border-[#B5CDA3]/30 dark:border-[#B5CDA3]/30 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#6BA8A9]/20 rounded-full blur-2xl animate-pulse"></div>
+            <div className="absolute -top-2 -left-2 w-20 h-20 bg-[#FF8B7B]/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
             <div className="relative animate-in fade-in slide-in-from-left duration-700 py-2">
               <div className="text-4xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
-              <h2 className="text-3xl font-black bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg transform hover:scale-110 transition-transform duration-300 cursor-default">
+              <h2 className="text-3xl font-black text-[#6BA8A9] drop-shadow-lg transform hover:scale-110 transition-transform duration-300 cursor-default">
                 TaleTime
               </h2>
-              <p className="text-xs font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mt-2">Your story telling companion</p>
-              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 rounded-full shadow-lg"></div>
+              <p className="text-xs font-bold text-[#B5CDA3] mt-2">Your story telling companion</p>
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-[#6BA8A9] rounded-full shadow-lg"></div>
             </div>
           </div>
 
@@ -77,16 +77,32 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
               onClick={closeSidebar}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
                 activePage === 'home'
-                  ? 'bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 border border-pink-300/50 dark:border-pink-800/50'
-                  : 'hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 dark:hover:from-rose-900/20 dark:hover:to-pink-900/20 border border-transparent hover:border-pink-300/50 dark:hover:border-pink-800/50'
+                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
+                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
               }`}
             >
               <span className="text-xl group-hover:scale-110 transition-transform">🏠</span>
               <span className={`text-sm font-semibold transition-all ${
                 activePage === 'home'
-                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent'
-                  : 'text-gray-700 dark:text-gray-300 group-hover:bg-gradient-to-r group-hover:from-rose-600 group-hover:to-pink-600 group-hover:bg-clip-text group-hover:text-transparent'
+                  ? 'text-[#6BA8A9]'
+                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
               }`}>Home</span>
+            </Link>
+            <Link 
+              href="/continue"
+              onClick={closeSidebar}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
+                activePage === 'continue'
+                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
+                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
+              }`}
+            >
+              <span className="text-xl group-hover:scale-110 transition-transform">⏩</span>
+              <span className={`text-sm font-semibold transition-all ${
+                activePage === 'continue'
+                  ? 'text-[#6BA8A9]'
+                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
+              }`}>Continue</span>
             </Link>
             
             <Link 
@@ -94,15 +110,15 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
               onClick={closeSidebar}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
                 activePage === 'favorites'
-                  ? 'bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 border border-pink-300/50 dark:border-pink-800/50'
-                  : 'hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 dark:hover:from-rose-900/20 dark:hover:to-pink-900/20 border border-transparent hover:border-pink-300/50 dark:hover:border-pink-800/50'
+                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
+                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
               }`}
             >
               <span className="text-xl group-hover:scale-110 transition-transform">❤️</span>
               <span className={`text-sm font-semibold transition-all ${
                 activePage === 'favorites'
-                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent'
-                  : 'text-gray-700 dark:text-gray-300 group-hover:bg-gradient-to-r group-hover:from-rose-600 group-hover:to-pink-600 group-hover:bg-clip-text group-hover:text-transparent'
+                  ? 'text-[#6BA8A9]'
+                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
               }`}>Favorites</span>
             </Link>
             
@@ -111,15 +127,15 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
               onClick={closeSidebar}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
                 activePage === 'history'
-                  ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-300/50 dark:border-purple-800/50'
-                  : 'hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 border border-transparent hover:border-purple-300/50 dark:hover:border-purple-800/50'
+                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
+                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
               }`}
             >
               <span className="text-xl group-hover:scale-110 transition-transform">📚</span>
               <span className={`text-sm font-semibold transition-all ${
                 activePage === 'history'
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'
-                  : 'text-gray-700 dark:text-gray-300 group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-pink-600 group-hover:bg-clip-text group-hover:text-transparent'
+                  ? 'text-[#6BA8A9]'
+                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
               }`}>History</span>
             </Link>
           </div>

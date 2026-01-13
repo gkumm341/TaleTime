@@ -61,17 +61,7 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="min-h-screen relative">
-      {/* Background Image with Overlay */}
-      <div className="fixed inset-0 z-0">
-        <img 
-          src="/girl.jpg" 
-          alt="Background" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-white/85 via-pink-50/90 to-purple-50/85 dark:from-gray-900/90 dark:via-purple-900/80 dark:to-gray-900/90 backdrop-blur-sm"></div>
-      </div>
-
+    <div className="min-h-screen relative bg-white dark:bg-gray-950">
       {/* Responsive Sidebar Navigation */}
       <Sidebar activePage="favorites" />
 
@@ -82,17 +72,17 @@ export default function FavoritesPage() {
           {/* Mobile Header - TaleTime Logo */}
           <div className="md:hidden text-center mb-6 animate-in fade-in slide-in-from-top duration-700">
             <div className="text-5xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
-            <h1 className="text-4xl font-black bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg">
+            <h1 className="text-4xl font-black text-[#6BA8A9] drop-shadow-lg">
               TaleTime
             </h1>
-            <p className="text-sm font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mt-2">Your story telling companion</p>
+            <p className="text-sm font-bold text-[#FF8B7B] mt-2">Your story telling companion</p>
           </div>
         
           {/* Header */}
           <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom duration-700">
             <div className="flex items-center gap-3">
               <span className="text-4xl animate-pulse">❤️</span>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold text-[#6BA8A9]">
                 Your Favorites
               </h1>
             </div>
@@ -101,7 +91,7 @@ export default function FavoritesPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'recent' | 'title')}
-                className="px-4 py-2 rounded-lg border border-pink-200 dark:border-pink-800 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-400 focus:border-transparent shadow-sm font-medium"
+                className="px-4 py-2 rounded-lg border border-[#B5CDA3] dark:border-[#B5CDA3] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#6BA8A9] focus:border-transparent shadow-sm font-medium"
               >
                 <option value="recent">Recently Added</option>
                 <option value="title">Title (A-Z)</option>
@@ -112,17 +102,17 @@ export default function FavoritesPage() {
           {/* Content */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-pink-500 border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#6BA8A9] border-t-transparent"></div>
             </div>
           ) : favorites.length === 0 ? (
             <div className="text-center py-20 animate-in fade-in duration-700">
-              <div className="inline-block bg-gradient-to-br from-white/90 via-pink-50/80 to-purple-50/80 dark:from-gray-800/90 dark:via-gray-800/80 dark:to-gray-900/80 backdrop-blur-xl rounded-2xl p-12 border-2 border-pink-300/50 dark:border-pink-900/50 shadow-2xl">
+              <div className="inline-block bg-white dark:bg-gray-900 backdrop-blur-xl rounded-3xl p-12 border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 shadow-lg">
                 <div className="text-6xl mb-4">💔</div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No favorites yet</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">Start adding books to your favorites by clicking the heart icon!</p>
                 <Link 
                   href="/"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#6BA8A9] hover:bg-[#5F9798] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   <span className="text-lg">🏠</span>
                   Browse Stories

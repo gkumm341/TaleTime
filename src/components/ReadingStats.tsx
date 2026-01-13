@@ -39,14 +39,14 @@ export function ReadingStats({
         <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
           <span>{Math.round(progressPercent)}% complete</span>
           {minutesRemaining !== undefined && (
-            <span className="font-medium text-blue-600 dark:text-blue-400">
+            <span className="font-medium text-[#6BA8A9] dark:text-[#6BA8A9]">
               {formatTime(minutesRemaining)} left
             </span>
           )}
         </div>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
-            className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+            className="bg-[#6BA8A9] dark:bg-[#6BA8A9] h-2 rounded-full transition-all duration-300"
             style={{ width: `${Math.min(progressPercent, 100)}%` }}
           />
         </div>

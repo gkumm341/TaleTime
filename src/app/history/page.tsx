@@ -76,16 +76,7 @@ export default function HistoryPage() {
     .reduce((sum, item) => sum + item.timeSpent, 0);
 
   return (
-    <div className="min-h-screen relative">
-      <div className="fixed inset-0 z-0">
-        <img 
-          src="/girl.jpg" 
-          alt="Background" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-white/85 via-pink-50/90 to-purple-50/85 dark:from-gray-900/90 dark:via-purple-900/80 dark:to-gray-900/90 backdrop-blur-sm"></div>
-      </div>
-
+    <div className="min-h-screen relative bg-white dark:bg-gray-950">
       <Sidebar activePage="history" />
 
       <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
@@ -94,26 +85,26 @@ export default function HistoryPage() {
           {/* Mobile Header - TaleTime Logo */}
           <div className="md:hidden text-center mb-6 animate-in fade-in slide-in-from-top duration-700">
             <div className="text-5xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
-            <h1 className="text-4xl font-black bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg">
+            <h1 className="text-4xl font-black text-[#6BA8A9] drop-shadow-lg">
               TaleTime
             </h1>
-            <p className="text-sm font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mt-2">Your story telling companion</p>
+            <p className="text-sm font-bold text-[#FF8B7B] mt-2">Your story telling companion</p>
           </div>
         
           <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom duration-700">
             <div className="flex items-center gap-3">
               <span className="text-4xl animate-pulse"></span>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold text-[#6BA8A9]">
                 Reading History
               </h1>
             </div>
             
             {totalBooks > 0 && (
               <div className="flex flex-wrap gap-4 text-sm">
-                <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 border border-purple-200 dark:border-purple-800 font-semibold shadow-md">
+                <div className="px-4 py-2 rounded-lg bg-[#6BA8A9]/20 dark:from-[#6BA8A9]/20 dark:to-[#6BA8A9]/10 border border-[#6BA8A9]/30 dark:border-[#6BA8A9]/40 font-semibold shadow-md">
                    {totalBooks} {totalBooks === 1 ? 'book' : 'books'}
                 </div>
-                <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-rose-100 to-pink-100 dark:from-rose-900 dark:to-pink-900 border border-rose-200 dark:border-rose-800 font-semibold shadow-md">
+                <div className="px-4 py-2 rounded-lg bg-[#FF8B7B]/20 dark:from-[#FF8B7B]/20 dark:to-[#FF8B7B]/10 border border-[#FF8B7B]/30 dark:border-[#FF8B7B]/40 font-semibold shadow-md">
                    {Math.round(totalMinutesRead)} min total
                 </div>
               </div>
@@ -122,17 +113,17 @@ export default function HistoryPage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#6BA8A9] border-t-transparent"></div>
             </div>
           ) : totalBooks === 0 ? (
             <div className="text-center py-20 animate-in fade-in duration-700">
-              <div className="inline-block bg-gradient-to-br from-white/90 via-pink-50/80 to-purple-50/80 dark:from-gray-800/90 dark:via-gray-800/80 dark:to-gray-900/80 backdrop-blur-xl rounded-2xl p-12 border-2 border-purple-300/50 dark:border-purple-900/50 shadow-2xl">
+              <div className="inline-block bg-white dark:bg-gray-900 backdrop-blur-xl rounded-3xl p-12 border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 shadow-lg">
                 <div className="text-6xl mb-4"></div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No reading history yet</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">Start reading books to build your history!</p>
                 <Link 
                   href="/"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#6BA8A9] hover:bg-[#5F9798] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   <span className="text-lg"></span>
                   Browse Stories
@@ -143,7 +134,7 @@ export default function HistoryPage() {
             <div className="space-y-8">
               {history.today.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-bottom duration-700">
-                  <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center gap-2">
+                  <h2 className="text-2xl font-bold mb-4 text-[#6BA8A9] flex items-center gap-2">
                     <span className="text-2xl"></span>
                     Today
                   </h2>
@@ -162,7 +153,7 @@ export default function HistoryPage() {
 
               {history.last7Days.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-bottom duration-700 delay-150">
-                  <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center gap-2">
+                  <h2 className="text-2xl font-bold mb-4 text-[#6BA8A9] flex items-center gap-2">
                     <span className="text-2xl"></span>
                     Last 7 Days
                   </h2>
@@ -181,7 +172,7 @@ export default function HistoryPage() {
 
               {history.earlier.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-bottom duration-700 delay-300">
-                  <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center gap-2">
+                  <h2 className="text-2xl font-bold mb-4 text-[#6BA8A9] flex items-center gap-2">
                     <span className="text-2xl"></span>
                     Earlier
                   </h2>
@@ -218,12 +209,12 @@ function HistoryCard({ item, onRemove, animationDelay }: HistoryCardProps) {
 
   return (
     <div
-      className="group rounded-2xl border-2 border-purple-200/50 dark:border-purple-900/50 overflow-hidden hover:shadow-2xl hover:shadow-purple-300/50 dark:hover:shadow-purple-900/50 transition-all duration-500 bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 hover:border-purple-400 dark:hover:border-purple-600 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700"
+      className="group rounded-2xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 overflow-hidden hover:shadow-xl hover:shadow-[#6BA8A9]/10 dark:hover:shadow-[#6BA8A9]/5 transition-all duration-500 bg-white dark:bg-gray-900 hover:border-[#6BA8A9]/40 dark:hover:border-[#6BA8A9]/30 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <Link href={`/book/${item.bookId}`}>
         {item.book.coverUrl && (
-          <div className="relative w-full h-32 bg-gradient-to-br from-purple-100 via-pink-100 to-rose-100 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
+          <div className="relative w-full h-32 bg-gray-50 dark:bg-gray-800 overflow-hidden">
             <Image
               src={item.book.coverUrl}
               alt={item.book.title}
@@ -233,17 +224,17 @@ function HistoryCard({ item, onRemove, animationDelay }: HistoryCardProps) {
             />
             <div className="absolute bottom-0 left-0 right-0 h-2 bg-gray-200 dark:bg-gray-700">
               <div 
-                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                className="h-full bg-[#6BA8A9] transition-all duration-500"
                 style={{ width: `${item.progressPercent}%` }}
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#6BA8A9]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           </div>
         )}
       </Link>
       
       <div className="p-2 space-y-1 relative">
-        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+        <div className="absolute top-0 right-0 w-20 h-20 bg-[#6BA8A9]/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
         
         <button
           onClick={() => onRemove(item.id)}
@@ -254,7 +245,7 @@ function HistoryCard({ item, onRemove, animationDelay }: HistoryCardProps) {
         </button>
         
         <Link href={`/book/${item.bookId}`}>
-          <h3 className="font-bold text-xs line-clamp-2 group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-pink-600 group-hover:bg-clip-text group-hover:text-transparent transition-all relative z-10 pr-6">
+          <h3 className="font-bold text-xs line-clamp-2 group-hover:text-[#6BA8A9] transition-all relative z-10 pr-6">
             {item.book.title}
           </h3>
         </Link>

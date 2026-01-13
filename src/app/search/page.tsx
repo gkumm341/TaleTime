@@ -92,7 +92,7 @@ function SearchContent() {
       <main className={`min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-300 ${
         isDarkMode 
           ? 'bg-gray-900' 
-          : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
+          : 'bg-gradient-to-br from-[#F5E9DA] via-white to-[#F5E9DA]/50'
       }`}>
       {/* Header */}
       <div className="max-w-7xl mx-auto">
@@ -107,7 +107,7 @@ function SearchContent() {
               <ArrowLeft size={16} />
               Back
             </Button>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl font-bold text-[#6BA8A9]">
               Story Search
             </h1>
           </div>
@@ -129,7 +129,7 @@ function SearchContent() {
             placeholder="Search stories by title, author, or tags..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#6BA8A9] focus:border-transparent"
           />
         </div>
 
@@ -147,7 +147,7 @@ function SearchContent() {
                       onClick={() => setGenre(genreOption)}
                       className={`px-3 py-2 rounded-full text-sm font-medium transition-all ${
                         genre === genreOption
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-[#6BA8A9] text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -167,7 +167,7 @@ function SearchContent() {
                       onClick={() => setAge(ageOption)}
                       className={`px-3 py-2 rounded-full text-sm font-medium transition-all ${
                         age === ageOption
-                          ? 'bg-purple-600 text-white'
+                          ? 'bg-[#FF8B7B] text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -230,7 +230,7 @@ function SearchContent() {
             </div>
 
             <div className="flex justify-end mt-4">
-              <Button onClick={updateURL} className="bg-gradient-to-r from-blue-600 to-purple-600">
+              <Button onClick={updateURL} className="bg-[#6BA8A9] hover:bg-[#5F9798]">
                 Apply Filters
               </Button>
             </div>
@@ -251,10 +251,10 @@ function SearchContent() {
               <Card key={story.id} className="group backdrop-blur-md bg-white/70 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden border border-white/50 hover:scale-105 hover:-translate-y-1">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-xl font-bold bg-gradient-to-r from-blue-800 to-purple-800 bg-clip-text text-transparent leading-tight flex-1 group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300">
+                    <h3 className="text-xl font-bold text-[#3E3E3E] leading-tight flex-1 group-hover:text-[#6BA8A9] transition-all duration-300">
                       {story.title}
                     </h3>
-                    <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-full p-2 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <div className="bg-[#FF8B7B] rounded-full p-2 shadow-lg group-hover:scale-110 transition-transform duration-300">
                       <Clock className="text-white" size={16} />
                     </div>
                   </div>
@@ -271,7 +271,7 @@ function SearchContent() {
                   </div>
                   
                   <div className="flex justify-between items-center mb-4">
-                    <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 font-medium text-sm rounded-full border border-blue-200/50">
+                    <span className="px-3 py-1 bg-[#6BA8A9]/20 text-[#6BA8A9] font-medium text-sm rounded-full border border-[#6BA8A9]/30">
                       {story.genre}
                     </span>
                     <span className="px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 font-medium text-sm rounded-full border border-green-200/50">
@@ -291,7 +291,7 @@ function SearchContent() {
                   <div className="flex gap-2">
                     <Button 
                       onClick={() => router.push(`/story/${story.id}`)}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2 px-4 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center group-hover:shadow-blue-500/50"
+                      className="flex-1 bg-[#6BA8A9] hover:bg-[#5F9798] text-white py-2 px-4 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
                     >
                       <BookOpen className="mr-2 group-hover:rotate-12 transition-transform duration-300" size={16} /> 
                       Read
@@ -299,7 +299,7 @@ function SearchContent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="p-2 border-gray-200 hover:border-pink-300 hover:bg-pink-50"
+                      className="p-2 border-gray-200 hover:border-[#FF8B7B] hover:bg-[#FF8B7B]/10"
                     >
                       <Heart size={16} />
                     </Button>

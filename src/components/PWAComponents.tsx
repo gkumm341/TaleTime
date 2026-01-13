@@ -94,7 +94,7 @@ export function PWAInstallPrompt() {
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-2">
+              <div className="bg-[#6BA8A9] rounded-lg p-2">
                 <Smartphone className="text-white" size={20} />
               </div>
               <div>
@@ -123,7 +123,7 @@ export function PWAInstallPrompt() {
               <Button
                 onClick={handleInstallClick}
                 size="sm"
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                className="flex-1 bg-[#6BA8A9] hover:bg-[#5F9798] text-white"
               >
                 <Download className="mr-1" size={14} />
                 Install
@@ -149,16 +149,33 @@ export function useServiceWorker() {
   const [isOnline, setIsOnline] = useState(true)
 
   useEffect(() => {
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          setSwRegistration(registration)
-          console.log('SW registered:', registration)
+    const isProd = process.env.NODE_ENV === 'production'
+
+    // In development, unregister any existing SW to prevent caching dev bundles.
+    if (!isProd) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => {
+            registration.unregister()
+          })
         })
-        .catch((registrationError) => {
-          console.log('SW registration failed:', registrationError)
-        })
+      }
+      if ('caches' in window) {
+        caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      }
+    } else {
+      // Register service worker (production only)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then((registration) => {
+            setSwRegistration(registration)
+            console.log('SW registered:', registration)
+          })
+          .catch((registrationError) => {
+            console.log('SW registration failed:', registrationError)
+          })
+      }
     }
 
     // Monitor online/offline status

@@ -500,6 +500,9 @@ export default function BookReader() {
       : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
     
     rendition.themes.default({
+      '*': {
+        'font-family': `${fontFamily} !important`,
+      },
       'body': {
         'font-family': `${fontFamily} !important`,
         'line-height': '1.8 !important',
@@ -521,12 +524,21 @@ export default function BookReader() {
       'p:first-of-type, h1 + p, h2 + p, h3 + p': {
         'text-indent': '0 !important',
       },
+      'div': {
+        'text-align': 'justify !important',
+        'font-family': `${fontFamily} !important`,
+        'line-height': '1.8 !important',
+      },
+      'section': {
+        'font-family': `${fontFamily} !important`,
+      },
       'h1, h2, h3, h4, h5, h6': {
         'text-align': 'left !important',
         'margin-top': '2.5em !important',
         'margin-bottom': '1em !important',
         'line-height': '1.3 !important',
         'font-weight': '600 !important',
+        'font-family': `${fontFamily} !important`,
       },
       'h1': {
         'font-size': '1.8em !important',
@@ -635,7 +647,7 @@ export default function BookReader() {
             {downloadProgress > 0 && downloadProgress < 100 && (
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                 <div 
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  className="bg-[#6BA8A9] h-2.5 rounded-full transition-all duration-300"
                   style={{ width: `${downloadProgress}%` }}
                 ></div>
               </div>
@@ -681,7 +693,7 @@ export default function BookReader() {
                     size="sm"
                     className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 px-2.5 py-1.5"
                   >
-                    <BookOpen className="w-4 h-4 text-pink-600" />
+                    <BookOpen className="w-4 h-4 text-[#6BA8A9]" />
                     <span className="font-semibold text-gray-900 dark:text-white text-sm">TaleTime</span>
                   </Button>
                   <Button
@@ -703,7 +715,7 @@ export default function BookReader() {
                       className="fixed inset-0 z-40"
                       onClick={() => setShowMenu(false)}
                     />
-                    <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                    <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-[#B5CDA3] dark:border-gray-700 py-2 z-50">
                       <button
                         onClick={() => { router.push('/'); setShowMenu(false); }}
                         className="w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm"

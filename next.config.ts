@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
         pathname: '/ebooks/**',
       },
     ],
+    localPatterns: [
+      { pathname: '/api/proxy' },
+      { pathname: '/api/local-image' },
+    ],
   },
   async headers() {
     return [
