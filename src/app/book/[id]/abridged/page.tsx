@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/contexts/PreferencesContext';
-import { ChevronLeft, BookOpen, Clock } from 'lucide-react';
+import { ChevronLeft, BookOpen, Clock, Loader2 } from 'lucide-react';
 
 interface AbridgedResponse {
   bookId: number;
@@ -36,6 +36,67 @@ export default function AbridgedBookPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AbridgedResponse | null>(null);
+
+  const coverBackdropUrl = useMemo(() => {
+    if (variant !== 'bedtime') return null;
+    if (!data?.title) return null;
+    return `/api/local-image?title=${encodeURIComponent(data.title)}`;
+  }, [variant, data?.title]);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [audioStatus, setAudioStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
+  const hasTaleTimeAudio = audioStatus === 'available';
+  const isCheckingAudio = audioStatus === 'checking';
+  const shouldShowTaleTimeAudio = useMemo(
+    () => variant === 'bedtime' && (isCheckingAudio || hasTaleTimeAudio),
+    [variant, isCheckingAudio, hasTaleTimeAudio]
+  );
+  const taleTimeAudioSrc = useMemo(() => {
+    const titleForLookup = data?.title || '';
+    return `/api/local-audio?title=${encodeURIComponent(titleForLookup)}`;
+  }, [data?.title]);
+
+  useEffect(() => {
+    // If user navigates away / variant changes, stop audio.
+    if (!shouldShowTaleTimeAudio && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsAudioPlaying(false);
+    }
+  }, [shouldShowTaleTimeAudio]);
+
+  useEffect(() => {
+    // Auto-detect whether an MP3 exists for this bedtime story.
+    if (variant !== 'bedtime') {
+      setAudioStatus('idle');
+      return;
+    }
+
+    const title = data?.title;
+    if (!title) {
+      setAudioStatus('idle');
+      return;
+    }
+
+    const controller = new AbortController();
+    const check = async () => {
+      try {
+        setAudioStatus('checking');
+        const res = await fetch(`/api/local-audio?title=${encodeURIComponent(title)}`, {
+          method: 'HEAD',
+          signal: controller.signal,
+        });
+        setAudioStatus(res.ok ? 'available' : 'unavailable');
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return;
+        setAudioStatus('unavailable');
+      }
+    };
+
+    check();
+    return () => controller.abort();
+  }, [variant, data?.title]);
 
   useEffect(() => {
     if (!id || Number.isNaN(id)) {
@@ -83,7 +144,19 @@ export default function AbridgedBookPage() {
   }, [id, minutes, variant, preferences?.defaultWpm]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
+    <div className="min-h-screen bg-white dark:bg-gray-950 relative overflow-hidden">
+      {coverBackdropUrl && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0"
+        >
+          <div
+            className="absolute inset-0 bg-center bg-cover blur-3xl scale-110 opacity-40 dark:opacity-30"
+            style={{ backgroundImage: `url(${coverBackdropUrl})` }}
+          />
+          <div className="absolute inset-0 bg-white/65 dark:bg-gray-950/55" />
+        </div>
+      )}
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -102,6 +175,58 @@ export default function AbridgedBookPage() {
             </div>
           </div>
 
+          {shouldShowTaleTimeAudio && (
+            <>
+              <audio
+                ref={audioRef}
+                preload="none"
+                src={taleTimeAudioSrc}
+                onPlay={() => setIsAudioPlaying(true)}
+                onPause={() => setIsAudioPlaying(false)}
+                onEnded={() => setIsAudioPlaying(false)}
+              />
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled={isCheckingAudio}
+                title={
+                  isCheckingAudio
+                    ? 'Loading audio…'
+                    : isAudioPlaying
+                      ? 'Stop TaleTime audio'
+                      : 'Play TaleTime audio'
+                }
+                onClick={async () => {
+                  if (isCheckingAudio) return;
+                  const audio = audioRef.current;
+                  if (!audio) return;
+
+                  try {
+                    if (audio.paused) {
+                      await audio.play();
+                    } else {
+                      // Stop (pause + reset)
+                      audio.pause();
+                      audio.currentTime = 0;
+                    }
+                  } catch {
+                    // If playback fails (e.g. browser restrictions), keep UI stable.
+                    setIsAudioPlaying(!audio.paused);
+                  }
+                }}
+              >
+                {isCheckingAudio && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isCheckingAudio
+                  ? 'TaleTime Audio 🔊 Loading…'
+                  : isAudioPlaying
+                    ? 'Stop Audio 🔊'
+                    : 'TaleTime Audio 🔊'}
+              </Button>
+            </>
+          )}
+
           <Button
             variant="outline"
             size="sm"
@@ -116,7 +241,7 @@ export default function AbridgedBookPage() {
       </div>
 
       {/* Body */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-4 py-6 relative z-10">
         {loading && (
           <div className="py-16 text-center text-gray-600 dark:text-gray-400">
             {variant === 'full' ? 'Loading full text…' : 'Loading bedtime version…'}

@@ -34,6 +34,16 @@ function guessContentType(filename: string) {
   return 'application/octet-stream';
 }
 
+function isSupportedImage(filename: string) {
+  const lower = filename.toLowerCase();
+  return (
+    lower.endsWith('.png') ||
+    lower.endsWith('.webp') ||
+    lower.endsWith('.jpg') ||
+    lower.endsWith('.jpeg')
+  );
+}
+
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
   if (!title) {
@@ -79,7 +89,9 @@ export async function GET(req: NextRequest) {
       .filter((e) => e.isFile())
       .map((e) => e.name);
 
-    const preferred = files.find((f) => normalizeKey(f.replace(/\.[^.]+$/, '')) === requestedKey);
+    const preferred = files.find(
+      (f) => isSupportedImage(f) && normalizeKey(f.replace(/\.[^.]+$/, '')) === requestedKey
+    );
     imageName =
       preferred ??
       files.find((f) => f.toLowerCase().endsWith('.png')) ??
