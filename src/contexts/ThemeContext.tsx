@@ -1,6 +1,7 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect } from 'react'
+import { usePreferences } from '@/contexts/PreferencesContext'
 
 interface ThemeContextType {
   isDarkMode: boolean
@@ -11,47 +12,29 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const { preferences, updatePreferences, loading } = usePreferences()
+  const theme = loading ? 'light' : preferences.theme
+  const isDarkMode = theme === 'dark'
 
-  // Initialize theme from localStorage or system preference
+  // Apply theme to document based on PreferencesContext.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('taletime-theme')
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    if (typeof window === 'undefined') return
 
-      if (savedTheme) {
-        setIsDarkMode(savedTheme === 'dark')
-      } else {
-        setIsDarkMode(systemPrefersDark)
-      }
-    }
-    
-    setMounted(true)
-  }, [])
-
-  // Apply theme changes to document
-  useEffect(() => {
-    if (mounted && typeof window !== 'undefined') {
-      document.documentElement.classList.toggle('dark', isDarkMode)
-      localStorage.setItem('taletime-theme', isDarkMode ? 'dark' : 'light')
-    }
-  }, [isDarkMode, mounted])
+    const root = document.documentElement
+    root.classList.toggle('dark', theme === 'dark')
+    root.classList.toggle('sepia', theme === 'sepia')
+    localStorage.setItem('taletime-theme', theme)
+  }, [theme])
 
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode)
+    void updatePreferences({ theme: theme === 'dark' ? 'light' : 'dark' })
   }
 
-  const setTheme = (theme: 'light' | 'dark') => {
-    setIsDarkMode(theme === 'dark')
+  const setTheme = (nextTheme: 'light' | 'dark') => {
+    void updatePreferences({ theme: nextTheme })
   }
 
-  // Always render the provider, but with default values until mounted
-  const value = {
-    isDarkMode: mounted ? isDarkMode : false,
-    toggleTheme,
-    setTheme
-  }
+  const value = { isDarkMode, toggleTheme, setTheme }
 
   return (
     <ThemeContext.Provider value={value}>

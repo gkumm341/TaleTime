@@ -123,6 +123,26 @@ export default function AbridgedBookPage() {
           signal: controller.signal,
         });
 
+        if (res.status === 401 || res.status === 402) {
+          const json = (await res.json().catch(() => null)) as unknown;
+          const code =
+            json && typeof json === 'object' && 'code' in json && typeof (json as { code?: unknown }).code === 'string'
+              ? (json as { code: string }).code
+              : undefined;
+          const msg =
+            json && typeof json === 'object' && 'error' in json && typeof (json as { error?: unknown }).error === 'string'
+              ? (json as { error: string }).error
+              : res.status === 401
+                ? 'Sign in required'
+                : 'Upgrade required';
+          const next = `/book/${id}/abridged?variant=${variant}`;
+          const action =
+            code === 'AUTH_REQUIRED'
+              ? `\n\nGo to /signin?next=${encodeURIComponent(next)}`
+              : `\n\nGo to /account?next=${encodeURIComponent(next)}`;
+          throw new Error(`${msg}${action}`);
+        }
+
         if (!res.ok) {
           const text = await res.text().catch(() => '');
           throw new Error(text || `Failed to abridge: ${res.status}`);
@@ -130,9 +150,10 @@ export default function AbridgedBookPage() {
 
         const json = (await res.json()) as AbridgedResponse;
         setData(json);
-      } catch (e: any) {
-        if (e?.name === 'AbortError') return;
-        setError(e?.message || 'Failed to abridge');
+      } catch (e: unknown) {
+        const name = e && typeof e === 'object' && 'name' in e ? (e as { name?: unknown }).name : undefined;
+        if (name === 'AbortError') return;
+        setError(e instanceof Error ? e.message : 'Failed to abridge');
       } finally {
         setLoading(false);
       }
@@ -252,7 +273,33 @@ export default function AbridgedBookPage() {
           <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-6 text-center">
             <div className="font-semibold text-rose-800 dark:text-rose-200">{error}</div>
             <div className="mt-4">
-              <Button onClick={() => window.location.reload()}>Try again</Button>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {error.includes('/signin') && (
+                  <Button
+                    onClick={() => router.push(`/signin?next=${encodeURIComponent(`/book/${id}/abridged?variant=${variant}`)}`)}
+                  >
+                    Sign in
+                  </Button>
+                )}
+                {error.includes('/signin') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/register?next=${encodeURIComponent(`/book/${id}/abridged?variant=${variant}`)}`)}
+                  >
+                    Register
+                  </Button>
+                )}
+                {error.includes('/account') && (
+                  <Button
+                    onClick={() => router.push(`/account?next=${encodeURIComponent(`/book/${id}/abridged?variant=${variant}`)}`)}
+                  >
+                    Go to Account
+                  </Button>
+                )}
+                <Button variant="ghost" onClick={() => window.location.reload()}>
+                  Try again
+                </Button>
+              </div>
             </div>
           </div>
         )}

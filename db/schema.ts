@@ -1,5 +1,8 @@
 import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
 
+export const PURCHASE_SOURCES = ['web', 'ios_iap', 'android_iap'] as const;
+export type PurchaseSource = (typeof PURCHASE_SOURCES)[number];
+
 export const books = sqliteTable('books', {
   id: integer('id').primaryKey(),
   title: text('title').notNull(),
@@ -60,4 +63,45 @@ export const readingHistory = sqliteTable('reading_history', {
   currentCfi: text('current_cfi'),
   progressPercent: integer('progress_percent').default(0), // 0-100
   totalReadingTime: integer('total_reading_time').default(0), // seconds
+});
+
+export const users = sqliteTable('users', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  // Payment/subscription flag for MVP; later replace with a proper subscriptions table.
+  isPaid: integer('is_paid').notNull().default(0),
+  createdAt: integer('created_at').notNull(), // Unix timestamp
+});
+
+export const userSessions = sqliteTable('user_sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at').notNull(), // Unix timestamp
+  expiresAt: integer('expires_at').notNull(), // Unix timestamp
+});
+
+// Provider-agnostic premium entitlements.
+// Verify endpoints (web/ios/android) should insert purchase events and upsert entitlements.
+export const premiumEntitlements = sqliteTable('premium_entitlements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  purchaseSource: text('purchase_source', { enum: PURCHASE_SOURCES }).notNull(),
+  plan: text('plan').notNull(),
+  expiresAt: integer('expires_at').notNull(), // Unix timestamp (ms)
+  providerRef: text('provider_ref'), // e.g., Stripe subscription id / platform transaction id
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+// Audit trail of purchase/verification events (useful for later iOS/Android receipt verification).
+export const premiumPurchaseEvents = sqliteTable('premium_purchase_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  purchaseSource: text('purchase_source', { enum: PURCHASE_SOURCES }).notNull(),
+  plan: text('plan').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+  providerTransactionId: text('provider_transaction_id'),
+  rawReceipt: text('raw_receipt'),
+  createdAt: integer('created_at').notNull(),
 });

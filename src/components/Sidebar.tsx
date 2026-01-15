@@ -3,9 +3,10 @@
 import { useState, ReactNode } from 'react';
 import Link from 'next/link';
 import { X, Menu } from 'lucide-react';
+import { AuthButtons } from '@/components/AuthButtons';
 
 interface SidebarProps {
-  activePage?: 'home' | 'favorites' | 'history' | 'continue';
+  activePage?: 'home' | 'bedtime' | 'browse' | 'continue' | 'favorites' | 'history' | 'settings';
   children?: ReactNode;
 }
 
@@ -62,7 +63,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
             <div className="absolute -top-2 -left-2 w-20 h-20 bg-[#FF8B7B]/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
             <div className="relative animate-in fade-in slide-in-from-left duration-700 py-2">
               <div className="text-4xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
-              <h2 className="text-3xl font-black text-[#6BA8A9] drop-shadow-lg transform hover:scale-110 transition-transform duration-300 cursor-default">
+              <h2 className="logo-text text-4xl transform hover:scale-110 transition-transform duration-300 cursor-default">
                 TaleTime
               </h2>
               <p className="text-xs font-bold text-[#B5CDA3] mt-2">Your story telling companion</p>
@@ -87,6 +88,40 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
                   ? 'text-[#6BA8A9]'
                   : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
               }`}>Home</span>
+            </Link>
+
+            <Link 
+              href="/bedtime"
+              onClick={closeSidebar}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
+                activePage === 'bedtime'
+                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
+                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
+              }`}
+            >
+              <span className="text-xl group-hover:scale-110 transition-transform">🌙</span>
+              <span className={`text-sm font-semibold transition-all ${
+                activePage === 'bedtime'
+                  ? 'text-[#6BA8A9]'
+                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
+              }`}>Bedtime</span>
+            </Link>
+
+            <Link 
+              href="/search"
+              onClick={closeSidebar}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
+                activePage === 'browse'
+                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
+                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
+              }`}
+            >
+              <span className="text-xl group-hover:scale-110 transition-transform">🔍</span>
+              <span className={`text-sm font-semibold transition-all ${
+                activePage === 'browse'
+                  ? 'text-[#6BA8A9]'
+                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
+              }`}>Browse</span>
             </Link>
             <Link 
               href="/continue"
@@ -138,10 +173,29 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
                   : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
               }`}>History</span>
             </Link>
+
+            <Link 
+              href="/settings"
+              onClick={closeSidebar}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
+                activePage === 'settings'
+                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
+                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
+              }`}
+            >
+              <span className="text-xl group-hover:scale-110 transition-transform">⚙️</span>
+              <span className={`text-sm font-semibold transition-all ${
+                activePage === 'settings'
+                  ? 'text-[#6BA8A9]'
+                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
+              }`}>Settings</span>
+            </Link>
           </div>
 
           {/* Additional content (filters, storage info, etc.) */}
           {children}
+
+     
         </div>
       </div>
     </>

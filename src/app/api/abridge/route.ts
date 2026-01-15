@@ -4,6 +4,9 @@ import { books } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { getUserFromSessionId } from '@/lib/server/auth';
+import { getPremiumEntitlementForUserId } from '@/lib/server/entitlements';
+import { isPremiumActive } from '@/lib/entitlements';
 
 export const runtime = 'nodejs';
 
@@ -376,71 +379,6 @@ function extractiveAbridge(text: string, targetWords: number): string {
   return final.join('\n\n');
 }
 
-async function llmAbridge(params: {
-  title: string;
-  author: string;
-  text: string;
-  targetMinutes: number;
-  wpm: number;
-}): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('Missing OPENAI_API_KEY');
-
-  // Keep inputs bounded: use a trimmed window of the text.
-  // (For public-domain novels, full text can be huge. Sample beginning/middle/end.)
-  const maxChars = 120_000;
-  const input = buildTriWindowSample(params.text, maxChars);
-
-  const targetWords = params.targetMinutes * params.wpm;
-  const targetChars = Math.max(2000, Math.round(targetWords * 6));
-
-  const system =
-    'You are an expert literary abridger. Produce an abridged version of the provided public-domain book text.\n' +
-    '- Ignore/omit front matter such as title pages, tables of contents, and illustration captions.\n' +
-    '- You will be given excerpts from the beginning, middle, and end. Use them to cover the full arc.\n' +
-    '- Keep the plot coherent and chronological.\n' +
-    '- Preserve the tone/voice; do not modernize language unless needed for clarity.\n' +
-    '- Do not invent events or characters; only compress what is present.\n' +
-    '- Keep key turning points and the ending.\n' +
-    '- Output only the abridged narrative text (no headings, no bullet points).';
-
-  const user =
-    `Book: ${params.title}\nAuthor: ${params.author}\n` +
-    `Target reading time: ~${params.targetMinutes} minutes at ${params.wpm} wpm (about ${targetWords} words).\n\n` +
-    'Source text (possibly truncated):\n' +
-    input;
-
-  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      temperature: 0.3,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      max_tokens: Math.min(4000, Math.round(targetChars / 4)),
-    }),
-  });
-
-  if (!resp.ok) {
-    const errText = await resp.text().catch(() => '');
-    throw new Error(`LLM request failed: ${resp.status} ${errText}`);
-  }
-
-  const json = (await resp.json()) as any;
-  const content = json?.choices?.[0]?.message?.content;
-  if (!content || typeof content !== 'string') {
-    throw new Error('LLM returned no content');
-  }
-
-  return content.trim();
-}
-
 export async function POST(req: NextRequest) {
   try {
     let body: Partial<AbridgeRequest> = {};
@@ -468,13 +406,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid minutes' }, { status: 400 });
     }
 
+    // Bedtime/timed variants are paid-only.
+    if (variant !== 'full') {
+      const sessionId = req.cookies.get('taletime_session')?.value;
+      const user = await getUserFromSessionId(sessionId);
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Sign in required to view the bedtime version', code: 'AUTH_REQUIRED' },
+          { status: 401 }
+        );
+      }
+      const entitlement = await getPremiumEntitlementForUserId(user.id);
+      if (!isPremiumActive(entitlement)) {
+        return NextResponse.json(
+          { error: 'Premium subscription required to view the bedtime version', code: 'PAYWALL' },
+          { status: 402 }
+        );
+      }
+    }
+
     const book = await db.query.books.findFirst({ where: eq(books.id, bookId) });
     if (!book) {
       return NextResponse.json({ error: 'Book not found' }, { status: 404 });
     }
-    const contentMode = (process.env.CONTENT_MODE || 'remote').toLowerCase();
+    const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
 
-    // Local mode: read provided .txt files from disk and skip remote fetching entirely.
+    // Local mode: read provided .txt files from disk (no network requests).
     if (contentMode === 'local') {
       const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
       const rootDir = path.resolve(process.cwd(), baseDir);
@@ -511,7 +468,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      if (variant === 'full') {
+      if (variant === 'full' || variant === 'timed') {
         candidates.push(path.join(bookDir, 'full.txt'));
       } else {
         candidates.push(path.join(bookDir, 'bedtime.txt'));
@@ -535,86 +492,61 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const raw = loaded.text.trim();
+      const cleaned = stripEndBoilerplate(stripFrontMatter(stripGutenbergBoilerplate(raw)));
+
+      if (variant === 'full') {
+        return NextResponse.json({
+          bookId,
+          minutes: 0,
+          wpm,
+          title: book.title,
+          author: book.authors || 'Unknown',
+          content: cleaned,
+          mode: 'local' as Mode,
+        });
+      }
+
+      if (variant === 'bedtime') {
+        // Prefer a dedicated bedtime file; otherwise fall back to an extractive 10-minute version.
+        const bedtimeMinutes = 10;
+        const bedtimeTargetWords = bedtimeMinutes * wpm;
+        const bedtimeContent = loaded.path.toLowerCase().endsWith('bedtime.txt')
+          ? cleaned
+          : extractiveAbridge(cleaned, bedtimeTargetWords);
+
+        return NextResponse.json({
+          bookId,
+          minutes: bedtimeMinutes,
+          wpm,
+          title: book.title,
+          author: book.authors || 'Unknown',
+          content: bedtimeContent,
+          mode: (loaded.path.toLowerCase().endsWith('bedtime.txt') ? 'local' : 'extractive') as Mode,
+        });
+      }
+
+      // timed
+      const effectiveMinutes = minutes ?? 10;
+      const targetWords = effectiveMinutes * wpm;
+      const content = extractiveAbridge(cleaned, targetWords);
       return NextResponse.json({
         bookId,
-        minutes: variant === 'full' ? 0 : (minutes ?? 0),
+        minutes: effectiveMinutes,
         wpm,
         title: book.title,
         author: book.authors || 'Unknown',
-        content: loaded.text.trim(),
-        mode: 'local' as Mode,
+        content,
+        mode: 'extractive' as Mode,
       });
     }
 
-    // Remote mode (kept for later): fetch via txtUrl and abridge.
-    if (!book.txtUrl) {
-      return NextResponse.json({ error: 'No text URL available for this book' }, { status: 400 });
-    }
-
-    let url: URL;
-    try {
-      url = new URL(book.txtUrl);
-    } catch {
-      return NextResponse.json({ error: 'Invalid txtUrl' }, { status: 400 });
-    }
-
-    const allow = parseAllowHosts();
-    if (!isAllowedHost(url, allow)) {
-      return NextResponse.json({ error: `Blocked host: ${url.hostname}` }, { status: 403 });
-    }
-
-    const upstream = await fetch(book.txtUrl, {
-      signal: AbortSignal.timeout(30000),
-      headers: {
-        // Encourage plain text
-        Accept: 'text/plain,*/*;q=0.8',
+    return NextResponse.json(
+      {
+        error: `Unsupported CONTENT_MODE: ${contentMode}. This app is configured for local-only content.`,
       },
-    });
-
-    if (!upstream.ok) {
-      return NextResponse.json({ error: 'Upstream error', status: upstream.status }, { status: 502 });
-    }
-
-    const raw = await upstream.text();
-    const cleaned = stripEndBoilerplate(stripFrontMatter(stripGutenbergBoilerplate(raw)));
-
-    // Remote mode: if no minutes are provided (bedtime-only flow), use a conservative default.
-    const effectiveMinutes = variant === 'timed' ? (minutes ?? 10) : variant === 'bedtime' ? 10 : 0;
-    const targetWords = effectiveMinutes * wpm;
-
-    let content: string;
-    let mode: Mode = 'extractive';
-
-    // Try LLM if configured; otherwise use extractive.
-    if (process.env.OPENAI_API_KEY) {
-      try {
-        content = await llmAbridge({
-          title: book.title,
-          author: book.authors || 'Unknown',
-          text: cleaned,
-          targetMinutes: effectiveMinutes || 10,
-          wpm,
-        });
-        mode = 'llm';
-      } catch (e) {
-        // Fall back to extractive if LLM fails
-        content = extractiveAbridge(cleaned, targetWords);
-        mode = 'extractive';
-      }
-    } else {
-      content = extractiveAbridge(cleaned, targetWords);
-      mode = 'extractive';
-    }
-
-    return NextResponse.json({
-      bookId,
-      minutes,
-      wpm,
-      title: book.title,
-      author: book.authors || 'Unknown',
-      content,
-      mode,
-    });
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Abridge API error:', error);
     return NextResponse.json({ error: 'Failed to abridge book' }, { status: 500 });

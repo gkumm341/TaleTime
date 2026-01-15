@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ePub, { Book, Rendition } from 'epubjs';
 import { get, set } from 'idb-keyval';
-import { Navigation } from '@/components/Navigation';
 import { ReadingStats } from '@/components/ReadingStats';
 import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/contexts/PreferencesContext';

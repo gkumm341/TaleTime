@@ -34,6 +34,25 @@
 }
 
 @layer components {
+  .logo-text {
+    font-family: ui-rounded, "Arial Rounded MT Bold", "Cooper Black", system-ui, -apple-system, sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    color: #fdf0d0;
+    /* Outline + drop shadow to match the logo look */
+    text-shadow:
+      -2px -2px 0 #3b1f17,
+      2px -2px 0 #3b1f17,
+      -2px 2px 0 #3b1f17,
+      2px 2px 0 #3b1f17,
+      0 -3px 0 #3b1f17,
+      0 3px 0 #3b1f17,
+      -3px 0 0 #3b1f17,
+      3px 0 0 #3b1f17,
+      0 8px 0 rgba(59, 31, 23, 0.85),
+      0 14px 24px rgba(0, 0, 0, 0.25);
+  }
+
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -222,6 +241,10 @@
 
 @layer base {
     :root {
+    --app-font-family: system-ui, -apple-system, sans-serif;
+    --app-font-scale: 1;
+    --app-line-height: 1.6;
+
         --background: 0 0% 100%;
         --foreground: 222.2 84% 4.9%;
         --card: 0 0% 100%;
@@ -282,6 +305,26 @@
         --input: 217.2 32.6% 17.5%;
         --ring: 224.3 76.3% 94.1%;
     }
+
+      .sepia {
+        --background: 38 44% 92%;
+        --foreground: 28 25% 16%;
+        --card: 40 46% 96%;
+        --card-foreground: 28 25% 16%;
+        --popover: 40 46% 96%;
+        --popover-foreground: 28 25% 16%;
+        --primary: 18 55% 38%;
+        --primary-foreground: 40 46% 96%;
+        --secondary: 35 30% 86%;
+        --secondary-foreground: 28 25% 16%;
+        --muted: 35 30% 86%;
+        --muted-foreground: 28 18% 34%;
+        --accent: 33 36% 82%;
+        --accent-foreground: 28 25% 16%;
+        --border: 32 22% 78%;
+        --input: 32 22% 78%;
+        --ring: 18 55% 38%;
+      }
 }
 
 @layer base {
@@ -292,7 +335,9 @@
     body {
         background-color: hsl(var(--background));
         color: hsl(var(--foreground));
-        font-family: system-ui, -apple-system, sans-serif;
+      font-family: var(--app-font-family);
+      font-size: calc(16px * var(--app-font-scale));
+      line-height: var(--app-line-height);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         font-feature-settings: "rlig" 1, "calt" 1;

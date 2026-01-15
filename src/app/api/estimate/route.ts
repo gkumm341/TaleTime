@@ -43,74 +43,15 @@ export async function GET(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // Try HEAD request first
-    try {
-      const head = await fetch(book.txtUrl, { 
-        method: 'HEAD',
-        signal: AbortSignal.timeout(5000),
-      });
-      
-      if (head.ok) {
-        const len = parseInt(head.headers.get('content-length') || '0');
-        if (len > 1024) {
-          const est = estimateFromBytes(len);
-          await upsertEstimate(bookId, 'txt-head', { bytes: len, ...est });
-          return NextResponse.json({ 
-            bookId, 
-            source: 'txt-head', 
-            ...est 
-          });
-        }
-      }
-    } catch (headError) {
-      console.log('HEAD request failed, falling back to Range:', headError);
-    }
-
-    // Fallback: Range request for 128 KB sample
-    try {
-      const range = await fetch(book.txtUrl, { 
-        headers: { Range: 'bytes=0-131071' },
-        signal: AbortSignal.timeout(10000),
-      });
-      
-      if (!range.ok) {
-        return NextResponse.json(
-          { error: 'Upstream error', status: range.status },
-          { status: 502 }
-        );
-      }
-
-      const buf = await range.arrayBuffer();
-      const sampleBytes = buf.byteLength;
-      const text = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(buf));
-      const words = (text.trim().match(/\S+/g) || []).length;
-
-      // Extract total size from Content-Range header if available
-      const cr = range.headers.get('content-range');
-      const total = cr && /\/(\d+)$/.exec(cr)?.[1] 
-        ? parseInt(/\/(\d+)$/.exec(cr)![1]) 
-        : sampleBytes;
-
-      const est = estimateFromSample(total, sampleBytes, words);
-      await upsertEstimate(bookId, 'txt-sample', { 
-        bytes: total, 
-        sampleBytes, 
-        words: est.words, 
-        minutes: est.minutes 
-      });
-
-      return NextResponse.json({ 
-        bookId, 
-        source: 'txt-sample', 
-        ...est 
-      });
-    } catch (rangeError) {
-      console.error('Range request failed:', rangeError);
-      return NextResponse.json(
-        { error: 'Failed to sample text file' },
-        { status: 500 }
-      );
-    }
+    // External fetching disabled: without a precomputed estimate, we can't compute one here.
+    // (If you want local-only estimation, we can compute from local files instead.)
+    return NextResponse.json(
+      {
+        error: 'Estimate not available (external fetching disabled)',
+        bookId,
+      },
+      { status: 404 }
+    );
   } catch (error) {
     console.error('Estimate API error:', error);
     return NextResponse.json(
@@ -125,16 +66,6 @@ function estimateFromBytes(bytes: number) {
   const adjusted = Math.max(0, bytes - 4096);
   // Average English word: 5.1 characters including spaces/newlines
   const words = Math.round(adjusted / 5.1);
-  const minutes = Math.max(1, Math.ceil(words / WPM));
-  return { words, minutes };
-}
-
-function estimateFromSample(
-  totalBytes: number, 
-  sampleBytes: number, 
-  sampleWords: number
-) {
-  const words = Math.round((sampleWords / sampleBytes) * totalBytes);
   const minutes = Math.max(1, Math.ceil(words / WPM));
   return { words, minutes };
 }

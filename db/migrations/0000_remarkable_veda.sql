@@ -1,4 +1,4 @@
-CREATE TABLE `books` (
+CREATE TABLE IF NOT EXISTS `books` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`title` text NOT NULL,
 	`authors` text,
@@ -11,7 +11,7 @@ CREATE TABLE `books` (
 	`updated_at` integer
 );
 --> statement-breakpoint
-CREATE TABLE `cache_manifest` (
+CREATE TABLE IF NOT EXISTS `cache_manifest` (
 	`book_id` integer PRIMARY KEY NOT NULL,
 	`epub_blob_key` text,
 	`txt_blob_key` text,
@@ -19,7 +19,7 @@ CREATE TABLE `cache_manifest` (
 	FOREIGN KEY (`book_id`) REFERENCES `books`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `estimates` (
+CREATE TABLE IF NOT EXISTS `estimates` (
 	`book_id` integer PRIMARY KEY NOT NULL,
 	`source` text NOT NULL,
 	`bytes` integer,

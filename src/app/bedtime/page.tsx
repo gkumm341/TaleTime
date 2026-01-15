@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookGrid } from '@/components/BookGrid';
-import { Navigation } from '@/components/Navigation';
+import { Sidebar } from '@/components/Sidebar';
 import { BookGridSkeleton } from '@/components/ui/skeleton';
 import { Moon, Clock, Sparkles } from 'lucide-react';
 
@@ -69,10 +69,11 @@ export default function BedtimeModePage() {
   }, [selectedDuration]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-[#3E3E3E] to-gray-950">
-      <Navigation />
-      
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
+    <div className="min-h-screen relative bg-gradient-to-b from-gray-900 via-[#3E3E3E] to-gray-950">
+      <Sidebar activePage="bedtime" />
+
+      <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4 py-8">
           <div className="flex items-center justify-center gap-3">
@@ -201,6 +202,7 @@ export default function BedtimeModePage() {
             </li>
           </ul>
         </div>
+      </div>
       </div>
     </div>
   );

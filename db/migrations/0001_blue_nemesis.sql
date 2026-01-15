@@ -1,4 +1,4 @@
-CREATE TABLE `reading_sessions` (
+CREATE TABLE IF NOT EXISTS `reading_sessions` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`book_id` integer NOT NULL,
 	`user_id` text DEFAULT 'default' NOT NULL,

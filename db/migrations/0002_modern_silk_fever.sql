@@ -1,4 +1,4 @@
-CREATE TABLE `favorites` (
+CREATE TABLE IF NOT EXISTS `favorites` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`book_id` integer NOT NULL,
 	`user_id` text DEFAULT 'default' NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE `favorites` (
 	FOREIGN KEY (`book_id`) REFERENCES `books`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE `reading_history` (
+CREATE TABLE IF NOT EXISTS `reading_history` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`book_id` integer NOT NULL,
 	`user_id` text DEFAULT 'default' NOT NULL,

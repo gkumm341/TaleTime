@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { usePreferences } from '@/contexts/PreferencesContext';
-import { Navigation } from '@/components/Navigation';
+import { Sidebar } from '@/components/Sidebar';
 import { exportPreferences, importPreferences } from '@/lib/preferences';
 import { getStorageInfo, getBrowserStorageEstimate, formatBytes } from '@/lib/storage-utils';
 import { Save, RotateCcw, Download, Upload, HardDrive } from 'lucide-react';
@@ -79,11 +79,13 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Navigation />
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">Loading settings...</p>
+      <div className="min-h-screen relative bg-gray-50 dark:bg-gray-900">
+        <Sidebar activePage="settings" />
+        <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <p className="text-gray-600 dark:text-gray-400">Loading settings...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -91,10 +93,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation />
-      
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen relative bg-gray-50 dark:bg-gray-900">
+      <Sidebar activePage="settings" />
+
+      <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -317,6 +320,7 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

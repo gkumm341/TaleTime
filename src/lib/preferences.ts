@@ -46,7 +46,24 @@ export async function getPreferences(): Promise<UserPreferences> {
 
   try {
     const stored = await get<UserPreferences>(PREFERENCES_KEY);
-    return stored ? { ...DEFAULT_PREFERENCES, ...stored } : DEFAULT_PREFERENCES;
+
+    if (stored) {
+      return { ...DEFAULT_PREFERENCES, ...stored };
+    }
+
+    // Migration: older builds stored theme in localStorage.
+    const legacyTheme = localStorage.getItem('taletime-theme') as UserPreferences['theme'] | null;
+    const systemPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false;
+    const initialTheme: UserPreferences['theme'] =
+      legacyTheme === 'dark' || legacyTheme === 'sepia' || legacyTheme === 'light'
+        ? legacyTheme
+        : systemPrefersDark
+          ? 'dark'
+          : 'light';
+
+    const initial = { ...DEFAULT_PREFERENCES, theme: initialTheme };
+    await set(PREFERENCES_KEY, initial);
+    return initial;
   } catch (error) {
     console.error('Failed to load preferences:', error);
     return DEFAULT_PREFERENCES;

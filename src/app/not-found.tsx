@@ -1,4 +1,3 @@
-import { Navigation } from '@/components/Navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BookOpen, Home, Search } from 'lucide-react'
@@ -7,7 +6,6 @@ import Link from 'next/link'
 export default function NotFound() {
   return (
     <>
-      <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md backdrop-blur-md bg-white/80 shadow-2xl border border-white/50">
           <CardContent className="p-12 text-center">

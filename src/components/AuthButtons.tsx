@@ -1,0 +1,106 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+
+type AuthUser = {
+  id: string;
+  email: string;
+  isPaid: boolean;
+};
+
+type MeResponse = { user: AuthUser | null };
+
+function messageFromUnknown(e: unknown): string {
+  if (e instanceof Error && e.message) return e.message;
+  return 'Request failed';
+}
+
+export function AuthButtons({
+  className,
+  compact,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = async () => {
+    try {
+      setError(null);
+      const res = await fetch('/api/auth/me', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to load session');
+      const json = (await res.json()) as MeResponse;
+      setUser(json.user ?? null);
+    } catch (e: unknown) {
+      setError(messageFromUnknown(e));
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const signOut = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      await refresh();
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className={className}>
+        <div className="text-xs text-gray-500 dark:text-gray-400">Loading…</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className={className}>
+        {error && !compact && (
+          <div className="mb-2 text-xs text-rose-600">{error}</div>
+        )}
+        <div className="flex items-center gap-2">
+          <Button asChild variant="ghost" size={compact ? 'sm' : 'default'}>
+            <Link href="/signin">Sign in</Link>
+          </Button>
+          <Button asChild variant="default" size={compact ? 'sm' : 'default'}>
+            <Link href="/register">Register</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={className}>
+      <div className="flex items-center gap-2">
+        {!compact && (
+          <div className="text-xs text-gray-600 dark:text-gray-300 max-w-[14rem] truncate">
+            {user.email}
+            {user.isPaid ? (
+              <span className="ml-2 text-[11px] font-semibold text-[#6BA8A9]">Paid</span>
+            ) : (
+              <span className="ml-2 text-[11px] font-semibold text-[#FF8B7B]">Free</span>
+            )}
+          </div>
+        )}
+        <Button asChild variant="outline" size={compact ? 'sm' : 'default'}>
+          <Link href="/account">Account</Link>
+        </Button>
+        <Button variant="ghost" size={compact ? 'sm' : 'default'} onClick={signOut}>
+          Sign out
+        </Button>
+      </div>
+    </div>
+  );
+}

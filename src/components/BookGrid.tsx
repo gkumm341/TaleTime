@@ -1,10 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { preloadEpub, prefetchBookMetadata } from '@/lib/epub-preloader';
 import type { TimeOptionId } from './HomeContent';
+
+const AUTHOR_OVERRIDES_KEY = 'taletime-author-overrides-v1';
+
+const MISSING_AUTHOR_VALUES = new Set([
+  '',
+  'unknown',
+  'unknown author',
+  'author unknown',
+  'n/a',
+  'na',
+  'none',
+]);
+
+function isMissingAuthor(value: string | null | undefined): boolean {
+  const normalized = (value ?? '').trim().toLowerCase();
+  return MISSING_AUTHOR_VALUES.has(normalized);
+}
 
 interface Book {
   id: number;
@@ -33,6 +50,44 @@ export function BookGrid({
   const isLocalContent = process.env.NEXT_PUBLIC_CONTENT_MODE === 'local';
   const [books, setBooks] = useState<Book[]>(initialBooks);
   const [loading, setLoading] = useState<Set<number>>(new Set());
+
+  const [authorOverrides, setAuthorOverrides] = useState<Record<number, string>>({});
+  const [editingAuthorForId, setEditingAuthorForId] = useState<number | null>(null);
+  const [authorDraft, setAuthorDraft] = useState('');
+  const preloadTimersRef = useRef<Record<number, number>>({});
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(AUTHOR_OVERRIDES_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      if (!parsed || typeof parsed !== 'object') return;
+
+      const next: Record<number, string> = {};
+      for (const [key, value] of Object.entries(parsed)) {
+        const id = Number(key);
+        if (!Number.isFinite(id)) continue;
+        if (typeof value !== 'string') continue;
+        const trimmed = value.trim();
+        if (!trimmed) continue;
+        next[id] = trimmed;
+      }
+      setAuthorOverrides(next);
+    } catch {
+      // Ignore malformed localStorage
+    }
+  }, []);
+
+  const persistAuthorOverrides = (next: Record<number, string>) => {
+    setAuthorOverrides(next);
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(AUTHOR_OVERRIDES_KEY, JSON.stringify(next));
+    } catch {
+      // Ignore storage quota / permissions errors
+    }
+  };
 
   useEffect(() => {
     if (isLocalContent) return;
@@ -84,6 +139,16 @@ export function BookGrid({
     processEstimates();
   }, [initialBooks]);
 
+  const displayedAuthorsById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const book of books) {
+      const override = authorOverrides[book.id];
+      const base = (override ?? book.authors ?? '').trim();
+      map.set(book.id, base);
+    }
+    return map;
+  }, [books, authorOverrides]);
+
   return (
     <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {books.map((book, index) => {
@@ -93,6 +158,15 @@ export function BookGrid({
           : variant === 'bedtime'
             ? `/book/${book.id}/abridged?variant=bedtime`
             : `/book/${book.id}`;
+
+        const overrideAuthors = authorOverrides[book.id]?.trim() ?? '';
+        const fetchedAuthors = (book.authors ?? '').trim();
+        const missingFetchedAuthors = isMissingAuthor(fetchedAuthors);
+
+        const displayedAuthors = overrideAuthors || (missingFetchedAuthors ? '' : (displayedAuthorsById.get(book.id) ?? fetchedAuthors));
+        const hasAuthors = Boolean(displayedAuthors);
+        const canManuallySetAuthor = missingFetchedAuthors || Boolean(overrideAuthors);
+        const isEditingAuthor = editingAuthorForId === book.id;
 
         return (
           <Link
@@ -111,16 +185,16 @@ export function BookGrid({
                 }, 300);
 
                 // Store timer to cancel if user moves away
-                (window as any)[`preload-${book.id}`] = timer;
+                preloadTimersRef.current[book.id] = timer;
               }
             }}
             onMouseLeave={() => {
               // Cancel preload if user moves away before 300ms
               if (!isLocalContent && typeof window !== 'undefined') {
-                const timer = (window as any)[`preload-${book.id}`];
+                const timer = preloadTimersRef.current[book.id];
                 if (timer) {
                   clearTimeout(timer);
-                  delete (window as any)[`preload-${book.id}`];
+                  delete preloadTimersRef.current[book.id];
                 }
               }
             }}
@@ -152,32 +226,115 @@ export function BookGrid({
                 {book.title}
               </h3>
 
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 font-medium relative z-10 lg:flex items-center gap-1.5">
-                <span className="text-xs lg:text-base">✍️</span>
-                {book.authors}
-              </p>
+              {!isEditingAuthor ? (
+                <div className="relative z-10">
+                  <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 font-medium lg:flex items-center gap-1.5">
+                    <span className="text-xs lg:text-base">✍️</span>
+                    <span className={hasAuthors ? '' : 'text-gray-400 dark:text-gray-500 italic'}>
+                      {hasAuthors ? displayedAuthors : 'Author unknown'}
+                    </span>
+                  </p>
 
-              {book.subjects && book.subjects.length > 0 && (
+                  {canManuallySetAuthor && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setEditingAuthorForId(book.id);
+                        setAuthorDraft(displayedAuthors);
+                      }}
+                      className={`mt-1 text-[11px] font-semibold text-[#6BA8A9] hover:text-[#5F9798] transition-colors ${
+                        hasAuthors ? 'opacity-100 lg:opacity-0 lg:group-hover:opacity-100' : ''
+                      }`}
+                      aria-label={hasAuthors ? 'Edit author' : 'Add author'}
+                    >
+                      {hasAuthors ? 'Edit author' : 'Add author'}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="relative z-10"
+                  onClick={(e) => {
+                    // Prevent card navigation while editing
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <div className="text-[11px] font-semibold text-[#6BA8A9]">Author</div>
+                  <input
+                    value={authorDraft}
+                    onChange={(e) => setAuthorDraft(e.target.value)}
+                    placeholder="e.g., Jane Austen"
+                    className="mt-1 w-full px-2 py-1 rounded-md border border-[#B5CDA3]/60 dark:border-[#B5CDA3]/30 bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#6BA8A9]"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setEditingAuthorForId(null);
+                        setAuthorDraft('');
+                      }
+                      if (e.key === 'Enter') {
+                        const trimmed = authorDraft.trim();
+                        const next = { ...authorOverrides };
+                        if (trimmed) next[book.id] = trimmed;
+                        else delete next[book.id];
+                        persistAuthorOverrides(next);
+                        setEditingAuthorForId(null);
+                        setAuthorDraft('');
+                      }
+                    }}
+                  />
+                  <div className="mt-1 flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold text-[#6BA8A9] hover:text-[#5F9798] transition-colors"
+                      onClick={() => {
+                        const trimmed = authorDraft.trim();
+                        const next = { ...authorOverrides };
+                        if (trimmed) next[book.id] = trimmed;
+                        else delete next[book.id];
+                        persistAuthorOverrides(next);
+                        setEditingAuthorForId(null);
+                        setAuthorDraft('');
+                      }}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                      onClick={() => {
+                        setEditingAuthorForId(null);
+                        setAuthorDraft('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    {authorOverrides[book.id] != null && (
+                      <button
+                        type="button"
+                        className="ml-auto text-[11px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
+                        onClick={() => {
+                          const next = { ...authorOverrides };
+                          delete next[book.id];
+                          persistAuthorOverrides(next);
+                          setEditingAuthorForId(null);
+                          setAuthorDraft('');
+                        }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* {book.subjects && book.subjects.length > 0 && (
                 <p className="hidden lg:block text-xs text-gray-500 dark:text-gray-400 line-clamp-2 relative z-10 pt-1">
                   {book.subjects.slice(0, 2).join(', ')}
                 </p>
-              )}
-
-              <div className="hidden lg:flex items-center gap-2 text-xs pt-2 relative z-10">
-                {book.minutes ? (
-                  <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-[#FF8B7B]/20 dark:from-[#FF8B7B]/20 dark:to-[#FF8B7B]/10 text-[#3E3E3E] dark:text-[#FF8B7B] font-semibold shadow-md hover:shadow-lg transition-shadow border border-[#FF8B7B]/30 dark:border-[#FF8B7B]/40">
-                    📖 {book.minutes} min
-                  </span>
-                ) : loading.has(book.id) ? (
-                  <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-[#6BA8A9]/20 dark:bg-[#6BA8A9]/20 text-[#6BA8A9] dark:text-[#6BA8A9] animate-pulse font-semibold">
-                    ⏳ Estimating...
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
-                    📖 Estimate pending
-                  </span>
-                )}
-              </div>
+              )} */}
             </div>
           </Link>
         );

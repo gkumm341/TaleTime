@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Navigation } from '@/components/Navigation'
+import { Sidebar } from '@/components/Sidebar'
 import { useTheme } from '@/contexts/ThemeContext'
 import { BookOpen, Clock, Heart, Filter, ArrowLeft, Search } from 'lucide-react'
 import { filterStories, genres, ageGroups, moods, difficulties, type Story } from '@/lib/stories'
@@ -87,14 +87,13 @@ function SearchContent() {
   }
 
   return (
-    <>
-      <Navigation />
-      <main className={`min-h-screen p-4 sm:p-6 lg:p-8 transition-colors duration-300 ${
-        isDarkMode 
-          ? 'bg-gray-900' 
-          : 'bg-gradient-to-br from-[#F5E9DA] via-white to-[#F5E9DA]/50'
-      }`}>
-      {/* Header */}
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-gray-900' 
+        : 'bg-gradient-to-br from-[#F5E9DA] via-white to-[#F5E9DA]/50'
+    }`}>
+      <Sidebar activePage="browse" />
+      <main className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 sm:p-6 lg:p-8 pt-20 md:pt-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -334,16 +333,16 @@ function SearchContent() {
         )}
       </div>
     </main>
-    </>
+    </div>
   )
 }
 
 export default function SearchPage() {
   return (
     <Suspense fallback={
-      <>
-        <Navigation />
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <Sidebar activePage="browse" />
+        <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 sm:p-6 lg:p-8 pt-20 md:pt-8">
           <div className="max-w-7xl mx-auto">
             <div className="animate-pulse">
               <div className="h-8 bg-gray-300 rounded w-64 mb-8"></div>
@@ -363,7 +362,7 @@ export default function SearchPage() {
             </div>
           </div>
         </div>
-      </>
+      </div>
     }>
       <SearchContent />
     </Suspense>

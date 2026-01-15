@@ -51,6 +51,24 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     loadPrefs();
   }, [mounted]);
 
+  // Apply preferences globally (font + layout variables).
+  // Theme is handled by ThemeProvider, but these apply site-wide.
+  useEffect(() => {
+    if (!mounted || typeof document === 'undefined') return;
+
+    const root = document.documentElement;
+
+    const fontScale = Math.max(0.8, Math.min(1.5, preferences.fontSize / 100));
+    root.style.setProperty('--app-font-scale', String(fontScale));
+    root.style.setProperty('--app-line-height', String(preferences.lineHeight));
+
+    const fontFamily =
+      preferences.fontFamily === 'serif'
+        ? 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif'
+        : 'system-ui, -apple-system, sans-serif';
+    root.style.setProperty('--app-font-family', fontFamily);
+  }, [preferences.fontSize, preferences.fontFamily, preferences.lineHeight, mounted]);
+
   const updatePreferences = async (updates: Partial<UserPreferences>) => {
     try {
       await savePreferences(updates);
