@@ -10,6 +10,13 @@ import { isPremiumActive } from '@/lib/entitlements';
 
 export const runtime = 'nodejs';
 
+function shouldBypassPremiumPaywall(): boolean {
+  // Convenience for local development. Set ENFORCE_PREMIUM_IN_DEV=1 to test paywall flows.
+  if (process.env.ENFORCE_PREMIUM_IN_DEV === '1' || process.env.ENFORCE_PREMIUM_IN_DEV === 'true') return false;
+  if (process.env.BYPASS_PREMIUM === '1' || process.env.BYPASS_PREMIUM === 'true') return true;
+  return process.env.NODE_ENV === 'development';
+}
+
 type Mode = 'llm' | 'extractive' | 'local';
 
 interface AbridgeRequest {
@@ -417,7 +424,7 @@ export async function POST(req: NextRequest) {
         );
       }
       const entitlement = await getPremiumEntitlementForUserId(user.id);
-      if (!isPremiumActive(entitlement)) {
+      if (!isPremiumActive(entitlement) && !shouldBypassPremiumPaywall()) {
         return NextResponse.json(
           { error: 'Premium subscription required to view the bedtime version', code: 'PAYWALL' },
           { status: 402 }
@@ -511,7 +518,7 @@ export async function POST(req: NextRequest) {
         // Prefer a dedicated bedtime file; otherwise fall back to an extractive 10-minute version.
         const bedtimeMinutes = 10;
         const bedtimeTargetWords = bedtimeMinutes * wpm;
-        const bedtimeContent = loaded.path.toLowerCase().endsWith('bedtime.txt')
+        const bedtimeContent = loaded.filePath.toLowerCase().endsWith('bedtime.txt')
           ? cleaned
           : extractiveAbridge(cleaned, bedtimeTargetWords);
 
@@ -522,7 +529,7 @@ export async function POST(req: NextRequest) {
           title: book.title,
           author: book.authors || 'Unknown',
           content: bedtimeContent,
-          mode: (loaded.path.toLowerCase().endsWith('bedtime.txt') ? 'local' : 'extractive') as Mode,
+          mode: (loaded.filePath.toLowerCase().endsWith('bedtime.txt') ? 'local' : 'extractive') as Mode,
         });
       }
 

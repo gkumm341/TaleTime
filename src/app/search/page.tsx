@@ -93,7 +93,7 @@ function SearchContent() {
         : 'bg-gradient-to-br from-[#F5E9DA] via-white to-[#F5E9DA]/50'
     }`}>
       <Sidebar activePage="browse" />
-      <main className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 sm:p-6 lg:p-8 pt-20 md:pt-8">
+      <main className="relative z-10 ml-0 md:ml-72 min-h-screen p-4 sm:p-6 lg:p-8 pt-20 md:pt-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -342,7 +342,7 @@ export default function SearchPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <Sidebar activePage="browse" />
-        <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 sm:p-6 lg:p-8 pt-20 md:pt-8">
+        <div className="relative z-10 ml-0 md:ml-72 min-h-screen p-4 sm:p-6 lg:p-8 pt-20 md:pt-8">
           <div className="max-w-7xl mx-auto">
             <div className="animate-pulse">
               <div className="h-8 bg-gray-300 rounded w-64 mb-8"></div>

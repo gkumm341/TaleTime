@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PlayCircle, BookOpen } from 'lucide-react';
+import { BookOpen, Palette, Sparkles } from 'lucide-react';
 
 interface RecentBook {
   id: number;
@@ -28,13 +28,18 @@ export default function ContinueReading() {
       const response = await fetch('/api/history');
       if (!response.ok) throw new Error('Failed to load history');
       
-      const data = await response.json();
+      const data = (await response.json()) as {
+        grouped?: {
+          today?: RecentBook[];
+          lastWeek?: RecentBook[];
+        };
+      };
       // Get the 6 most recent books from today and last week
       const recent = [
-        ...data.grouped.today,
-        ...data.grouped.lastWeek,
+        ...(data.grouped?.today ?? []),
+        ...(data.grouped?.lastWeek ?? []),
       ]
-        .filter((book: any) => book.progressPercent > 0 && book.progressPercent < 100)
+        .filter((book) => book.progressPercent > 0 && book.progressPercent < 100)
         .slice(0, 6);
       
       setRecentBooks(recent);
@@ -56,7 +61,9 @@ export default function ContinueReading() {
         
         <div className="flex items-center justify-between mb-6 relative">
           <div className="flex items-center gap-3">
-            <span className="text-3xl animate-bounce">🎨</span>
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffd9b5] to-[#ffb7b0] ring-1 ring-black/5 shadow-sm">
+              <Palette className="h-6 w-6 text-[#ff7b6b]" />
+            </span>
             <h2 className="text-2xl font-bold text-[#6BA8A9]">
               Continue Your Adventure
             </h2>
@@ -105,8 +112,9 @@ export default function ContinueReading() {
                       </div>
                     </div>
                     {/* Progress badge */}
-                    <div className="absolute top-2 right-2 bg-[#FF8B7B] backdrop-blur-sm text-white rounded-full px-3 py-1.5 text-xs font-bold shadow-lg">
-                      ✨ {book.progressPercent}%
+                    <div className="absolute top-2 right-2 bg-[#FF8B7B] backdrop-blur-sm text-white rounded-full px-3 py-1.5 text-xs font-bold shadow-lg inline-flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>{book.progressPercent}%</span>
                     </div>
                   </div>
                 )}

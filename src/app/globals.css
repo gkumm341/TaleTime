@@ -34,6 +34,17 @@
 }
 
 @layer components {
+  .tt-logo {
+    font-family: var(--font-baloo), ui-rounded, system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, #f6d365 0%, #ffb07b 40%, #ff8b7b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 1px 0 rgba(59, 31, 23, 0.25), 0 6px 14px rgba(0, 0, 0, 0.10);
+  }
+
   .logo-text {
     font-family: ui-rounded, "Arial Rounded MT Bold", "Cooper Black", system-ui, -apple-system, sans-serif;
     font-weight: 900;

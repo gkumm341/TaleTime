@@ -43,9 +43,11 @@ function timeOptionToVariant(timeSelection: TimeOptionId): 'bedtime' | 'full' {
 export function BookGrid({
   initialBooks,
   timeSelection,
+  displayMode = 'detailed',
 }: {
   initialBooks: Book[];
   timeSelection?: TimeOptionId | null;
+  displayMode?: 'detailed' | 'covers';
 }) {
   const isLocalContent = process.env.NEXT_PUBLIC_CONTENT_MODE === 'local';
   const [books, setBooks] = useState<Book[]>(initialBooks);
@@ -149,15 +151,17 @@ export function BookGrid({
     return map;
   }, [books, authorOverrides]);
 
+  const isCoverOnly = displayMode === 'covers';
+
   return (
-    <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+    <div className={isCoverOnly ? 'grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5' : 'grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'}>
       {books.map((book, index) => {
         const variant = timeSelection ? timeOptionToVariant(timeSelection) : null;
         const href = isLocalContent
           ? `/book/${book.id}/abridged?variant=${variant ?? 'full'}`
           : variant === 'bedtime'
             ? `/book/${book.id}/abridged?variant=bedtime`
-            : `/book/${book.id}`;
+            : `/book/${book.id}/abridged?variant=full`;
 
         const overrideAuthors = authorOverrides[book.id]?.trim() ?? '';
         const fetchedAuthors = (book.authors ?? '').trim();
@@ -198,33 +202,39 @@ export function BookGrid({
                 }
               }
             }}
-            className="group rounded-2xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 overflow-hidden hover:shadow-xl hover:shadow-[#6BA8A9]/10 dark:hover:shadow-[#6BA8A9]/5 transition-all duration-500 bg-white dark:bg-gray-900 hover:border-[#6BA8A9]/40 dark:hover:border-[#6BA8A9]/30 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700"
+            className={
+              isCoverOnly
+                ? 'group rounded-2xl border border-black/5 dark:border-white/10 overflow-hidden bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm hover:shadow-xl hover:shadow-black/10 transition-all duration-500 transform hover:-translate-y-1'
+                : 'group rounded-2xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 overflow-hidden hover:shadow-xl hover:shadow-[#6BA8A9]/10 dark:hover:shadow-[#6BA8A9]/5 transition-all duration-500 bg-white dark:bg-gray-900 hover:border-[#6BA8A9]/40 dark:hover:border-[#6BA8A9]/30 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700'
+            }
             style={{ animationDelay: `${index * 50}ms` }}
           >
             {/* Custom book image from .data/texts/by-title/<Title>/<Title>.png */}
-            <div className="relative w-full aspect-[2/3] bg-gray-50 dark:bg-gray-800 overflow-hidden">
+            <div className={isCoverOnly ? 'relative w-full aspect-[2/3] bg-white/60 dark:bg-gray-800/60 overflow-hidden' : 'relative w-full aspect-[2/3] bg-gray-50 dark:bg-gray-800 overflow-hidden'}>
+              <Image
+                src={`/api/local-image?title=${encodeURIComponent(book.title)}`}
+                alt={book.title}
+                fill
+                className={isCoverOnly ? 'object-cover group-hover:scale-[1.02] transition-transform duration-500' : 'object-contain group-hover:scale-105 transition-transform duration-500'}
+                sizes={isCoverOnly ? '20vw' : '20vw'}
+                unoptimized
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+                priority={false}
+              />
 
-              {/* Foreground cover */}
-              <div className="absolute inset-2">
-                <Image
-                  src={`/api/local-image?title=${encodeURIComponent(book.title)}`}
-                  alt={book.title}
-                  fill
-                  className="object-contain group-hover:scale-105 transition-transform duration-500"
-                  sizes="20vw"
-                  unoptimized
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                  priority={false}
-                />
-              </div>
+              {isCoverOnly && (
+                <div className="pointer-events-none absolute inset-0 ring-1 ring-black/5" />
+              )}
             </div>
-            <div className="p-2 space-y-1 relative">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-[#6BA8A9]/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-              <h3 className="font-bold text-xs lg:text-lg line-clamp-2 group-hover:text-[#6BA8A9] transition-all relative z-10">
-                {book.title}
-              </h3>
+
+            {!isCoverOnly && (
+              <div className="p-2 space-y-1 relative">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-[#6BA8A9]/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                <h3 className="font-bold text-xs lg:text-lg line-clamp-2 group-hover:text-[#6BA8A9] transition-all relative z-10">
+                  {book.title}
+                </h3>
 
               {!isEditingAuthor ? (
                 <div className="relative z-10">
@@ -329,13 +339,8 @@ export function BookGrid({
                   </div>
                 </div>
               )}
-
-              {/* {book.subjects && book.subjects.length > 0 && (
-                <p className="hidden lg:block text-xs text-gray-500 dark:text-gray-400 line-clamp-2 relative z-10 pt-1">
-                  {book.subjects.slice(0, 2).join(', ')}
-                </p>
-              )} */}
-            </div>
+              </div>
+            )}
           </Link>
         );
       })}

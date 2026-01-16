@@ -5,7 +5,6 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { CacheManager } from '@/components/CacheManager';
 import { PWAInstallPrompt, OfflineBanner } from '@/components/PWAComponents';
-import { PremiumBenefits } from '@/components/PremiumBenefits';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -14,7 +13,6 @@ export function Providers({ children }: { children: ReactNode }) {
         <CacheManager />
         <OfflineBanner />
         <PWAInstallPrompt />
-        <PremiumBenefits />
         {children}
       </ThemeProvider>
     </PreferencesProvider>

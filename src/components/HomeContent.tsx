@@ -6,11 +6,11 @@ import { BookFilters, FilterState } from '@/components/BookFilters';
 import { ActiveFilters } from '@/components/ActiveFilters';
 import { StorageInfo } from '@/components/StorageInfo';
 import { BookGridSkeleton } from '@/components/ui/skeleton';
-import ContinueReading from '@/components/ContinueReading';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Clock } from 'lucide-react';
-import { AuthButtons } from './AuthButtons';
+import { BookOpen, Library, SlidersHorizontal, Target } from 'lucide-react';
+import { Header } from '@/components/Header';
+import { Hero } from '@/components/Hero';
 
 const TIME_OPTIONS = [
   { id: 'bedtime', label: 'Bedtime' },
@@ -40,18 +40,13 @@ export function HomeContent() {
   const [error, setError] = useState<string | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [sortBy, setSortBy] = useState('popularity');
-  const [isTimeMenuOpen, setIsTimeMenuOpen] = useState(false);
-  const [selectedTimeOptionId, setSelectedTimeOptionId] = useState<TimeOptionId | null>(null);
+  const [selectedTimeOptionId, setSelectedTimeOptionId] = useState<TimeOptionId>('full');
   const [filters, setFilters] = useState<FilterState>({
     ageCategories: [],
     durations: [],
     languages: [],
     offlineOnly: false,
   });
-
-  const selectedTimeLabel = selectedTimeOptionId
-    ? TIME_OPTIONS.find((o) => o.id === selectedTimeOptionId)?.label
-    : null;
 
   // Load persisted selection (client only)
   useEffect(() => {
@@ -126,151 +121,118 @@ export function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen relative bg-white dark:bg-gray-950">
+    <div className="min-h-screen relative bg-gradient-to-r from-[#c7cdc8] via-[#fdf7f4] to-[#c7cdc8] dark:bg-gray-950 overflow-hidden">
+
+      {/* Soft overlay to keep text readable */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-white/70 dark:bg-gray-950/70"
+        aria-hidden="true"
+      />
       {/* Responsive Sidebar Navigation */}
       <Sidebar activePage="home">
-        {/* Filters */}
-        <div className="pt-4 border-t border-[#B5CDA3]/30 dark:border-[#B5CDA3]/20">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-lg">🎯</span>
-            <h3 className="text-sm font-semibold text-[#6BA8A9]">Find Your Story</h3>
-          </div>
-          <BookFilters filters={filters} onChange={setFilters} />
-        </div>
+     
 
         {/* Storage Info */}
-        <div className="pt-4 border-t border-[#B5CDA3]/30 dark:border-[#B5CDA3]/20 bg-[#6BA8A9]/5 dark:from-[#6BA8A9]/10 dark:to-[#B5CDA3]/5 p-3 rounded-lg">
+        <div className="pt-4 border-t border-black/5 bg-white/60 p-3 rounded-2xl ring-1 ring-black/5">
           <div className="mb-2 flex items-center gap-2">
-            <span className="text-base">📚</span>
-            <h3 className="text-xs font-semibold text-[#6BA8A9]">Your Library</h3>
+            <Library className="h-4 w-4 text-[#6BA8A9]" />
+            <h3 className="text-xs font-semibold text-slate-800">Your Library</h3>
           </div>
           <StorageInfo />
         </div>
       </Sidebar>
 
       {/* Main Content */}
-      <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="relative z-10 ml-0 md:ml-[17.5rem] min-h-screen">
 
-          {/* Mobile Header - TaleTime Logo */}
-          <div className="md:hidden text-center mb-6 animate-in fade-in slide-in-from-top duration-700">
-            <div className="text-5xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
-            <h1 className="logo-text text-4xl">
-              TaleTime
-            </h1>
-            <p className="text-sm font-bold text-[#FF8B7B] mt-2">Your story telling companion</p>
-          </div>
-          <div className="border-b border-[#B5CDA3]/30 dark:border-[#B5CDA3]/20 pb-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="mb-2 flex items-center gap-2">
-              <video
-                src="/mascot_video.mp4"
-                aria-label="TaleTime mascot"
-                width={200}
-                height={200}
-                autoPlay
-                muted
-                className="h-[200px] w-[200px] md:h-[300px] md:w-[500px]"
-              />
-              <h3 className="text-3xl ml-10 font-semibold text-[#6BA8A9]">TaleTime lets you read or listen to classic stories — in full, or in calming bedtime versions made for peaceful moments.</h3>
-            </div>
-            <AuthButtons />
-          </div>
+
+        <div className="w-full mx-auto space-y-6 px-4 md:px-8 py-6">
+          <Hero />
+
           {/* Active Filters */}
           <ActiveFilters filters={filters} onRemove={handleRemoveFilter} />
 
           {/* Controls Row */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Sort by:
-                </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-2 rounded-lg border border-pink-200 dark:border-pink-800 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-400 focus:border-transparent shadow-sm"
-                >
-                  <option value="popularity">Most Popular</option>
-                  <option value="title">Title (A-Z)</option>
-                  <option value="author">Author (A-Z)</option>
-                  <option value="length">Shortest First</option>
-                </select>
+          <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-gray-900/50 backdrop-blur px-4 py-3 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Sort by:
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="px-4 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#FF8B7B]/40 focus:border-transparent shadow-sm"
+                  >
+                    <option value="popularity">Most Popular</option>
+                    <option value="title">Title (A-Z)</option>
+                    <option value="author">Author (A-Z)</option>
+                    <option value="length">Shortest First</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Books per page:
+                  </label>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    className="px-4 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#6BA8A9]/40 focus:border-transparent shadow-sm"
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={75}>75</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
               </div>
+              <div className="flex items-center gap-3 justify-between lg:justify-end">
+                {/* Version segmented control */}
+                <div className="flex items-center gap-2">
+                  <div className="text-sm text-gray-700 dark:text-gray-300"> </div>
+                  <div className="inline-flex rounded-xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-gray-950/40 p-1 shadow-sm">
+                    {TIME_OPTIONS.map((opt) => {
+                      const isSelected = selectedTimeOptionId === opt.id;
+                      const label = opt.id === 'full' ? 'Full story' : 'Bedtime adaptation';
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTimeOptionId(opt.id);
+                            if (typeof window !== 'undefined') {
+                              localStorage.setItem(TIME_SELECTION_KEY, opt.id);
+                            }
+                          }}
+                          className={
+                            isSelected
+                              ? 'px-4 py-2 rounded-lg bg-[#6BA8A9] text-white text-sm font-semibold shadow'
+                              : 'px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60'
+                          }
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Books per page:
-                </label>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                  className="px-4 py-2 rounded-lg border border-[#B5CDA3] dark:border-[#B5CDA3] bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#6BA8A9] focus:border-transparent shadow-sm"
-                >
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={75}>75</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Time Selector (aligned with other controls on desktop) */}
-            <div className="relative flex justify-start sm:justify-end">
-              <div className="flex flex-col items-start sm:items-end gap-1">
-                <div className="text-xs font-semibold text-[#6BA8A9]">Choose a version</div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsTimeMenuOpen((v) => !v)}
-                  className="gap-2"
-                  aria-haspopup="menu"
-                  aria-expanded={isTimeMenuOpen}
-                >
-                  <Clock className="w-4 h-4" />
-                  {selectedTimeLabel ?? 'Choose version'}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isTimeMenuOpen ? 'rotate-180' : ''}`} />
-                </Button>
-
-                {isTimeMenuOpen && (
-                  <>
-                    {/* Backdrop to close menu when clicking outside */}
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsTimeMenuOpen(false)}
-                      aria-hidden="true"
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-60 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-[#B5CDA3]/30 dark:border-[#B5CDA3]/20 py-2 z-50">
-                      {TIME_OPTIONS.map((opt) => {
-                        const isSelected = selectedTimeOptionId === opt.id;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedTimeOptionId(opt.id);
-                              if (typeof window !== 'undefined') {
-                                localStorage.setItem(TIME_SELECTION_KEY, opt.id);
-                              }
-                              setIsTimeMenuOpen(false);
-                            }}
-                            className={`w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm ${isSelected ? 'bg-[#6BA8A9]/10' : ''
-                              }`}
-                            role="menuitem"
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
+          
               </div>
             </div>
           </div>
 
+      <div className="">
+
+      
           {/* Error State */}
           {error && (
             <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-6 text-center shadow-sm">
+              <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffd9b5] to-[#ffb7b0] ring-1 ring-black/5">
+                <BookOpen className="h-7 w-7 text-[#ff7b6b]" />
+              </div>
               <p className="text-rose-800 dark:text-rose-200 font-semibold">
                 {error}
               </p>
@@ -283,7 +245,11 @@ export function HomeContent() {
           {/* Book Grid */}
           {!loading && !error && books.length > 0 && (
             <>
-              <BookGrid initialBooks={books} timeSelection={selectedTimeOptionId} />
+              {/* Background image */}
+
+              <div className="">
+                <BookGrid initialBooks={books} timeSelection={selectedTimeOptionId} displayMode="covers" />
+              </div>
 
               {/* Book Count */}
               <div className="text-center text-sm text-gray-600 dark:text-gray-400">
@@ -295,7 +261,9 @@ export function HomeContent() {
           {/* Empty State */}
           {!loading && !error && books.length === 0 && (
             <div className="bg-white dark:bg-gray-900 rounded-3xl p-12 text-center shadow-lg border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10">
-              <div className="text-6xl mb-4">📚</div>
+              <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffd9b5] to-[#ffb7b0] ring-1 ring-black/5">
+                <BookOpen className="h-7 w-7 text-[#ff7b6b]" />
+              </div>
               <h3 className="text-xl font-semibold text-[#6BA8A9] mb-2">
                 No books found
               </h3>
@@ -307,7 +275,7 @@ export function HomeContent() {
               {(filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly) && (
                 <button
                   onClick={() => setFilters({ ageCategories: [], durations: [], languages: [], offlineOnly: false })}
-                  className="px-6 py-3 bg-[#6BA8A9] text-white rounded-lg hover:bg-[#5F9798] transition-all shadow-md hover:shadow-lg"
+                  className="px-6 h-11 rounded-full bg-gradient-to-r from-[#ffb59f] to-[#ff7f76] text-white font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
                 >
                   Clear all filters
                 </button>
@@ -315,7 +283,9 @@ export function HomeContent() {
             </div>
           )}
         </div>
+        </div>
+        </div>
       </div>
-    </div>
+    
   );
 }

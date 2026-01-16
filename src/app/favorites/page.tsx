@@ -66,7 +66,7 @@ export default function FavoritesPage() {
       <Sidebar activePage="favorites" />
 
       {/* Main Content */}
-      <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+      <div className="relative z-10 ml-0 md:ml-72 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
         <div className="max-w-7xl mx-auto space-y-8">
         
           {/* Mobile Header - TaleTime Logo */}

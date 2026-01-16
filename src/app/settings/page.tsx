@@ -81,7 +81,7 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen relative bg-gray-50 dark:bg-gray-900">
         <Sidebar activePage="settings" />
-        <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+        <div className="relative z-10 ml-0 md:ml-72 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
           <div className="max-w-4xl mx-auto">
             <div className="text-center py-12">
               <p className="text-gray-600 dark:text-gray-400">Loading settings...</p>
@@ -96,7 +96,7 @@ export default function SettingsPage() {
     <div className="min-h-screen relative bg-gray-50 dark:bg-gray-900">
       <Sidebar activePage="settings" />
 
-      <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+      <div className="relative z-10 ml-0 md:ml-72 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div>

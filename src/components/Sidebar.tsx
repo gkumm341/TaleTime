@@ -1,17 +1,32 @@
 'use client';
 
+import { GlowStar } from "@/components/GlowStar";
 import { useState, ReactNode } from 'react';
 import Link from 'next/link';
-import { X, Menu } from 'lucide-react';
+import {
+  CheckCircle2,
+  Clock,
+  Heart,
+  Home,
+  Menu,
+  Search,
+  Settings,
+  Sparkles,
+  Moon,
+  X,
+} from 'lucide-react';
 import { AuthButtons } from '@/components/AuthButtons';
+import { StorageInfo } from './StorageInfo';
 
 interface SidebarProps {
-  activePage?: 'home' | 'bedtime' | 'browse' | 'continue' | 'favorites' | 'history' | 'settings';
+  activePage?: 'home' | 'continue' | 'favorites' | 'history' | 'settings';
   children?: ReactNode;
 }
 
 export function Sidebar({ activePage = 'home', children }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  const navIconStrokeWidth = 2.25;
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
@@ -21,7 +36,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-30 md:hidden p-3 bg-[#6BA8A9] hover:bg-[#5F9798] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110"
+        className="fixed top-4 left-4 z-30 md:hidden p-3 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 bg-gradient-to-r from-[#ffb59f] to-[#ff7f76]"
         aria-label="Toggle menu"
       >
         <Menu className="w-6 h-6" />
@@ -36,18 +51,15 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
       )}
 
       {/* Sidebar */}
-      <div 
+      <div
         className={`
-          fixed left-0 top-0 bottom-0 z-30 w-64 
-          bg-white/95 
-          dark:from-gray-900/95 dark:via-gray-900/95 dark:to-gray-900/95 
-          backdrop-blur-xl border-r border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 
-          shadow-xl overflow-y-auto
-          transition-transform duration-300 ease-in-out
+          fixed left-0 top-0 bottom-0 z-30 w-72 md:w-64
+          md:top-6 md:bottom-6 md:left-6
+          rounded-3xl 
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
       >
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-6 min-h-full flex flex-col ">
           {/* Close button for mobile */}
           <button
             onClick={closeSidebar}
@@ -57,145 +69,141 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
             <X className="w-5 h-5" />
           </button>
 
-          {/* Logo - desktop only */}
-          <div className="hidden md:block text-center pb-4 border-b border-[#B5CDA3]/30 dark:border-[#B5CDA3]/30 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-[#6BA8A9]/20 rounded-full blur-2xl animate-pulse"></div>
-            <div className="absolute -top-2 -left-2 w-20 h-20 bg-[#FF8B7B]/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-            <div className="relative animate-in fade-in slide-in-from-left duration-700 py-2">
-              <div className="text-4xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
-              <h2 className="logo-text text-4xl transform hover:scale-110 transition-transform duration-300 cursor-default">
-                TaleTime
-              </h2>
-              <p className="text-xs font-bold text-[#B5CDA3] mt-2">Your story telling companion</p>
-              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-[#6BA8A9] rounded-full shadow-lg"></div>
-            </div>
-          </div>
+          {/* Logo */}
+    <div className="text-center pb-4 border-b border-black/5 dark:border-white/10 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#fff3e7] via-white to-[#eaf7f6] p-3 ring-1 ring-black/5">
+  <div className="absolute top-0 right-0 w-28 h-28 bg-[#6BA8A9]/20 rounded-full blur-2xl"></div>
+  <div className="absolute -top-4 -left-4 w-24 h-24 bg-[#FF8B7B]/15 rounded-full blur-2xl"></div>
+
+  <div className="relative">
+    <GlowStar
+      size={52}
+      className="absolute -top-10 left-16 rotate-6 opacity-95 animate-bounce-subtle"
+    />
+
+    <h2 className="tt-logo font-heading text-3xl mt-9">TaleTime</h2>
+    <p className="text-xs font-medium text-slate-600 mt-1">Your storytelling companion</p>
+  </div>
+</div>
+
 
           {/* Navigation Links */}
           <div className="space-y-2">
             <Link 
               href="/"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
                 activePage === 'home'
-                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
-                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
+                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
+                  : 'bg-white/70 hover:bg-white/90'
               }`}
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">🏠</span>
-              <span className={`text-sm font-semibold transition-all ${
-                activePage === 'home'
-                  ? 'text-[#6BA8A9]'
-                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
-              }`}>Home</span>
+              <Home
+                className="h-5 w-5 drop-shadow-sm"
+                strokeWidth={navIconStrokeWidth}
+                style={{ color: '#2fbf8a' }}
+                fill="currentColor"
+                fillOpacity={0.18}
+              />
+              <span className={`text-sm font-semibold transition-all ${activePage === 'home' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Home</span>
             </Link>
 
-            <Link 
-              href="/bedtime"
-              onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
-                activePage === 'bedtime'
-                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
-                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
-              }`}
-            >
-              <span className="text-xl group-hover:scale-110 transition-transform">🌙</span>
-              <span className={`text-sm font-semibold transition-all ${
-                activePage === 'bedtime'
-                  ? 'text-[#6BA8A9]'
-                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
-              }`}>Bedtime</span>
-            </Link>
-
-            <Link 
-              href="/search"
-              onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
-                activePage === 'browse'
-                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
-                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
-              }`}
-            >
-              <span className="text-xl group-hover:scale-110 transition-transform">🔍</span>
-              <span className={`text-sm font-semibold transition-all ${
-                activePage === 'browse'
-                  ? 'text-[#6BA8A9]'
-                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
-              }`}>Browse</span>
-            </Link>
+    
+     
             <Link 
               href="/continue"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
                 activePage === 'continue'
-                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
-                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
+                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
+                  : 'bg-white/70 hover:bg-white/90'
               }`}
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">⏩</span>
-              <span className={`text-sm font-semibold transition-all ${
-                activePage === 'continue'
-                  ? 'text-[#6BA8A9]'
-                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
-              }`}>Continue</span>
+              <CheckCircle2
+                className="h-5 w-5 drop-shadow-sm"
+                strokeWidth={navIconStrokeWidth}
+                style={{ color: '#2fbf8a' }}
+                fill="currentColor"
+                fillOpacity={0.14}
+              />
+              <span className={`text-sm font-semibold transition-all ${activePage === 'continue' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Continue</span>
             </Link>
             
             <Link 
               href="/favorites"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
                 activePage === 'favorites'
-                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
-                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
+                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
+                  : 'bg-white/70 hover:bg-white/90'
               }`}
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">❤️</span>
-              <span className={`text-sm font-semibold transition-all ${
-                activePage === 'favorites'
-                  ? 'text-[#6BA8A9]'
-                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
-              }`}>Favorites</span>
+              <Heart
+                className="h-5 w-5 drop-shadow-sm"
+                strokeWidth={navIconStrokeWidth}
+                style={{ color: '#ff6b6b' }}
+                fill="currentColor"
+                fillOpacity={0.16}
+              />
+              <span className={`text-sm font-semibold transition-all ${activePage === 'favorites' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Favorites</span>
             </Link>
             
             <Link 
               href="/history"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
                 activePage === 'history'
-                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
-                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
+                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
+                  : 'bg-white/70 hover:bg-white/90'
               }`}
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">📚</span>
-              <span className={`text-sm font-semibold transition-all ${
-                activePage === 'history'
-                  ? 'text-[#6BA8A9]'
-                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
-              }`}>History</span>
+              <Clock
+                className="h-5 w-5 drop-shadow-sm"
+                strokeWidth={navIconStrokeWidth}
+                style={{ color: '#4a90e2' }}
+              />
+              <span className={`text-sm font-semibold transition-all ${activePage === 'history' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>History</span>
             </Link>
 
             <Link 
               href="/settings"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:shadow-md group ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
                 activePage === 'settings'
-                  ? 'bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 border border-[#6BA8A9]/50 dark:border-[#6BA8A9]/50'
-                  : 'hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 border border-transparent hover:border-[#FF8B7B]/50 dark:hover:border-[#FF8B7B]/50'
+                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
+                  : 'bg-white/70 hover:bg-white/90'
               }`}
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">⚙️</span>
-              <span className={`text-sm font-semibold transition-all ${
-                activePage === 'settings'
-                  ? 'text-[#6BA8A9]'
-                  : 'text-[#3E3E3E] dark:text-gray-300 group-hover:text-[#6BA8A9]'
-              }`}>Settings</span>
+              <Settings
+                className="h-5 w-5 drop-shadow-sm"
+                strokeWidth={navIconStrokeWidth}
+                style={{ color: '#a66dd4' }}
+              />
+              <span className={`text-sm font-semibold transition-all ${activePage === 'settings' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Settings</span>
             </Link>
           </div>
 
-          {/* Additional content (filters, storage info, etc.) */}
-          {children}
+          {/* Find Your Story shortcut (scrolls to filters) */}
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById('sidebar-filters');
+              el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className="w-full mt-2 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-black/5 bg-white/70 hover:bg-white/90 text-slate-800 font-semibold shadow-sm hover:shadow-md transition-all"
+          >
+            <span className="flex items-center gap-2">
+              <Search className="h-4 w-4" strokeWidth={navIconStrokeWidth} style={{ color: '#ff6b6b' }} />
+              <span className="text-sm">Find Your Story</span>
+            </span>
+            <span className="text-sm">›</span>
+          </button>
 
-     
+          {/* Additional content (filters, storage info, etc.) */}
+          <div className="space-y-4">
+             {children}
+          </div>
+
+      
         </div>
       </div>
     </>
