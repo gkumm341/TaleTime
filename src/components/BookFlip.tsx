@@ -42,6 +42,270 @@ type FlipBookRef = {
   pageFlip: () => FlipBookApi;
 };
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function srgbToLinear(v: number) {
+  const c = v / 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function relativeLuminance(rgb: [number, number, number]) {
+  const r = srgbToLinear(rgb[0]);
+  const g = srgbToLinear(rgb[1]);
+  const b = srgbToLinear(rgb[2]);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function rgbToHsl(rgb: [number, number, number]) {
+  let r = rgb[0] / 255;
+  let g = rgb[1] / 255;
+  let b = rgb[2] / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (d !== 0) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    switch (max) {
+      case r:
+        h = ((g - b) / d) % 6;
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      default:
+        h = (r - g) / d + 4;
+        break;
+    }
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+
+  return { h, s, l };
+}
+
+function hslToRgb(hsl: { h: number; s: number; l: number }):
+  | [number, number, number]
+  | [number, number, number] {
+  const h = ((hsl.h % 360) + 360) % 360;
+  const s = clamp(hsl.s, 0, 1);
+  const l = clamp(hsl.l, 0, 1);
+
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+
+  let r1 = 0;
+  let g1 = 0;
+  let b1 = 0;
+
+  if (h < 60) {
+    r1 = c;
+    g1 = x;
+  } else if (h < 120) {
+    r1 = x;
+    g1 = c;
+  } else if (h < 180) {
+    g1 = c;
+    b1 = x;
+  } else if (h < 240) {
+    g1 = x;
+    b1 = c;
+  } else if (h < 300) {
+    r1 = x;
+    b1 = c;
+  } else {
+    r1 = c;
+    b1 = x;
+  }
+
+  return [
+    Math.round((r1 + m) * 255),
+    Math.round((g1 + m) * 255),
+    Math.round((b1 + m) * 255),
+  ];
+}
+
+function rgbCss(rgb: [number, number, number], alpha = 1) {
+  const a = clamp(alpha, 0, 1);
+  return `rgba(${Math.round(rgb[0])}, ${Math.round(rgb[1])}, ${Math.round(
+    rgb[2]
+  )}, ${a})`;
+}
+
+function distSq(a: [number, number, number], b: [number, number, number]) {
+  const dr = a[0] - b[0];
+  const dg = a[1] - b[1];
+  const db = a[2] - b[2];
+  return dr * dr + dg * dg + db * db;
+}
+
+function pickWeightedIndex(weights: number[]) {
+  let total = 0;
+  for (const w of weights) total += w;
+  if (total <= 0) return Math.floor(Math.random() * weights.length);
+  let r = Math.random() * total;
+  for (let i = 0; i < weights.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return i;
+  }
+  return weights.length - 1;
+}
+
+function kmeansDominant(pixels: Array<[number, number, number]>, k = 4) {
+  if (pixels.length === 0) return null;
+
+  const kk = clamp(k, 1, 8);
+
+  // k-means++ initialization for more stable, "state of the art" clustering.
+  const centroids: Array<[number, number, number]> = [];
+  centroids.push(pixels[Math.floor(Math.random() * pixels.length)]);
+
+  while (centroids.length < kk) {
+    const d2 = pixels.map((p) => {
+      let best = Infinity;
+      for (const c of centroids) best = Math.min(best, distSq(p, c));
+      return best;
+    });
+    const idx = pickWeightedIndex(d2);
+    centroids.push(pixels[idx]);
+  }
+
+  let assignments = new Array(pixels.length).fill(0);
+  for (let iter = 0; iter < 10; iter++) {
+    // Assign
+    for (let i = 0; i < pixels.length; i++) {
+      let best = 0;
+      let bestD = Infinity;
+      for (let c = 0; c < centroids.length; c++) {
+        const d = distSq(pixels[i], centroids[c]);
+        if (d < bestD) {
+          bestD = d;
+          best = c;
+        }
+      }
+      assignments[i] = best;
+    }
+
+    // Update
+    const sum = centroids.map(() => [0, 0, 0] as [number, number, number]);
+    const count = centroids.map(() => 0);
+    for (let i = 0; i < pixels.length; i++) {
+      const a = assignments[i];
+      const p = pixels[i];
+      sum[a][0] += p[0];
+      sum[a][1] += p[1];
+      sum[a][2] += p[2];
+      count[a] += 1;
+    }
+    for (let c = 0; c < centroids.length; c++) {
+      if (count[c] === 0) continue;
+      centroids[c] = [
+        sum[c][0] / count[c],
+        sum[c][1] / count[c],
+        sum[c][2] / count[c],
+      ];
+    }
+  }
+
+  const clusterCounts = centroids.map(() => 0);
+  for (const a of assignments) clusterCounts[a] += 1;
+
+  let bestCluster = 0;
+  for (let c = 1; c < clusterCounts.length; c++) {
+    if (clusterCounts[c] > clusterCounts[bestCluster]) bestCluster = c;
+  }
+
+  return centroids[bestCluster] as [number, number, number];
+}
+
+async function extractDominantColorFromImageSrc(src: string) {
+  const img = new Image();
+  img.decoding = "async";
+  // Best-effort: prevents canvas tainting when the server sends CORS headers.
+  img.crossOrigin = "anonymous";
+
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load cover image"));
+    img.src = src;
+  });
+
+  const canvas = document.createElement("canvas");
+  const size = 64;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+
+  ctx.drawImage(img, 0, 0, size, size);
+  let data: ImageData;
+  try {
+    data = ctx.getImageData(0, 0, size, size);
+  } catch {
+    // Canvas likely tainted (cross-origin). Fall back.
+    return null;
+  }
+
+  const pixels: Array<[number, number, number]> = [];
+  const step = 2; // sample stride
+  for (let y = 0; y < size; y += step) {
+    for (let x = 0; x < size; x += step) {
+      const i = (y * size + x) * 4;
+      const a = data.data[i + 3] / 255;
+      if (a < 0.9) continue;
+      const rgb: [number, number, number] = [
+        data.data[i],
+        data.data[i + 1],
+        data.data[i + 2],
+      ];
+      const lum = relativeLuminance(rgb);
+      // Drop near-white / near-black pixels so we don't pick page background.
+      if (lum < 0.06 || lum > 0.96) continue;
+      pixels.push(rgb);
+    }
+  }
+
+  const dominant = kmeansDominant(pixels, 4);
+  return dominant;
+}
+
+function computeBackdropStyle(
+  dominant: [number, number, number],
+  opts: { isDark: boolean }
+): React.CSSProperties {
+  const { h, s, l } = rgbToHsl(dominant);
+
+  // Make a subtle, book-like paper backdrop: keep hue, reduce saturation, tune lightness.
+  const sat = clamp(s * 0.35, 0.06, 0.22);
+  const baseL = opts.isDark ? 0.14 : 0.92;
+  const edgeL = opts.isDark ? 0.08 : 0.84;
+
+  const base = hslToRgb({ h, s: sat, l: baseL });
+  const edge = hslToRgb({ h, s: sat, l: edgeL });
+  const edge2 = hslToRgb({ h: (h + 14) % 360, s: sat, l: edgeL });
+
+  const highlight = opts.isDark
+    ? rgbCss([255, 255, 255], 0.06)
+    : rgbCss([255, 255, 255], 0.45);
+  const vignette = opts.isDark ? rgbCss([0, 0, 0], 0.35) : rgbCss([0, 0, 0], 0.12);
+
+  return {
+    backgroundImage: [
+      `radial-gradient(circle at 28% 22%, ${highlight}, transparent 55%)`,
+      `radial-gradient(circle at 70% 85%, ${vignette}, transparent 60%)`,
+      `linear-gradient(90deg, ${rgbCss(edge)}, ${rgbCss(base)}, ${rgbCss(edge2)})`,
+    ].join(", "),
+  };
+}
+
 function isFlipEvent(value: unknown): value is { data: number } {
   if (typeof value !== "object" || value === null) return false;
   return typeof (value as { data?: unknown }).data === "number";
@@ -130,14 +394,53 @@ function CoverPage({
   author?: string;
   coverImageSrc?: string;
 }) {
-  return (
-    <div className="h-full w-full p-6 flex flex-col">
-      <div className="text-xs font-semibold text-[#B5CDA3]">
-        {appName ?? "TaleTime"}
-      </div>
+  const [backdropStyle, setBackdropStyle] = React.useState<
+    React.CSSProperties | undefined
+  >(undefined);
 
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (!coverImageSrc) {
+        if (!cancelled) setBackdropStyle(undefined);
+        return;
+      }
+
+      const isDark =
+        typeof document !== "undefined" &&
+        document.documentElement.classList.contains("dark");
+
+      try {
+        const dominant = await extractDominantColorFromImageSrc(coverImageSrc);
+        if (cancelled) return;
+        if (!dominant) {
+          setBackdropStyle(undefined);
+          return;
+        }
+        setBackdropStyle(computeBackdropStyle(dominant, { isDark }));
+      } catch {
+        if (!cancelled) setBackdropStyle(undefined);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [coverImageSrc]);
+
+  return (
+    <div
+      className="h-full w-full flex flex-col "
+      style={backdropStyle}
+    >
+      {/* <div className="txt-xs font-semibold text-[#B5CDA3]">
+        {appName ?? "TaleTime"}
+      </div> */}
+{/* 
       <div className="">
-        <h1 className="text-3xl font-extrabold text-[#3E3E3E] dark:text-white leading-tight">
+        <h1 className="text-3xl font-extrabold text-[#5f9798] dark:text-white leading-tight">
           {storyTitle}
         </h1>
         {author ? (
@@ -145,16 +448,28 @@ function CoverPage({
         ) : (
           <p className="text-[#3E3E3E]/70 dark:text-gray-300">A short story</p>
         )}
-      </div>
+      </div> */}
 
-      <div className="mt-6 flex-1 rounded-2xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 bg-[#F5E9DA]/30 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
         {coverImageSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={coverImageSrc}
-            alt={`${storyTitle} cover`}
-            className="h-full w-full object-cover"
-          />
+          <div className="flex-1 overflow-hidden rounded-2xl box-border border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 p-2 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="absolute inset-[16%]">
+                <img
+                  src={coverImageSrc}
+                  alt={`${storyTitle} cover`}
+                  className="h-full w-full"
+                />
+              </div>
+              <img
+                src="/frame.png"
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 h-full object-fill"
+              />
+
+            
+            
+          </div>
         ) : (
           <div className="p-6 text-center">
             <div className="mx-auto h-16 w-16 rounded-2xl bg-[#6BA8A9]/20 flex items-center justify-center text-[#6BA8A9] font-bold">
@@ -168,11 +483,11 @@ function CoverPage({
             </p>
           </div>
         )}
-      </div>
-
+      
+{/* 
       <div className="mt-6 text-xs text-[#3E3E3E]/60 dark:text-gray-400">
         Tip: drag the page corner or use Next/Prev.
-      </div>
+      </div> */}
     </div>
   );
 }
@@ -334,13 +649,7 @@ export default function BookFlip({
         </HTMLFlipBook>
       </div>
 
-      {showTip ? (
-        <div className="text-xs text-[#3E3E3E]/60 dark:text-gray-400">
-          {isMobile
-            ? "Tip: swipe/drag to flip pages."
-            : "Tip: click/drag page corners to flip."}
-        </div>
-      ) : null}
+     
     </div>
   );
 }

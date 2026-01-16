@@ -45,7 +45,7 @@ function buildTitleCandidates(rawTitle: string): string[] {
   return out;
 }
 
-async function getLocalBookIdsWithFullText(): Promise<number[]> {
+async function getLocalBookIdsWithText(): Promise<number[]> {
   const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
   const rootDir = path.resolve(process.cwd(), baseDir);
 
@@ -71,12 +71,16 @@ async function getLocalBookIdsWithFullText(): Promise<number[]> {
   };
 
   const checks = await Promise.all(
-    candidates.map(async (c) => ({ id: c.id, ok: await exists(path.join(c.dir, 'full.txt')) }))
+    candidates.map(async (c) => {
+      const hasFull = await exists(path.join(c.dir, 'full.txt'));
+      const hasBedtime = await exists(path.join(c.dir, 'bedtime.txt'));
+      return { id: c.id, ok: hasFull || hasBedtime };
+    })
   );
 
   const numericIds = checks.filter((c) => c.ok).map((c) => c.id);
 
-  // Also support: ${LOCAL_TEXT_DIR}/by-title/<Title>/full.txt
+  // Also support: ${LOCAL_TEXT_DIR}/by-title/<Title>/full.txt|bedtime.txt
   const byTitleRoot = path.join(rootDir, 'by-title');
   let byTitleEntries: Array<{ name: string; isDirectory: () => boolean }> = [];
   try {
@@ -89,14 +93,15 @@ async function getLocalBookIdsWithFullText(): Promise<number[]> {
     .filter((e) => e.isDirectory())
     .map((e) => e.name);
 
-  const byTitleWithFull = await Promise.all(
+  const byTitleWithText = await Promise.all(
     byTitleFolders.map(async (folder) => {
       const fullPath = path.join(byTitleRoot, folder, 'full.txt');
-      return { folder, ok: await exists(fullPath) };
+      const bedtimePath = path.join(byTitleRoot, folder, 'bedtime.txt');
+      return { folder, ok: (await exists(fullPath)) || (await exists(bedtimePath)) };
     })
   );
 
-  const availableFolders = byTitleWithFull.filter((x) => x.ok).map((x) => x.folder);
+  const availableFolders = byTitleWithText.filter((x) => x.ok).map((x) => x.folder);
   if (availableFolders.length === 0) {
     return Array.from(new Set(numericIds));
   }
@@ -162,7 +167,7 @@ let lastLocalSyncAt = 0;
 let localSyncInFlight: Promise<void> | null = null;
 
 async function maybeSyncLocalByTitle(): Promise<void> {
-  const contentMode = (process.env.CONTENT_MODE || 'remote').toLowerCase();
+  const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
   if (contentMode !== 'local') return;
 
   const now = Date.now();
@@ -199,15 +204,15 @@ export async function GET(req: NextRequest) {
   );
 
   try {
-    const contentMode = (process.env.CONTENT_MODE || 'remote').toLowerCase();
-    const localIds = contentMode === 'local' ? await getLocalBookIdsWithFullText() : null;
+    const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
+    const localIds = contentMode === 'local' ? await getLocalBookIdsWithText() : null;
 
     // If bookId is provided, return single book
     if (bookId) {
       const parsedId = parseInt(bookId);
       if (contentMode === 'local' && localIds && !localIds.includes(parsedId)) {
         return NextResponse.json(
-          { error: 'Book not found (no local full.txt)' },
+          { error: 'Book not found (no local text file)' },
           { status: 404 }
         );
       }

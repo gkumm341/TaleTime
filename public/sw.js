@@ -1,4 +1,5 @@
-const CACHE_NAME = 'taletime-v2'
+const CACHE_NAME = 'taletime-v3'
+const IS_LOCAL_DEV_HOST = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1'
 const STATIC_CACHE_URLS = [
   '/',
   '/search',
@@ -9,6 +10,13 @@ const STATIC_CACHE_URLS = [
 
 // Install event
 self.addEventListener('install', (event) => {
+  // In local dev, avoid precaching pages/chunks. This prevents stale HTML from
+  // being served after restarts (which can lead to ChunkLoadError).
+  if (IS_LOCAL_DEV_HOST) {
+    self.skipWaiting()
+    return
+  }
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -40,6 +48,17 @@ self.addEventListener('fetch', (event) => {
 
   // Skip cross-origin requests
   if (url.origin !== location.origin) {
+    return
+  }
+
+  // In local dev, don't intercept requests at all.
+  if (IS_LOCAL_DEV_HOST) {
+    return
+  }
+
+  // Never intercept Next.js build artifacts. Caching /_next scripts/styles can
+  // cause stale chunk loads (e.g. ChunkLoadError) after rebuilds/deploys.
+  if (url.pathname.startsWith('/_next/')) {
     return
   }
 

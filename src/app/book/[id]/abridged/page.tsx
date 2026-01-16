@@ -5,7 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import BookFlip, { type PageData } from '@/components/BookFlip';
-import { ChevronLeft, Clock, Loader2 } from 'lucide-react';
+import { ChevronLeft, Clock, Loader2, RotateCcw } from 'lucide-react';
 
 interface AbridgedResponse {
   bookId: number;
@@ -40,6 +40,7 @@ function useFlipDimensions(isMobile: boolean) {
     maxHeight: isMobile ? 720 : 900,
   }));
 
+  
   useEffect(() => {
     const compute = () => {
       const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
@@ -128,7 +129,9 @@ export default function AbridgedBookPage() {
   }, [variant, data?.title]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastStoredAudioSecondRef = useRef(-1);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [hasAudioResumePoint, setHasAudioResumePoint] = useState(false);
   const [audioStatus, setAudioStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
   const hasTaleTimeAudio = audioStatus === 'available';
   const isCheckingAudio = audioStatus === 'checking';
@@ -136,19 +139,66 @@ export default function AbridgedBookPage() {
     () => variant === 'bedtime' && (isCheckingAudio || hasTaleTimeAudio),
     [variant, isCheckingAudio, hasTaleTimeAudio]
   );
+  const audioResumeKey = useMemo(() => `taletime-audio-resume:${id}:${variant}`, [id, variant]);
   const taleTimeAudioSrc = useMemo(() => {
     const titleForLookup = data?.title || '';
     return `/api/local-audio?title=${encodeURIComponent(titleForLookup)}`;
   }, [data?.title]);
 
+  const readStoredResumeTime = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(audioResumeKey);
+      const t = raw ? Number(raw) : 0;
+      return Number.isFinite(t) && t > 0 ? t : 0;
+    } catch {
+      return 0;
+    }
+  }, [audioResumeKey]);
+
+  const writeStoredResumeTime = useCallback(
+    (t: number) => {
+      try {
+        if (!Number.isFinite(t) || t <= 0) {
+          localStorage.removeItem(audioResumeKey);
+          setHasAudioResumePoint((prev) => (prev ? false : prev));
+          return;
+        }
+        localStorage.setItem(audioResumeKey, String(t));
+        setHasAudioResumePoint((prev) => {
+          const next = t > 1;
+          return prev === next ? prev : next;
+        });
+      } catch {
+        // ignore storage errors
+      }
+    },
+    [audioResumeKey]
+  );
+
   useEffect(() => {
     // If user navigates away / variant changes, stop audio.
     if (!shouldShowTaleTimeAudio && audioRef.current) {
+      // Persist position for quick resume if they return.
+      writeStoredResumeTime(audioRef.current.currentTime);
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
       setIsAudioPlaying(false);
     }
-  }, [shouldShowTaleTimeAudio]);
+  }, [shouldShowTaleTimeAudio, writeStoredResumeTime]);
+
+  useEffect(() => {
+    // Initialize resume state when switching books/variants.
+    if (typeof window === 'undefined') return;
+    setHasAudioResumePoint(readStoredResumeTime() > 1);
+  }, [readStoredResumeTime]);
+
+  useEffect(() => {
+    // Persist position on unmount.
+    return () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      writeStoredResumeTime(audio.currentTime);
+    };
+  }, [writeStoredResumeTime]);
 
   useEffect(() => {
     // Auto-detect whether an MP3 exists for this bedtime story.
@@ -475,9 +525,39 @@ export default function AbridgedBookPage() {
                     ref={audioRef}
                     preload="none"
                     src={taleTimeAudioSrc}
+                    onLoadedMetadata={() => {
+                      const audio = audioRef.current;
+                      if (!audio) return;
+                      const t = readStoredResumeTime();
+                      // Only apply if we're at the start; avoids jumping while already listening.
+                      if (t > 0.25 && audio.currentTime < 0.25) {
+                        try {
+                          audio.currentTime = t;
+                        } catch {
+                          // ignore seek failures
+                        }
+                      }
+                    }}
                     onPlay={() => setIsAudioPlaying(true)}
-                    onPause={() => setIsAudioPlaying(false)}
-                    onEnded={() => setIsAudioPlaying(false)}
+                    onPause={() => {
+                      const audio = audioRef.current;
+                      if (audio) writeStoredResumeTime(audio.currentTime);
+                      setIsAudioPlaying(false);
+                    }}
+                    onTimeUpdate={() => {
+                      const audio = audioRef.current;
+                      if (!audio) return;
+                      // Throttle-ish via coarse rounding to reduce storage churn.
+                      const sec = Math.floor(audio.currentTime);
+                      if (sec > 0 && sec !== lastStoredAudioSecondRef.current) {
+                        lastStoredAudioSecondRef.current = sec;
+                        writeStoredResumeTime(sec);
+                      }
+                    }}
+                    onEnded={() => {
+                      writeStoredResumeTime(0);
+                      setIsAudioPlaying(false);
+                    }}
                   />
 
                   <Button
@@ -485,12 +565,24 @@ export default function AbridgedBookPage() {
                     size="sm"
                     className="gap-2"
                     disabled={isCheckingAudio}
+                    aria-pressed={isAudioPlaying}
+                    aria-label={
+                      isCheckingAudio
+                        ? 'Loading audio…'
+                        : isAudioPlaying
+                          ? 'Pause TaleTime audio'
+                          : hasAudioResumePoint
+                            ? 'Resume TaleTime audio'
+                            : 'Play TaleTime audio'
+                    }
                     title={
                       isCheckingAudio
                         ? 'Loading audio…'
                         : isAudioPlaying
-                          ? 'Stop TaleTime audio'
-                          : 'Play TaleTime audio'
+                          ? 'Pause TaleTime audio'
+                          : hasAudioResumePoint
+                            ? 'Resume TaleTime audio'
+                            : 'Play TaleTime audio'
                     }
                     onClick={async () => {
                       if (isCheckingAudio) return;
@@ -499,10 +591,17 @@ export default function AbridgedBookPage() {
 
                       try {
                         if (audio.paused) {
+                          const t = readStoredResumeTime();
+                          if (t > 0.25 && audio.currentTime < 0.25) {
+                            try {
+                              audio.currentTime = t;
+                            } catch {
+                              // ignore seek failures
+                            }
+                          }
                           await audio.play();
                         } else {
                           audio.pause();
-                          audio.currentTime = 0;
                         }
                       } catch {
                         setIsAudioPlaying(!audio.paused);
@@ -510,7 +609,48 @@ export default function AbridgedBookPage() {
                     }}
                   >
                     {isCheckingAudio && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isCheckingAudio ? 'Audio Loading…' : isAudioPlaying ? 'Stop Audio' : 'Audio'}
+                    {isCheckingAudio
+                      ? 'Audio Loading…'
+                      : isAudioPlaying
+                        ? 'Pause'
+                        : hasAudioResumePoint
+                          ? 'Resume'
+                          : 'Audio'}
+                  </Button>
+
+                  {/* Restart from the beginning (clears saved resume point). */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isCheckingAudio || !hasTaleTimeAudio}
+                    title="Restart audio from the beginning"
+                    aria-label="Restart audio from the beginning"
+                    onClick={async () => {
+                      const audio = audioRef.current;
+                      if (!audio) return;
+
+                      const wasPlaying = !audio.paused;
+                      try {
+                        audio.pause();
+                        audio.currentTime = 0;
+                      } catch {
+                        // ignore seek failures
+                      }
+                      lastStoredAudioSecondRef.current = -1;
+                      writeStoredResumeTime(0);
+                      setIsAudioPlaying(false);
+
+                      if (wasPlaying) {
+                        try {
+                          await audio.play();
+                        } catch {
+                          setIsAudioPlaying(!audio.paused);
+                        }
+                      }
+                    }}
+                    type="button"
+                  >
+                    <RotateCcw className="w-4 h-4" />
                   </Button>
                 </>
               )}
@@ -532,7 +672,7 @@ export default function AbridgedBookPage() {
             {variant === 'full' ? 'Loading full text…' : 'Loading bedtime version…'}
           </div>
         )}
-
+       
         {!loading && error && (
           <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-6 text-center">
             <div className="font-semibold text-rose-800 dark:text-rose-200">{error}</div>
@@ -583,6 +723,12 @@ export default function AbridgedBookPage() {
             />
           </div>
         )}
+
+         <div className="text-xs text-[#3E3E3E]/60 dark:text-gray-400 text-center mt-4">
+          {isMobile
+            ? "Tip: swipe/drag to flip pages."
+            : "Tip: click/drag page corners to flip."}
+        </div>
       </main>
     </div>
   );
