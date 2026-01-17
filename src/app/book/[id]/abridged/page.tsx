@@ -5,7 +5,29 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import BookFlip, { type PageData } from '@/components/BookFlip';
-import { ChevronLeft, Clock, Loader2, RotateCcw } from 'lucide-react';
+import { ChevronLeft, Clock, Loader2, RotateCcw, Home } from 'lucide-react';
+
+const TIME_OPTIONS = [
+  { id: 'bedtime', label: 'Bedtime' },
+  { id: 'full', label: 'Full version' },
+] as const;
+
+export type TimeOptionId = (typeof TIME_OPTIONS)[number]['id'];
+
+const TIME_SELECTION_KEY = 'taletime-time-selection';
+
+interface Book {
+  id: number;
+  title: string;
+  authors: string;
+  coverUrl?: string;
+  epubUrl?: string;
+  minutes?: number;
+  words?: number;
+  txtUrl?: string;
+  isCached?: boolean;
+  subjects?: string[];
+}
 
 interface AbridgedResponse {
   bookId: number;
@@ -40,7 +62,7 @@ function useFlipDimensions(isMobile: boolean) {
     maxHeight: isMobile ? 720 : 900,
   }));
 
-  
+
   useEffect(() => {
     const compute = () => {
       const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
@@ -90,6 +112,8 @@ export default function AbridgedBookPage() {
     if (Number.isFinite(minutes) && minutes > 0) return 'bedtime' as const;
     return 'full' as const;
   }, [searchParams, minutes]);
+
+  const selectedTimeOptionId: TimeOptionId = variant;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -224,8 +248,9 @@ export default function AbridgedBookPage() {
           signal: controller.signal,
         });
         setAudioStatus(res.ok ? 'available' : 'unavailable');
-      } catch (e: any) {
-        if (e?.name === 'AbortError') return;
+      } catch (e: unknown) {
+        const name = e && typeof e === 'object' && 'name' in e ? (e as { name?: unknown }).name : undefined;
+        if (name === 'AbortError') return;
         setAudioStatus('unavailable');
       }
     };
@@ -322,6 +347,11 @@ export default function AbridgedBookPage() {
       return scrollBox.scrollHeight <= scrollBox.clientHeight + 1;
     };
 
+    const wordCount = (s: string) => {
+      const m = s.trim().match(/\S+/g);
+      return m ? m.length : 0;
+    };
+
     const splitStringToFit = (input: string): string[] => {
       let remaining = input.trim();
       if (!remaining) return [];
@@ -359,6 +389,27 @@ export default function AbridgedBookPage() {
         const lastSpace = remaining.lastIndexOf(' ', best - 1);
         if (lastSpace > Math.floor(best * 0.6)) {
           cut = lastSpace + 1;
+        }
+
+        // Avoid creating a tiny trailing fragment (e.g., a single word on its own page).
+        // If the remainder would be very short, move the cut earlier to keep the next chunk meaningful.
+        const minRemainderChars = 24;
+        const minRemainderWords = 4;
+        let remainder = remaining.slice(cut).trim();
+
+        if (remainder && remainder.length < minRemainderChars && wordCount(remainder) < minRemainderWords) {
+          let prev = remaining.lastIndexOf(' ', Math.max(0, cut - 2));
+          while (prev > 0) {
+            const candidateCut = prev + 1;
+            const candidateRemainder = remaining.slice(candidateCut).trim();
+            if (!candidateRemainder) break;
+            if (candidateRemainder.length >= minRemainderChars || wordCount(candidateRemainder) >= minRemainderWords) {
+              cut = candidateCut;
+              remainder = candidateRemainder;
+              break;
+            }
+            prev = remaining.lastIndexOf(' ', prev - 1);
+          }
         }
 
         const chunk = remaining.slice(0, cut).trim();
@@ -481,26 +532,23 @@ export default function AbridgedBookPage() {
         </div>
       )}
       <div className="sticky top-0 z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2">
-            <ChevronLeft className="w-4 h-4" />
-            Back
-          </Button>
+        <div className="max-w-[1500px] mx-auto py-3">
+          <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3">
+            <Button onClick={() => router.push('/')}>  
+              <Home className="w-4 h-4" />
+            </Button>
 
-          <div className="flex-1 min-w-0 flex justify-center text-center">
-            <div className="min-w-0 flex flex-col items-center">
-              <div className="text-lg font-semibold text-[#5f9798] dark:text-white truncate max-w-full">
+            <div className="min-w-0 flex items-center justify-center gap-3">
+              <div className="min-w-0 text-lg font-semibold text-[#5f9798] dark:text-white truncate">
                 {data?.title ?? 'Preparing story…'}
               </div>
-              <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-gray-950/40 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-200">
+              <div className="shrink-0 inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-gray-950/40 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-200">
                 <Clock className="w-3.5 h-3.5" />
                 {variant === 'full' ? 'Full story' : 'Bedtime adaptation'}
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2 overflow-x-auto whitespace-nowrap">
               <Button
                 onClick={() => flipNav?.prev()}
                 variant="outline"
@@ -654,13 +702,36 @@ export default function AbridgedBookPage() {
                   </Button>
                 </>
               )}
-            </div>
+              {/* Version segmented control */}
+              <div className="inline-flex rounded-xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-gray-950/40 p-1 shadow-sm shrink-0">
+                {TIME_OPTIONS.map((opt) => {
+                  const isSelected = selectedTimeOptionId === opt.id;
+                  const label = opt.id === 'full' ? 'Full story' : 'Bedtime adaptation';
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem(TIME_SELECTION_KEY, opt.id);
+                        }
 
-            {flipMeta.pageCount > 0 ? (
-              <div className="text-xs text-gray-600 dark:text-gray-300">
-                Page {Math.min(flipMeta.pageIndex + 1, flipMeta.pageCount)} of {flipMeta.pageCount}
+                        const next = new URLSearchParams(searchParams.toString());
+                        next.set('variant', opt.id);
+                        router.push(`/book/${id}/abridged?${next.toString()}`);
+                      }}
+                      className={
+                        isSelected
+                          ? 'px-4 py-2 rounded-lg bg-[#6BA8A9] text-white text-sm font-semibold shadow'
+                          : 'px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60'
+                      }
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
-            ) : null}
+            </div>
           </div>
         </div>
       </div>
@@ -672,7 +743,7 @@ export default function AbridgedBookPage() {
             {variant === 'full' ? 'Loading full text…' : 'Loading bedtime version…'}
           </div>
         )}
-       
+
         {!loading && error && (
           <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-6 text-center">
             <div className="font-semibold text-rose-800 dark:text-rose-200">{error}</div>
@@ -724,7 +795,7 @@ export default function AbridgedBookPage() {
           </div>
         )}
 
-         <div className="text-xs text-[#3E3E3E]/60 dark:text-gray-400 text-center mt-4">
+        <div className="text-xs text-[#3E3E3E]/60 dark:text-gray-400 text-center mt-4">
           {isMobile
             ? "Tip: swipe/drag to flip pages."
             : "Tip: click/drag page corners to flip."}

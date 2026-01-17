@@ -369,7 +369,7 @@ const Page = React.forwardRef<HTMLDivElement, { children: React.ReactNode }>(
     return (
       <div
         ref={ref}
-        className="h-full w-full bg-white dark:bg-gray-900 rounded-2xl shadow-sm overflow-hidden border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10"
+        className="relative h-full w-full bg-white dark:bg-gray-900 rounded-2xl shadow-sm overflow-hidden border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10"
         style={{
           backgroundImage:
             "radial-gradient(rgba(62,62,62,0.04) 1px, transparent 1px)",
@@ -547,7 +547,8 @@ export default function BookFlip({
   const [pageIndex, setPageIndex] = useState(0);
   const dims = useFlipDimensions(isMobile);
 
-  const pageCount = useMemo(() => pages.length + 1, [pages.length]);
+  const endPageCount = 2; // blank end page + closed book image page
+  const pageCount = useMemo(() => pages.length + 1 + endPageCount, [pages.length]);
 
   const width = dims.width;
   const height = dims.height;
@@ -641,11 +642,34 @@ export default function BookFlip({
             />
           </Page>
 
-          {pages.map((p) => (
+          {pages.map((p, idx) => (
             <Page key={p.id}>
               <StoryPage title={p.title} text={p.text} imageSrc={p.imageSrc} />
+              <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-xs text-[#3E3E3E]/60 dark:text-gray-400 tabular-nums">
+                {idx + 1}
+              </div>
             </Page>
           ))}
+
+          {/* End: extra blank page */}
+          <Page key="end-blank">
+            <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-[#3E3E3E]/70 dark:text-gray-400">
+THE END!</div>
+            <div className="h-full w-full" />
+            
+          </Page>
+
+          {/* End: back of the blank page (closed book image) */}
+          <Page key="end-closed-book">
+            <div className="flex items-center justify-center h-[755px] w-[940px] -ml-40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/closedBook2.png"
+                alt="Closed book"
+                className="h-[820px] w-[700px]"
+              />
+            </div>
+          </Page>
         </HTMLFlipBook>
       </div>
 
