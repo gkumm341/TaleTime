@@ -29,7 +29,7 @@ export function Hero() {
               autoPlay
               muted
               playsInline
-              className="w-full h-[240px] lg:h-[320px] object-cover"
+              className="w-full h-[240px] lg:h-[380px] object-cover"
               aria-label="TaleTime owl mascot"
             />
           </div>

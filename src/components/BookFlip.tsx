@@ -5,11 +5,19 @@ import HTMLFlipBook from "react-pageflip";
 
 import { Button } from "@/components/ui/button";
 
+/**
+ * Inline image mapping for illustrations within text.
+ * The key is the placeholder (e.g., "1.png") and value is the full URL.
+ */
+export type InlineImageMap = Record<string, string>;
+
 export type PageData = {
   id: string;
   title?: string;
   text?: string;
   imageSrc?: string;
+  /** Maps image placeholders like "1.png" to their URLs for inline rendering */
+  inlineImages?: InlineImageMap;
 };
 
 export type BookFlipProps = {
@@ -492,15 +500,114 @@ function CoverPage({
   );
 }
 
+/**
+ * Parses text containing {{image.png}} placeholders and renders mixed content.
+ * Images are displayed inline with the text flow, like a children's book.
+ */
+export function renderTextWithInlineImages(
+  text: string,
+  inlineImages?: InlineImageMap
+): React.ReactNode {
+  if (!inlineImages || Object.keys(inlineImages).length === 0) {
+    return text;
+  }
+
+  // Match {{anything}} pattern - use [^{}]+ to avoid matching nested braces
+  const regex = /\{\{([^{}]+)\}\}/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let keyIndex = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      const textBefore = text.slice(lastIndex, match.index);
+      // Preserve whitespace/newlines exactly (important for child-book flow).
+      parts.push(
+        <span key={`text-${keyIndex++}`} className="whitespace-pre-wrap">
+          {textBefore}
+        </span>
+      );
+    }
+
+    // Add the image
+    const imageName = match[1].trim();
+    const imageUrl = inlineImages[imageName];
+    if (imageUrl) {
+      parts.push(
+        <span key={`img-${keyIndex++}`} className="inline-block w-full my-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt="Story illustration"
+            className="w-full object-contain rounded-xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 bg-[#F5E9DA]/30 dark:bg-gray-800"
+            style={{ maxHeight: 'min(160px, 30vh)' }}
+            loading="lazy"
+          />
+        </span>
+      );
+    } else {
+      // If we don't have a URL for this placeholder, keep it as text so it's debuggable.
+      parts.push(
+        <span key={`ph-${keyIndex++}`} className="whitespace-pre-wrap">
+          {match[0]}
+        </span>
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after the last match
+  if (lastIndex < text.length) {
+    const textAfter = text.slice(lastIndex);
+    parts.push(
+      <span key={`text-${keyIndex++}`} className="whitespace-pre-wrap">
+        {textAfter}
+      </span>
+    );
+  }
+
+  return parts.length > 0 ? parts : text;
+}
+
+function getSinglePlaceholderName(text: string): string | null {
+  const trimmed = text.trim();
+  const m = trimmed.match(/^\{\{([^{}]+)\}\}$/);
+  return m ? m[1].trim() : null;
+}
+
 function StoryPage({
   title,
   text,
   imageSrc,
+  inlineImages,
 }: {
   title?: string;
   text?: string;
   imageSrc?: string;
+  inlineImages?: InlineImageMap;
 }) {
+  const singlePlaceholderName = useMemo(() => getSinglePlaceholderName(text ?? ''), [text]);
+  const fullPageImageUrl = singlePlaceholderName ? inlineImages?.[singlePlaceholderName] : undefined;
+
+  if (fullPageImageUrl) {
+    return (
+      <div className="h-full w-full p-6 flex flex-col">
+        <div className="flex-1 flex items-center justify-center overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fullPageImageUrl}
+            alt="Story illustration"
+            className="w-full h-full object-contain rounded-xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 bg-[#F5E9DA]/30 dark:bg-gray-800"
+            loading="lazy"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full p-6 flex flex-col">
       {title ? (
@@ -508,6 +615,8 @@ function StoryPage({
       ) : (
         <div className="h-6" />
       )}
+
+      {null}
 
       {imageSrc ? (
         <div className="mt-4 rounded-2xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 overflow-hidden bg-[#F5E9DA]/30 dark:bg-gray-800">
@@ -522,9 +631,9 @@ function StoryPage({
 
       <div className="mt-4 flex-1 overflow-hidden">
         <div className="h-full overflow-hidden pr-2">
-          <p className="text-[#3E3E3E] dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
-            {text ?? ""}
-          </p>
+          <div className="text-[#3E3E3E] dark:text-gray-200 leading-relaxed">
+            {renderTextWithInlineImages(text ?? "", inlineImages)}
+          </div>
         </div>
       </div>
     </div>
@@ -644,7 +753,7 @@ export default function BookFlip({
 
           {pages.map((p, idx) => (
             <Page key={p.id}>
-              <StoryPage title={p.title} text={p.text} imageSrc={p.imageSrc} />
+              <StoryPage title={p.title} text={p.text} imageSrc={p.imageSrc} inlineImages={p.inlineImages} />
               <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-xs text-[#3E3E3E]/60 dark:text-gray-400 tabular-nums">
                 {idx + 1}
               </div>

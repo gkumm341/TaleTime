@@ -414,7 +414,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Bedtime/timed variants are paid-only.
-    if (variant !== 'full') {
+    // In development mode, bypass auth check to allow testing without login.
+    if (variant !== 'full' && !shouldBypassPremiumPaywall()) {
       const sessionId = req.cookies.get('taletime_session')?.value;
       const user = await getUserFromSessionId(sessionId);
       if (!user) {
@@ -424,7 +425,7 @@ export async function POST(req: NextRequest) {
         );
       }
       const entitlement = await getPremiumEntitlementForUserId(user.id);
-      if (!isPremiumActive(entitlement) && !shouldBypassPremiumPaywall()) {
+      if (!isPremiumActive(entitlement)) {
         return NextResponse.json(
           { error: 'Premium subscription required to view the bedtime version', code: 'PAYWALL' },
           { status: 402 }

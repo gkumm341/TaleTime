@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/contexts/PreferencesContext';
-import BookFlip, { type PageData } from '@/components/BookFlip';
+import BookFlip, { type PageData, type InlineImageMap } from '@/components/BookFlip';
 import { ChevronLeft, Clock, Loader2, RotateCcw, Home } from 'lucide-react';
 
 const TIME_OPTIONS = [
@@ -336,16 +336,34 @@ export default function AbridgedBookPage() {
     const textNode = measureTextRef.current;
     if (!scrollBox || !textNode) return;
 
+    // Image placeholder pattern
+    const imageRegex = /\{\{[^}]+\}\}/g;
+    // Estimated height per inline image. Keep it responsive so tiny viewports
+    // don't force-split a single {{...}} token.
+    const IMAGE_HEIGHT_ESTIMATE = Math.min(184, Math.floor(scrollBox.clientHeight * 0.32));
+
     const paragraphs = raw
       .split(/\n{2,}/g)
       .map((p) => p.trim())
       .filter(Boolean);
 
     const fits = (candidate: string) => {
-      textNode.textContent = candidate;
+      // Count image placeholders in the candidate
+      const imageMatches = candidate.match(imageRegex);
+      const imageCount = imageMatches ? imageMatches.length : 0;
+      const extraImageHeight = imageCount * IMAGE_HEIGHT_ESTIMATE;
+
+      // Remove image placeholders for text measurement
+      const textOnly = candidate.replace(imageRegex, '');
+      textNode.textContent = textOnly;
+      
       // scrollHeight/clientHeight forces layout; add a small fudge for rounding.
-      return scrollBox.scrollHeight <= scrollBox.clientHeight + 1;
+      // Subtract image height from available space
+      const availableHeight = scrollBox.clientHeight - extraImageHeight;
+      return scrollBox.scrollHeight <= availableHeight + 1;
     };
+
+    const isImageOnlyParagraph = (s: string) => /^\s*\{\{[^{}]+\}\}\s*$/.test(s);
 
     const wordCount = (s: string) => {
       const m = s.trim().match(/\S+/g);
@@ -358,6 +376,18 @@ export default function AbridgedBookPage() {
 
       const out: string[] = [];
       while (remaining.length > 0) {
+        // Never split inside a placeholder token.
+        // If the remaining chunk starts with {{...}}, take the whole token at once.
+        if (remaining.startsWith('{{')) {
+          const end = remaining.indexOf('}}');
+          if (end !== -1) {
+            const token = remaining.slice(0, end + 2).trim();
+            if (token) out.push(token);
+            remaining = remaining.slice(end + 2).trim();
+            continue;
+          }
+        }
+
         if (fits(remaining)) {
           out.push(remaining);
           break;
@@ -379,7 +409,7 @@ export default function AbridgedBookPage() {
           }
         }
 
-        // Safety: if nothing fits (shouldn't happen), force progress.
+        // Safety: if nothing fits, force progress.
         if (best <= 0) {
           best = Math.min(remaining.length, 1);
         }
@@ -389,6 +419,25 @@ export default function AbridgedBookPage() {
         const lastSpace = remaining.lastIndexOf(' ', best - 1);
         if (lastSpace > Math.floor(best * 0.6)) {
           cut = lastSpace + 1;
+        }
+
+        // IMPORTANT: Never split inside an image placeholder {{...}}
+        // Check if we're cutting inside a placeholder and adjust
+        const beforeCut = remaining.slice(0, cut);
+        const openBraces = (beforeCut.match(/\{\{/g) || []).length;
+        const closeBraces = (beforeCut.match(/\}\}/g) || []).length;
+        if (openBraces > closeBraces) {
+          // We're inside an unclosed placeholder - find the previous complete placeholder or text
+          const lastComplete = beforeCut.lastIndexOf('}}');
+          if (lastComplete > 0) {
+            cut = lastComplete + 2;
+          } else {
+            // No complete placeholder before, find the start of this placeholder
+            const placeholderStart = beforeCut.lastIndexOf('{{');
+            if (placeholderStart > 0) {
+              cut = placeholderStart;
+            }
+          }
         }
 
         // Avoid creating a tiny trailing fragment (e.g., a single word on its own page).
@@ -403,12 +452,40 @@ export default function AbridgedBookPage() {
             const candidateCut = prev + 1;
             const candidateRemainder = remaining.slice(candidateCut).trim();
             if (!candidateRemainder) break;
+            
+            // Don't break inside a placeholder
+            const candidateBefore = remaining.slice(0, candidateCut);
+            const candOpenBraces = (candidateBefore.match(/\{\{/g) || []).length;
+            const candCloseBraces = (candidateBefore.match(/\}\}/g) || []).length;
+            if (candOpenBraces > candCloseBraces) {
+              // This cut would be inside a placeholder, skip it
+              prev = remaining.lastIndexOf(' ', prev - 1);
+              continue;
+            }
+            
             if (candidateRemainder.length >= minRemainderChars || wordCount(candidateRemainder) >= minRemainderWords) {
               cut = candidateCut;
               remainder = candidateRemainder;
               break;
             }
             prev = remaining.lastIndexOf(' ', prev - 1);
+          }
+        }
+
+        // Final safety: after all adjustments, never split inside a placeholder.
+        // (The tiny-fragment adjustment above can move the cut, so re-check here.)
+        {
+          const finalBeforeCut = remaining.slice(0, cut);
+          const finalOpen = (finalBeforeCut.match(/\{\{/g) || []).length;
+          const finalClose = (finalBeforeCut.match(/\}\}/g) || []).length;
+          if (finalOpen > finalClose) {
+            const lastComplete = finalBeforeCut.lastIndexOf('}}');
+            if (lastComplete > 0) {
+              cut = lastComplete + 2;
+            } else {
+              const placeholderStart = finalBeforeCut.lastIndexOf('{{');
+              if (placeholderStart > 0) cut = placeholderStart;
+            }
           }
         }
 
@@ -470,6 +547,14 @@ export default function AbridgedBookPage() {
     for (const paragraph of paragraphs) {
       const pieces = splitToFit(paragraph);
       for (const piece of pieces) {
+        // If a piece is ONLY an illustration placeholder like "{{1.png}}",
+        // give it its own page so the renderer can size it to the full page.
+        if (isImageOnlyParagraph(piece)) {
+          flush();
+          chunks.push(piece.trim());
+          continue;
+        }
+
         const candidate = buf.length > 0 ? `${buf.join('\n\n')}\n\n${piece}` : piece;
         if (buf.length > 0 && !fits(candidate)) flush();
 
@@ -488,13 +573,26 @@ export default function AbridgedBookPage() {
     }
     flush();
 
+    // Build inline image map from all {{image.png}} placeholders in the content
+    const imageMap: InlineImageMap = {};
+    const imageExtractRegex = /\{\{([^{}]+)\}\}/g;
+    let imageMatch: RegExpExecArray | null;
+    
+    while ((imageMatch = imageExtractRegex.exec(raw)) !== null) {
+      const imageName = imageMatch[1].trim();
+      if (imageName && !imageMap[imageName] && data?.title) {
+        imageMap[imageName] = `/api/illustration?title=${encodeURIComponent(data.title)}&image=${encodeURIComponent(imageName)}`;
+      }
+    }
+
     setPages(
       chunks.map((chunk, idx) => ({
         id: `p${idx + 1}`,
         text: chunk,
+        inlineImages: Object.keys(imageMap).length > 0 ? imageMap : undefined,
       }))
     );
-  }, [data?.content, preferences?.fontSize, preferences?.lineHeight, dims.width, dims.height]);
+  }, [data?.content, data?.title, preferences?.fontSize, preferences?.lineHeight, dims.width, dims.height]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 relative overflow-hidden">
