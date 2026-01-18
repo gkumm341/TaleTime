@@ -53,6 +53,10 @@ export function BookGrid({
   const [books, setBooks] = useState<Book[]>(initialBooks);
   const [loading, setLoading] = useState<Set<number>>(new Set());
 
+  useEffect(() => {
+    setBooks(initialBooks);
+  }, [initialBooks]);
+
   const [authorOverrides, setAuthorOverrides] = useState<Record<number, string>>({});
   const [editingAuthorForId, setEditingAuthorForId] = useState<number | null>(null);
   const [authorDraft, setAuthorDraft] = useState('');

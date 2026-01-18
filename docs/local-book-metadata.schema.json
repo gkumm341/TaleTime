@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taletime.local/schemas/local-book-metadata.schema.json",
+  "title": "TaleTime Local Book Metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "book", "local"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "book": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title"],
+      "properties": {
+        "id": { "type": ["integer", "null"] },
+        "title": { "type": "string", "minLength": 1 },
+        "authors": { "type": "array", "items": { "type": "string" } },
+        "characters": { "type": "array", "items": { "type": "string" }, "description": "Main characters in the story" },
+        "keywords": { "type": "array", "items": { "type": "string" }, "description": "Search keywords, themes, or tags" },
+        "description": { "type": ["string", "null"], "description": "Short synopsis or teaser" },
+        "languages": { "type": "array", "items": { "type": "string" } },
+        "subjects": { "type": "array", "items": { "type": "string" } },
+        "downloadCount": { "type": ["integer", "null"] },
+        "updatedAt": { "type": ["integer", "null"], "description": "Unix timestamp (ms or s, depending on source)" },
+        "links": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "txtUrl": { "type": ["string", "null"] },
+            "epubUrl": { "type": ["string", "null"] },
+            "coverUrl": { "type": ["string", "null"] }
+          }
+        },
+        "estimate": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "properties": {
+            "minutes": { "type": ["integer", "null"] },
+            "words": { "type": ["integer", "null"] },
+            "wpm": { "type": ["integer", "null"] },
+            "source": { "type": ["string", "null"] },
+            "computedAt": { "type": ["integer", "null"] }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "type": "string", "enum": ["gutenberg", "local", "unknown"] },
+            "externalId": { "type": ["string", "integer", "null"] }
+          }
+        }
+      }
+    },
+    "local": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layout", "folderName", "files"],
+      "properties": {
+        "layout": { "type": "string", "enum": ["by-title"] },
+        "folderName": { "type": "string", "minLength": 1 },
+        "relativeDir": { "type": "string", "minLength": 1 },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "filename"],
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": ["full", "bedtime", "image", "audio", "other"]
+              },
+              "filename": { "type": "string", "minLength": 1 },
+              "bytes": { "type": ["integer", "null"] },
+              "sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+            }
+          }
+        }
+      }
+    },
+    "custom": {
+      "type": ["object", "null"],
+      "description": "Optional user-maintained fields (preserved by generator)."
+    }
+  }
+}

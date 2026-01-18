@@ -438,7 +438,7 @@ function CoverPage({
       {/* <div className="txt-xs font-semibold text-[#B5CDA3]">
         {appName ?? "TaleTime"}
       </div> */}
-{/* 
+      {/* 
       <div className="">
         <h1 className="text-3xl font-extrabold text-[#5f9798] dark:text-white leading-tight">
           {storyTitle}
@@ -450,41 +450,41 @@ function CoverPage({
         )}
       </div> */}
 
-        {coverImageSrc ? (
-          <div className="flex-1 overflow-hidden rounded-2xl box-border border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 p-2 flex items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-              <div className="absolute inset-[16%]">
-                <img
-                  src={coverImageSrc}
-                  alt={`${storyTitle} cover`}
-                  className="h-full w-full"
-                />
-              </div>
-              <img
-                src="/frame.png"
-                alt=""
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 h-full object-fill"
-              />
+      {coverImageSrc ? (
+        <div className="flex-1 overflow-hidden rounded-2xl box-border border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 p-2 flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div className="absolute inset-[16%]">
+            <img
+              src={coverImageSrc}
+              alt={`${storyTitle} cover`}
+              className="h-full w-full"
+            />
+          </div>
+          <img
+            src="/frame.png"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full object-fill"
+          />
 
-            
-            
+
+
+        </div>
+      ) : (
+        <div className="p-6 text-center">
+          <div className="mx-auto h-16 w-16 rounded-2xl bg-[#6BA8A9]/20 flex items-center justify-center text-[#6BA8A9] font-bold">
+            TT
           </div>
-        ) : (
-          <div className="p-6 text-center">
-            <div className="mx-auto h-16 w-16 rounded-2xl bg-[#6BA8A9]/20 flex items-center justify-center text-[#6BA8A9] font-bold">
-              TT
-            </div>
-            <p className="mt-4 text-[#3E3E3E] dark:text-white font-medium">
-              Add a cover image later
-            </p>
-            <p className="mt-1 text-[#3E3E3E]/70 dark:text-gray-300 text-sm">
-              This is your book&apos;s cover page.
-            </p>
-          </div>
-        )}
-      
-{/* 
+          <p className="mt-4 text-[#3E3E3E] dark:text-white font-medium">
+            Add a cover image later
+          </p>
+          <p className="mt-1 text-[#3E3E3E]/70 dark:text-gray-300 text-sm">
+            This is your book&apos;s cover page.
+          </p>
+        </div>
+      )}
+
+      {/* 
       <div className="mt-6 text-xs text-[#3E3E3E]/60 dark:text-gray-400">
         Tip: drag the page corner or use Next/Prev.
       </div> */}
@@ -654,9 +654,9 @@ export default function BookFlip({
           {/* End: extra blank page */}
           <Page key="end-blank">
             <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-[#3E3E3E]/70 dark:text-gray-400">
-THE END!</div>
+              THE END!</div>
             <div className="h-full w-full" />
-            
+
           </Page>
 
           {/* End: back of the blank page (closed book image) */}
@@ -673,7 +673,7 @@ THE END!</div>
         </HTMLFlipBook>
       </div>
 
-     
+
     </div>
   );
 }
