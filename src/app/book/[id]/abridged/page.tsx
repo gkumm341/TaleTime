@@ -6,6 +6,14 @@ import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import BookFlip, { type PageData, type InlineImageMap } from '@/components/BookFlip';
 import { ChevronLeft, Clock, Loader2, RotateCcw, Home } from 'lucide-react';
+import Image from 'next/image';
+import BookmarkPng from '@/components/BookmarkPng';
+import {
+  clearAbridgedBookmark,
+  getAbridgedBookmark,
+  setAbridgedBookmark,
+  type AbridgedBookmark,
+} from '@/lib/bookmarks';
 
 const TIME_OPTIONS = [
   { id: 'bedtime', label: 'Bedtime' },
@@ -124,14 +132,164 @@ export default function AbridgedBookPage() {
   const measureScrollRef = useRef<HTMLDivElement | null>(null);
   const measureTextRef = useRef<HTMLParagraphElement | null>(null);
 
-  const [flipNav, setFlipNav] = useState<{ next: () => void; prev: () => void } | null>(null);
+  const [flipNav, setFlipNav] = useState<{
+    next: () => void;
+    prev: () => void;
+    goTo: (pageIndex: number) => void;
+    getPageIndex: () => number;
+    getPageCount: () => number;
+  } | null>(null);
   const [flipMeta, setFlipMeta] = useState<{ pageIndex: number; pageCount: number }>({
     pageIndex: 0,
     pageCount: 0,
   });
 
+  const [bookmark, setBookmark] = useState<AbridgedBookmark | null>(null);
+  const [bookmarkHydrated, setBookmarkHydrated] = useState(false);
+  const didRestoreBookmarkRef = useRef(false);
+
+  const bookAreaRef = useRef<HTMLDivElement | null>(null);
+  const bookmarkDragRef = useRef<HTMLDivElement | null>(null);
+  const bookmarkDragStateRef = useRef<{
+    pointerId: number | null;
+    startX: number;
+    startY: number;
+    dx: number;
+    dy: number;
+    moved: boolean;
+  }>({ pointerId: null, startX: 0, startY: 0, dx: 0, dy: 0, moved: false });
+  const [isDraggingBookmark, setIsDraggingBookmark] = useState(false);
+
+  const applyBookmarkDragTransform = useCallback((dx: number, dy: number) => {
+    const el = bookmarkDragRef.current;
+    if (!el) return;
+    el.style.transform = `translate3d(${dx}px, ${dy}px, 0px) rotate(6deg)`;
+  }, []);
+
+  const resetBookmarkDragTransform = useCallback(() => {
+    const el = bookmarkDragRef.current;
+    if (!el) return;
+    el.style.transform = 'translate3d(0px, 0px, 0px) rotate(6deg)';
+  }, []);
+
+  const isPointInBookArea = useCallback((clientX: number, clientY: number) => {
+    const r = bookAreaRef.current?.getBoundingClientRect();
+    if (!r) return false;
+    return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
+  }, []);
+
+  const handleBookmarkDrop = useCallback(
+    async (clientX: number, clientY: number) => {
+      if (!bookmarkHydrated) return;
+
+      const current = flipMeta.pageIndex;
+      if (!Number.isFinite(current) || current < 1) {
+        return;
+      }
+
+      const droppedOnBook = isPointInBookArea(clientX, clientY);
+
+      try {
+        if (droppedOnBook) {
+          if (bookmark?.pageIndex === current) return;
+          const next = await setAbridgedBookmark(id, variant, current);
+          setBookmark(next);
+        } else {
+          if (!bookmark) return;
+          await clearAbridgedBookmark(id, variant);
+          setBookmark(null);
+        }
+      } catch {
+        // ignore
+      }
+    },
+    [bookmark, bookmarkHydrated, flipMeta.pageIndex, id, isPointInBookArea, variant]
+  );
+
+  const onBookmarkPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (!bookmarkHydrated) return;
+      if (e.button !== 0) return;
+
+      const el = bookmarkDragRef.current;
+      if (!el) return;
+
+      bookmarkDragStateRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        dx: 0,
+        dy: 0,
+        moved: false,
+      };
+
+      setIsDraggingBookmark(true);
+
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    [bookmarkHydrated]
+  );
+
+  const onBookmarkPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const state = bookmarkDragStateRef.current;
+      if (state.pointerId !== e.pointerId) return;
+
+      const dx = e.clientX - state.startX;
+      const dy = e.clientY - state.startY;
+
+      state.dx = dx;
+      state.dy = dy;
+      if (!state.moved && Math.hypot(dx, dy) > 6) state.moved = true;
+
+      applyBookmarkDragTransform(dx, dy);
+
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    [applyBookmarkDragTransform]
+  );
+
+  const onBookmarkPointerUp = useCallback(
+    async (e: React.PointerEvent) => {
+      const state = bookmarkDragStateRef.current;
+      if (state.pointerId !== e.pointerId) return;
+
+      bookmarkDragStateRef.current.pointerId = null;
+      setIsDraggingBookmark(false);
+      resetBookmarkDragTransform();
+
+      // Only treat as a drag-drop interaction if the user actually moved it.
+      if (!state.moved) return;
+
+      await handleBookmarkDrop(e.clientX, e.clientY);
+
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    [handleBookmarkDrop, resetBookmarkDragTransform]
+  );
+
+  const onBookmarkPointerCancel = useCallback(
+    (e: React.PointerEvent) => {
+      const state = bookmarkDragStateRef.current;
+      if (state.pointerId !== e.pointerId) return;
+      bookmarkDragStateRef.current.pointerId = null;
+      setIsDraggingBookmark(false);
+      resetBookmarkDragTransform();
+    },
+    [resetBookmarkDragTransform]
+  );
+
   const handleFlipNavReady = useCallback(
-    (nav: { next: () => void; prev: () => void }) => {
+    (nav: { next: () => void; prev: () => void; goTo: (pageIndex: number) => void; getPageIndex: () => number; getPageCount: () => number }) => {
       setFlipNav(nav);
     },
     []
@@ -140,6 +298,37 @@ export default function AbridgedBookPage() {
   const handleFlipPageChange = useCallback((pageIndex: number, pageCount: number) => {
     setFlipMeta({ pageIndex, pageCount });
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    didRestoreBookmarkRef.current = false;
+    setBookmarkHydrated(false);
+    (async () => {
+      try {
+        const stored = await getAbridgedBookmark(id, variant);
+        if (cancelled) return;
+        setBookmark(stored);
+      } catch {
+        if (cancelled) return;
+        setBookmark(null);
+      } finally {
+        if (!cancelled) setBookmarkHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, variant]);
+
+  useEffect(() => {
+    if (!bookmarkHydrated) return;
+    if (!flipNav) return;
+    if (didRestoreBookmarkRef.current) return;
+    if (!bookmark) return;
+    didRestoreBookmarkRef.current = true;
+    // Restore only once on initial load.
+    flipNav.goTo(bookmark.pageIndex);
+  }, [bookmark, bookmarkHydrated, flipNav]);
 
   const coverImageSrc = useMemo(() => {
     if (!data?.title) return undefined;
@@ -665,6 +854,44 @@ export default function AbridgedBookPage() {
                 Next
               </Button>
 
+              <Button
+                variant={bookmark ? 'outline' : 'default'}
+                size="sm"
+                className="gap-2"
+                disabled={!flipNav || !bookmarkHydrated}
+                title={
+                  bookmark
+                    ? (bookmark.pageIndex === flipMeta.pageIndex ? 'Remove bookmark' : 'Update bookmark to this page')
+                    : 'Bookmark this page'
+                }
+                aria-pressed={Boolean(bookmark)}
+                onClick={async () => {
+                  if (!flipNav) return;
+                  const current = flipMeta.pageIndex;
+
+                  // Prevent bookmarking cover/invalid pages.
+                  if (!Number.isFinite(current) || current < 1) {
+                    return;
+                  }
+
+                  try {
+                    if (bookmark && bookmark.pageIndex === current) {
+                      await clearAbridgedBookmark(id, variant);
+                      setBookmark(null);
+                    } else {
+                      const next = await setAbridgedBookmark(id, variant, current);
+                      setBookmark(next);
+                    }
+                  } catch {
+                    // ignore
+                  }
+                }}
+                type="button"
+              >
+                <BookmarkPng alt="Bookmark" className="h-7 w-7 object-contain" />
+                {bookmark ? 'Bookmarked' : 'Bookmark'}
+              </Button>
+
               {shouldShowTaleTimeAudio && (
                 <>
                   <audio
@@ -879,17 +1106,46 @@ export default function AbridgedBookPage() {
 
         {!loading && !error && data && (
           <div className="w-full flex justify-center">
-            <BookFlip
-              appName="TaleTime"
-              storyTitle={data.title}
-              author={data.author}
-              coverImageSrc={coverImageSrc}
-              pages={pages}
-              showHeader={false}
-              showTip={false}
-              onNavigationReady={handleFlipNavReady}
-              onPageChange={handleFlipPageChange}
-            />
+            <div className="relative overflow-visible">
+              {/* Draggable bookmark: drop ON the book to activate/update; drop OFF to deactivate. */}
+              <div
+                ref={bookmarkDragRef}
+                className={
+                  bookmark
+                    ? 'absolute -top-28 left-[44%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
+                    : 'absolute -top-16 -right-24 z-30 drop-shadow-xl opacity-80 scale-90'
+                }
+                style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
+                role="img"
+                aria-label={bookmark ? 'Bookmark (drag off to remove)' : 'Bookmark (drag onto book to add)'}
+                title={bookmark ? 'Drag off the book to remove bookmark' : 'Drag onto the book to add bookmark'}
+                onPointerDown={onBookmarkPointerDown}
+                onPointerMove={onBookmarkPointerMove}
+                onPointerUp={onBookmarkPointerUp}
+                onPointerCancel={onBookmarkPointerCancel}
+              >
+                <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
+                  <BookmarkPng
+                    alt="Bookmark"
+                    className={bookmark ? 'h-72 w-52 object-contain sm:h-[44rem] sm:w-[18rem]' : 'h-44 w-32 object-contain sm:h-56 sm:w-40'}
+                  />
+                </div>
+              </div>
+
+              <div ref={bookAreaRef}>
+                <BookFlip
+                  appName="TaleTime"
+                  storyTitle={data.title}
+                  author={data.author}
+                  coverImageSrc={coverImageSrc}
+                  pages={pages}
+                  showHeader={false}
+                  showTip={false}
+                  onNavigationReady={handleFlipNavReady}
+                  onPageChange={handleFlipPageChange}
+                />
+              </div>
+            </div>
           </div>
         )}
 

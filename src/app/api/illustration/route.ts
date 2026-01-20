@@ -14,9 +14,11 @@ const TRANSPARENT_PNG = Buffer.from(
 
 function normalizeKey(input: string) {
   return input
+    .normalize('NFKD')
     .trim()
     .toLowerCase()
-    .replace(/['']/g, '')
+    // Treat curly quotes/apostrophes as plain apostrophes.
+    .replace(/[’'`´]/g, '')
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')

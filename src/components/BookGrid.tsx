@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { preloadEpub, prefetchBookMetadata } from '@/lib/epub-preloader';
 import type { TimeOptionId } from './HomeContent';
+import { getAbridgedBookmarkVariantMap, getAnyAbridgedBookmarkMap, getBookmarkEventName } from '@/lib/bookmarks';
+import BookmarkPng from '@/components/BookmarkPng';
 
 const AUTHOR_OVERRIDES_KEY = 'taletime-author-overrides-v1';
 
@@ -61,6 +63,40 @@ export function BookGrid({
   const [editingAuthorForId, setEditingAuthorForId] = useState<number | null>(null);
   const [authorDraft, setAuthorDraft] = useState('');
   const preloadTimersRef = useRef<Record<number, number>>({});
+  const [hasBookmarkById, setHasBookmarkById] = useState<Record<number, boolean>>({});
+  const [bookmarkVariantById, setBookmarkVariantById] = useState<Record<number, 'full' | 'bedtime' | null>>({});
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let cancelled = false;
+    const bookIds = books.map((b) => b.id);
+
+    const refresh = async () => {
+      try {
+        const [anyMap, variantMap] = await Promise.all([
+          getAnyAbridgedBookmarkMap(bookIds),
+          getAbridgedBookmarkVariantMap(bookIds),
+        ]);
+        if (cancelled) return;
+        setHasBookmarkById(anyMap);
+        setBookmarkVariantById(variantMap);
+      } catch {
+        if (cancelled) return;
+        setHasBookmarkById({});
+        setBookmarkVariantById({});
+      }
+    };
+
+    refresh();
+
+    const handler = () => refresh();
+    window.addEventListener(getBookmarkEventName(), handler as EventListener);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(getBookmarkEventName(), handler as EventListener);
+    };
+  }, [books]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -161,9 +197,11 @@ export function BookGrid({
     <div className={isCoverOnly ? 'grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5' : 'grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'}>
       {books.map((book, index) => {
         const variant = timeSelection ? timeOptionToVariant(timeSelection) : null;
+        const bookmarkedVariant = bookmarkVariantById[book.id] ?? null;
+        const variantToOpen = bookmarkedVariant ?? variant ?? 'full';
         const href = isLocalContent
-          ? `/book/${book.id}/abridged?variant=${variant ?? 'full'}`
-          : variant === 'bedtime'
+          ? `/book/${book.id}/abridged?variant=${variantToOpen}`
+          : variantToOpen === 'bedtime'
             ? `/book/${book.id}/abridged?variant=bedtime`
             : `/book/${book.id}/abridged?variant=full`;
 
@@ -227,6 +265,18 @@ export function BookGrid({
                 }}
                 priority={false}
               />
+
+              {hasBookmarkById[book.id] && (
+                <div className="pointer-events-none absolute -top-2 -right-2 h-14 w-14 drop-shadow-md">
+                  <BookmarkPng alt="Bookmarked" className="h-full w-full object-contain" />
+
+                  {bookmarkVariantById[book.id] && (
+                    <div className="absolute bottom-1 right-1 h-5 min-w-5 px-1 rounded-full bg-black/70 text-white text-[10px] font-bold flex items-center justify-center ring-1 ring-white/30">
+                      {bookmarkVariantById[book.id] === 'bedtime' ? 'B' : 'F'}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {isCoverOnly && (
                 <div className="pointer-events-none absolute inset-0 ring-1 ring-black/5" />

@@ -29,7 +29,13 @@ export type BookFlipProps = {
   showHeader?: boolean;
   showTip?: boolean;
   onPageChange?: (pageIndex: number, pageCount: number) => void;
-  onNavigationReady?: (nav: { next: () => void; prev: () => void }) => void;
+  onNavigationReady?: (nav: {
+    next: () => void;
+    prev: () => void;
+    goTo: (pageIndex: number) => void;
+    getPageIndex: () => number;
+    getPageCount: () => number;
+  }) => void;
 };
 
 export type BookFlipHandle = {
@@ -42,6 +48,9 @@ export type BookFlipHandle = {
 type FlipBookApi = {
   flipNext: () => void;
   flipPrev: () => void;
+  // react-pageflip exposes one of these depending on version.
+  flip?: (pageIndex: number) => void;
+  turnToPage?: (pageIndex: number) => void;
   getCurrentPageIndex: () => number;
   getPageCount: () => number;
 };
@@ -670,10 +679,41 @@ export default function BookFlip({
 
   const goNext = React.useCallback(() => getFlipApi()?.flipNext(), []);
   const goPrev = React.useCallback(() => getFlipApi()?.flipPrev(), []);
+  const goTo = React.useCallback((targetPageIndex: number) => {
+    const attempt = (triesLeft: number) => {
+      const api = getFlipApi();
+      if (!api) {
+        if (triesLeft > 0) {
+          window.setTimeout(() => attempt(triesLeft - 1), 50);
+        }
+        return;
+      }
+
+      const pageCount = api.getPageCount?.() ?? 0;
+      const safeIndex = clamp(targetPageIndex, 0, Math.max(0, pageCount - 1));
+      try {
+        if (typeof api.turnToPage === 'function') {
+          api.turnToPage(safeIndex);
+          return;
+        }
+        if (typeof api.flip === 'function') {
+          api.flip(safeIndex);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    if (typeof window === 'undefined') return;
+    attempt(10);
+  }, []);
+
+  const getPageIndex = React.useCallback(() => getFlipApi()?.getCurrentPageIndex?.() ?? pageIndex, [pageIndex]);
+  const getPageCount = React.useCallback(() => getFlipApi()?.getPageCount?.() ?? pageCount, [pageCount]);
 
   React.useEffect(() => {
-    onNavigationReady?.({ next: goNext, prev: goPrev });
-  }, [onNavigationReady, goNext, goPrev]);
+    onNavigationReady?.({ next: goNext, prev: goPrev, goTo, getPageIndex, getPageCount });
+  }, [onNavigationReady, goNext, goPrev, goTo, getPageIndex, getPageCount]);
 
   React.useEffect(() => {
     onPageChange?.(pageIndex, pageCount);
