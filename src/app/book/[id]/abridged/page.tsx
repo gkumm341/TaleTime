@@ -13,6 +13,7 @@ import {
   getAbridgedBookmark,
   setAbridgedBookmark,
   type AbridgedBookmark,
+  type BookmarkSide,
 } from '@/lib/bookmarks';
 
 const TIME_OPTIONS = [
@@ -160,6 +161,50 @@ export default function AbridgedBookPage() {
   }>({ pointerId: null, startX: 0, startY: 0, dx: 0, dy: 0, moved: false });
   const [isDraggingBookmark, setIsDraggingBookmark] = useState(false);
 
+  const getVisibleSpread = useCallback((currentPageIndex: number) => {
+    // react-pageflip exposes a single current page index; in 2-page mode this typically alternates.
+    // Common behavior: even -> left page index, odd -> right page index.
+    if (!Number.isFinite(currentPageIndex) || currentPageIndex <= 0) {
+      // When the book is closed (cover), treat the visible spread as only the cover page.
+      // This ensures an active bookmark shows as a top marker (on the right), rather than a
+      // full bookmark overlay on the current spread.
+      const coverIndex = Math.max(0, currentPageIndex);
+      return { left: coverIndex, right: coverIndex };
+    }
+
+    if (currentPageIndex % 2 === 0) {
+      return { left: currentPageIndex, right: currentPageIndex + 1 };
+    }
+    return { left: currentPageIndex - 1, right: currentPageIndex };
+  }, []);
+
+  const visibleSpread = useMemo(() => getVisibleSpread(flipMeta.pageIndex), [flipMeta.pageIndex, getVisibleSpread]);
+  const bookmarkPageIndex = bookmark?.pageIndex ?? null;
+  const isBookmarkVisibleOnCurrentSpread =
+    typeof bookmarkPageIndex === 'number' &&
+    (bookmarkPageIndex === visibleSpread.left || bookmarkPageIndex === visibleSpread.right);
+
+  const bookmarkSide: BookmarkSide | null = useMemo(() => {
+    if (!bookmark) return null;
+    if (bookmark.side === 'left' || bookmark.side === 'right') return bookmark.side;
+    if (typeof bookmarkPageIndex !== 'number') return null;
+    if (bookmarkPageIndex === visibleSpread.left) return 'left';
+    if (bookmarkPageIndex === visibleSpread.right) return 'right';
+    return null;
+  }, [bookmark, bookmarkPageIndex, visibleSpread.left, visibleSpread.right]);
+
+  const shouldShowBigBookmark = Boolean(bookmark) && isBookmarkVisibleOnCurrentSpread;
+  const shouldShowDockedBookmark = !bookmark;
+  const shouldShowTopMarkers = Boolean(bookmark) && !isDraggingBookmark && !isBookmarkVisibleOnCurrentSpread;
+
+  const topMarkerSide: 'left' | 'right' | null = useMemo(() => {
+    if (!shouldShowTopMarkers) return null;
+    if (typeof bookmarkPageIndex !== 'number') return null;
+    if (bookmarkPageIndex < visibleSpread.left) return 'left';
+    if (bookmarkPageIndex > visibleSpread.right) return 'right';
+    return null;
+  }, [bookmarkPageIndex, shouldShowTopMarkers, visibleSpread.left, visibleSpread.right]);
+
   const applyBookmarkDragTransform = useCallback((dx: number, dy: number) => {
     const el = bookmarkDragRef.current;
     if (!el) return;
@@ -191,8 +236,17 @@ export default function AbridgedBookPage() {
 
       try {
         if (droppedOnBook) {
-          if (bookmark?.pageIndex === current) return;
-          const next = await setAbridgedBookmark(id, variant, current);
+          const rect = bookAreaRef.current?.getBoundingClientRect();
+          const midX = rect ? rect.left + rect.width / 2 : clientX;
+          const side: BookmarkSide = clientX < midX ? 'left' : 'right';
+          const spread = getVisibleSpread(current);
+          const targetPageIndex = side === 'left' ? spread.left : spread.right;
+
+          // Prevent bookmarking cover/invalid pages.
+          if (!Number.isFinite(targetPageIndex) || targetPageIndex < 1) return;
+
+          if (bookmark?.pageIndex === targetPageIndex) return;
+          const next = await setAbridgedBookmark(id, variant, targetPageIndex, side);
           setBookmark(next);
         } else {
           if (!bookmark) return;
@@ -203,7 +257,7 @@ export default function AbridgedBookPage() {
         // ignore
       }
     },
-    [bookmark, bookmarkHydrated, flipMeta.pageIndex, id, isPointInBookArea, variant]
+    [bookmark, bookmarkHydrated, flipMeta.pageIndex, getVisibleSpread, id, isPointInBookArea, variant]
   );
 
   const onBookmarkPointerDown = useCallback(
@@ -1108,31 +1162,76 @@ export default function AbridgedBookPage() {
           <div className="w-full flex justify-center">
             <div className="relative overflow-visible">
               {/* Draggable bookmark: drop ON the book to activate/update; drop OFF to deactivate. */}
-              <div
-                ref={bookmarkDragRef}
-                className={
-                  bookmark
-                    ? 'absolute -top-28 left-[44%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
-                    : 'absolute -top-16 -right-24 z-30 drop-shadow-xl opacity-80 scale-90'
-                }
-                style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
-                role="img"
-                aria-label={bookmark ? 'Bookmark (drag off to remove)' : 'Bookmark (drag onto book to add)'}
-                title={bookmark ? 'Drag off the book to remove bookmark' : 'Drag onto the book to add bookmark'}
-                onPointerDown={onBookmarkPointerDown}
-                onPointerMove={onBookmarkPointerMove}
-                onPointerUp={onBookmarkPointerUp}
-                onPointerCancel={onBookmarkPointerCancel}
-              >
-                <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
-                  <BookmarkPng
-                    alt="Bookmark"
-                    className={bookmark ? 'h-72 w-52 object-contain sm:h-[44rem] sm:w-[18rem]' : 'h-44 w-32 object-contain sm:h-56 sm:w-40'}
-                  />
+              {shouldShowBigBookmark && (
+                <div
+                  ref={bookmarkDragRef}
+                  className={
+                    bookmarkSide === 'right'
+                      ? 'absolute -top-28 left-[62%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[70%] sm:left-[650px]'
+                      : 'absolute -top-28 left-[44%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
+                  }
+                  style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
+                  role="img"
+                  aria-label="Bookmark (drag off to remove)"
+                  title="Drag off the book to remove bookmark"
+                  onPointerDown={onBookmarkPointerDown}
+                  onPointerMove={onBookmarkPointerMove}
+                  onPointerUp={onBookmarkPointerUp}
+                  onPointerCancel={onBookmarkPointerCancel}
+                >
+                  <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
+                    <BookmarkPng
+                      alt="Bookmark"
+                      className="h-72 w-52 object-contain sm:h-[44rem] sm:w-[18rem]"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div ref={bookAreaRef}>
+              {shouldShowDockedBookmark && (
+                <div
+                  ref={bookmarkDragRef}
+                  className="absolute -right-72 z-30 drop-shadow-xl opacity-80 scale-90"
+                  style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
+                  role="img"
+                  aria-label="Bookmark (drag onto book to add)"
+                  title="Drag onto the book to add bookmark"
+                  onPointerDown={onBookmarkPointerDown}
+                  onPointerMove={onBookmarkPointerMove}
+                  onPointerUp={onBookmarkPointerUp}
+                  onPointerCancel={onBookmarkPointerCancel}
+                >
+                  <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
+                    <BookmarkPng alt="Bookmark" className="h-44 w-32 object-contain sm:h-56 sm:w-40" />
+                  </div>
+                </div>
+              )}
+
+              <div ref={bookAreaRef} className="relative">
+                {/* Top markers: show only on non-bookmarked spreads */}
+                {shouldShowTopMarkers && (
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20">
+                    {topMarkerSide === 'left' && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src="/bookmarktopleft.png"
+                        alt=""
+                        className="absolute -top-2 left-[500px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-32 sm:w-32"
+                        draggable={false}
+                      />
+                    )}
+                    {topMarkerSide === 'right' && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src="/bookmarktop.png"
+                        alt=""
+                        className="absolute -top-2 left-[760px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-32 sm:w-40"
+                        draggable={false}
+                      />
+                    )}
+                  </div>
+                )}
+
                 <BookFlip
                   appName="TaleTime"
                   storyTitle={data.title}

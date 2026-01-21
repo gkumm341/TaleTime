@@ -2,9 +2,12 @@ import { del, get, getMany, set } from 'idb-keyval';
 
 export type AbridgedVariant = 'full' | 'bedtime';
 
+export type BookmarkSide = 'left' | 'right';
+
 export type AbridgedBookmark = {
   pageIndex: number;
   updatedAt: number;
+  side?: BookmarkSide;
 };
 
 const BOOKMARK_EVENT = 'taletime-bookmark-changed';
@@ -36,11 +39,13 @@ export async function getAbridgedBookmark(
 export async function setAbridgedBookmark(
   bookId: number,
   variant: AbridgedVariant,
-  pageIndex: number
+  pageIndex: number,
+  side?: BookmarkSide
 ): Promise<AbridgedBookmark> {
   const bookmark: AbridgedBookmark = {
     pageIndex,
     updatedAt: Date.now(),
+    ...(side ? { side } : {}),
   };
   await set(abridgedBookmarkKey(bookId, variant), bookmark);
   notifyBookmarkChanged(bookId);
