@@ -193,6 +193,7 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || '';
   const bookId = searchParams.get('bookId');
+  const idsParam = searchParams.get('ids');
   const sortBy = searchParams.get('sortBy') || 'popularity';
   const languages = searchParams.get('languages')?.split(',').filter(Boolean) || [];
   const durations = searchParams.get('durations')?.split(',').filter(Boolean) || [];
@@ -206,6 +207,73 @@ export async function GET(req: NextRequest) {
   try {
     const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
     const localIds = contentMode === 'local' ? await getLocalBookIdsWithText() : null;
+
+    // If ids are provided, return those books (batch fetch) in the same order.
+    if (idsParam) {
+      const rawIds = idsParam
+        .split(',')
+        .map((s) => parseInt(s.trim()))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      const uniqueIds = Array.from(new Set(rawIds)).slice(0, MAX_ITEMS_PER_PAGE);
+
+      if (uniqueIds.length === 0) {
+        return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
+      }
+
+      const allowedIds =
+        contentMode === 'local' && localIds ? uniqueIds.filter((id) => localIds.includes(id)) : uniqueIds;
+
+      if (allowedIds.length === 0) {
+        return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
+      }
+
+      const rows = await db
+        .select({
+          id: books.id,
+          title: books.title,
+          authors: books.authors,
+          subjects: books.subjects,
+          coverUrl: books.coverUrl,
+          txtUrl: books.txtUrl,
+          epubUrl: books.epubUrl,
+          downloadCount: books.downloadCount,
+          minutes: estimates.minutes,
+          words: estimates.words,
+          isCached: cacheManifest.epubBlobKey,
+        })
+        .from(books)
+        .leftJoin(estimates, eq(books.id, estimates.bookId))
+        .leftJoin(cacheManifest, eq(books.id, cacheManifest.bookId))
+        .where(inArray(books.id, allowedIds))
+        .limit(allowedIds.length);
+
+      const byId = new Map<number, (typeof rows)[number]>();
+      for (const r of rows) byId.set(r.id, r);
+
+      const ordered = allowedIds
+        .map((id) => byId.get(id))
+        .filter(Boolean)
+        .map((result) => ({
+          id: result!.id,
+          title: result!.title,
+          authors: result!.authors,
+          subjects: result!.subjects ? JSON.parse(result!.subjects) : [],
+          coverUrl: result!.coverUrl,
+          txtUrl: result!.txtUrl,
+          epubUrl: result!.epubUrl,
+          downloadCount: result!.downloadCount,
+          minutes: result!.minutes,
+          words: result!.words,
+          isCached: Boolean(result!.isCached),
+        }));
+
+      return NextResponse.json({
+        count: ordered.length,
+        next: null,
+        previous: null,
+        results: ordered,
+      });
+    }
 
     // If bookId is provided, return single book
     if (bookId) {

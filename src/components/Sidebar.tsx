@@ -1,6 +1,6 @@
 'use client';
 
-import { GlowStar } from "@/components/GlowStar";
+import Image from 'next/image';
 import { useState, ReactNode } from 'react';
 import Link from 'next/link';
 import {
@@ -75,9 +75,13 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
   <div className="absolute -top-4 -left-4 w-24 h-24 bg-[#FF8B7B]/15 rounded-full blur-2xl"></div>
 
   <div className="relative">
-    <GlowStar
-      size={52}
-      className="absolute -top-10 left-16 rotate-6 opacity-95 animate-bounce-subtle"
+    <Image
+      src="/hat.png"
+      alt=""
+      width={80}
+      height={80}
+      className="absolute -top-10 left-12 animate-bounce-subtle"
+      priority
     />
 
     <h2 className="tt-logo font-heading text-3xl mt-9">TaleTime</h2>

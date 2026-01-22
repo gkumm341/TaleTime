@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { Sidebar } from '@/components/Sidebar';
 import { exportPreferences, importPreferences } from '@/lib/preferences';
@@ -150,6 +150,7 @@ export default function SettingsPage() {
                         : theme === 'sepia'
                         ? 'bg-amber-50'
                         : 'bg-gray-900'
+                        
                     }`}
                   />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
@@ -160,92 +161,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Font Size */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Font Size: {preferences.fontSize}%
-            </label>
-            <input
-              type="range"
-              min="80"
-              max="150"
-              step="5"
-              value={preferences.fontSize}
-              onChange={(e) => updatePreferences({ fontSize: parseInt(e.target.value) })}
-              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
-            />
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-              <span>Small</span>
-              <span>Large</span>
-            </div>
-          </div>
-
-          {/* Font Family */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Font Family
-            </label>
-            <div className="flex gap-3">
-              {(['serif', 'sans-serif'] as const).map((family) => (
-                <button
-                  key={family}
-                  onClick={() => updatePreferences({ fontFamily: family })}
-                  className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                    preferences.fontFamily === family
-                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
-                  }`}
-                >
-                  <span
-                    className={`text-sm font-medium ${
-                      family === 'serif' ? 'font-serif' : 'font-sans'
-                    }`}
-                  >
-                    {family === 'serif' ? 'Serif (Traditional)' : 'Sans-serif (Modern)'}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Line Height */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Line Height: {preferences.lineHeight}
-            </label>
-            <input
-              type="range"
-              min="1.2"
-              max="2.0"
-              step="0.1"
-              value={preferences.lineHeight}
-              onChange={(e) => updatePreferences({ lineHeight: parseFloat(e.target.value) })}
-              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
-            />
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-              <span>Compact</span>
-              <span>Spacious</span>
-            </div>
-          </div>
-
-          {/* Reading Speed */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Reading Speed (Words Per Minute)
-            </label>
-            <input
-              type="number"
-              min="80"
-              max="300"
-              step="10"
-              value={preferences.defaultWpm}
-              onChange={(e) => updatePreferences({ defaultWpm: parseInt(e.target.value) })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Average adult reading speed is 200-250 WPM. Children typically read 80-160 WPM.
-            </p>
-          </div>
         </div>
 
         {/* App Behavior */}
@@ -337,15 +252,26 @@ function StorageInfoCard() {
     percentUsed: number;
   } | null>(null);
 
-  useState(() => {
+  useEffect(() => {
+    let cancelled = false;
+
     const loadInfo = async () => {
-      const info = await getStorageInfo();
-      const estimate = await getBrowserStorageEstimate();
-      setStorageInfo({ totalBooks: info.totalBooks, totalSizeMB: info.totalSizeMB });
-      setBrowserEstimate(estimate);
+      try {
+        const info = await getStorageInfo();
+        const estimate = await getBrowserStorageEstimate();
+        if (cancelled) return;
+        setStorageInfo({ totalBooks: info.totalBooks, totalSizeMB: info.totalSizeMB });
+        setBrowserEstimate(estimate);
+      } catch {
+        // ignore
+      }
     };
-    loadInfo();
-  });
+
+    void loadInfo();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-6">

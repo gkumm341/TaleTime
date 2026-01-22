@@ -7,6 +7,7 @@ import { preloadEpub, prefetchBookMetadata } from '@/lib/epub-preloader';
 import type { TimeOptionId } from './HomeContent';
 import { getAbridgedBookmarkVariantMap, getAnyAbridgedBookmarkMap, getBookmarkEventName } from '@/lib/bookmarks';
 import BookmarkPng from '@/components/BookmarkPng';
+import FavoriteButton from '@/components/FavoriteButton';
 
 const AUTHOR_OVERRIDES_KEY = 'taletime-author-overrides-v1';
 
@@ -54,10 +55,49 @@ export function BookGrid({
   const isLocalContent = process.env.NEXT_PUBLIC_CONTENT_MODE === 'local';
   const [books, setBooks] = useState<Book[]>(initialBooks);
   const [loading, setLoading] = useState<Set<number>>(new Set());
+  const [ratingsById, setRatingsById] = useState<Record<number, number>>({});
 
   useEffect(() => {
     setBooks(initialBooks);
   }, [initialBooks]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let cancelled = false;
+    const ids = books.map((b) => b.id).filter((id) => Number.isFinite(id));
+    if (ids.length === 0) {
+      setRatingsById({});
+      return;
+    }
+
+    const loadRatings = async () => {
+      try {
+        const res = await fetch(`/api/ratings?bookIds=${ids.join(',')}`);
+        if (!res.ok) {
+          if (!cancelled) setRatingsById({});
+          return;
+        }
+        const json = (await res.json()) as { ratings?: Record<string, number> };
+        const next: Record<number, number> = {};
+        for (const [k, v] of Object.entries(json.ratings ?? {})) {
+          const bookId = Number(k);
+          if (!Number.isFinite(bookId)) continue;
+          if (typeof v !== 'number') continue;
+          if (v < 1 || v > 5) continue;
+          next[bookId] = v;
+        }
+        if (!cancelled) setRatingsById(next);
+      } catch {
+        if (!cancelled) setRatingsById({});
+      }
+    };
+
+    void loadRatings();
+    return () => {
+      cancelled = true;
+    };
+  }, [books]);
 
   const [authorOverrides, setAuthorOverrides] = useState<Record<number, string>>({});
   const [editingAuthorForId, setEditingAuthorForId] = useState<number | null>(null);
@@ -265,6 +305,23 @@ export function BookGrid({
                 }}
                 priority={false}
               />
+
+              <div
+                className="absolute bottom-2 right-2 z-20 rounded-full bg-black/45 backdrop-blur-sm ring-1 ring-white/20"
+                onClick={(e) => {
+                  // Ensure the overlay doesn't trigger Link navigation
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <FavoriteButton bookId={book.id} size="sm" />
+              </div>
+
+              {typeof ratingsById[book.id] === 'number' && ratingsById[book.id] >= 1 && ratingsById[book.id] <= 5 && (
+                <div className="pointer-events-none absolute top-2 left-2 rounded-full bg-yellow-100/90 text-yellow-800 text-[11px] font-extrabold px-2 py-1 shadow-md ring-1 ring-yellow-300/50">
+                  {'★'.repeat(ratingsById[book.id])}
+                </div>
+              )}
 
               {hasBookmarkById[book.id] && (
                 <div className="pointer-events-none absolute -top-2 -right-2 h-14 w-14 drop-shadow-md">

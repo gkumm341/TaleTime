@@ -1,4 +1,4 @@
-import { del, get, getMany, set } from 'idb-keyval';
+import { del, get, getMany, keys, set } from 'idb-keyval';
 
 export type AbridgedVariant = 'full' | 'bedtime';
 
@@ -8,6 +8,12 @@ export type AbridgedBookmark = {
   pageIndex: number;
   updatedAt: number;
   side?: BookmarkSide;
+};
+
+export type AbridgedBookmarkEntry = {
+  bookId: number;
+  variant: AbridgedVariant;
+  bookmark: AbridgedBookmark;
 };
 
 const BOOKMARK_EVENT = 'taletime-bookmark-changed';
@@ -34,6 +40,52 @@ export async function getAbridgedBookmark(
   if (typeof value !== 'object') return null;
   if (typeof (value as AbridgedBookmark).pageIndex !== 'number') return null;
   return value as AbridgedBookmark;
+}
+
+export async function listAbridgedBookmarks(): Promise<AbridgedBookmarkEntry[]> {
+  if (!isBrowser()) return [];
+
+  let allKeys: unknown[] = [];
+  try {
+    allKeys = (await keys()) as unknown[];
+  } catch {
+    return [];
+  }
+
+  const prefix = `${BOOKMARK_KEY_PREFIX}:`;
+  const bookmarkKeys = allKeys
+    .filter((k): k is string => typeof k === 'string' && k.startsWith(prefix))
+    .map((k) => k as string);
+
+  if (bookmarkKeys.length === 0) return [];
+
+  let values: Array<AbridgedBookmark | null | undefined>;
+  try {
+    values = (await getMany(bookmarkKeys)) as Array<AbridgedBookmark | null | undefined>;
+  } catch {
+    values = await Promise.all(bookmarkKeys.map((k) => get<AbridgedBookmark | null>(k)));
+  }
+
+  const out: AbridgedBookmarkEntry[] = [];
+  for (let i = 0; i < bookmarkKeys.length; i++) {
+    const key = bookmarkKeys[i];
+    const value = values[i];
+    if (!value) continue;
+    if (typeof value !== 'object') continue;
+    if (typeof (value as AbridgedBookmark).pageIndex !== 'number') continue;
+
+    // Key format: taletime-bookmark:v1:<bookId>:<variant>
+    const parts = key.split(':');
+    const bookIdRaw = parts[2];
+    const variantRaw = parts[3];
+    const bookId = parseInt(bookIdRaw);
+    if (!Number.isFinite(bookId) || bookId <= 0) continue;
+    if (variantRaw !== 'full' && variantRaw !== 'bedtime') continue;
+
+    out.push({ bookId, variant: variantRaw, bookmark: value as AbridgedBookmark });
+  }
+
+  return out;
 }
 
 export async function setAbridgedBookmark(

@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const PURCHASE_SOURCES = ['web', 'ios_iap', 'android_iap'] as const;
 export type PurchaseSource = (typeof PURCHASE_SOURCES)[number];
@@ -64,6 +64,20 @@ export const readingHistory = sqliteTable('reading_history', {
   progressPercent: integer('progress_percent').default(0), // 0-100
   totalReadingTime: integer('total_reading_time').default(0), // seconds
 });
+
+export const bookRatings = sqliteTable(
+  'book_ratings',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    bookId: integer('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+    userId: text('user_id').notNull().default('default'), // For future multi-user support
+    rating: integer('rating').notNull(), // 1-5
+    updatedAt: integer('updated_at').notNull(), // Unix timestamp (ms)
+  },
+  (t) => ({
+    userBookUnique: uniqueIndex('book_ratings_user_book_unique').on(t.userId, t.bookId),
+  })
+);
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),

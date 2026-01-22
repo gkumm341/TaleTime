@@ -144,7 +144,16 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
+    const clearAll = searchParams.get('clearAll') === 'true';
     const bookId = searchParams.get('bookId');
+
+    if (clearAll) {
+      await db.delete(readingHistory).where(eq(readingHistory.userId, USER_ID));
+      return NextResponse.json(
+        { success: true, message: 'Cleared all history' },
+        { status: 200 }
+      );
+    }
 
     if (!bookId) {
       return NextResponse.json(
@@ -156,7 +165,7 @@ export async function DELETE(req: NextRequest) {
     await db
       .delete(readingHistory)
       .where(
-        eq(readingHistory.bookId, parseInt(bookId))
+        and(eq(readingHistory.bookId, parseInt(bookId)), eq(readingHistory.userId, USER_ID))
       );
 
     return NextResponse.json(

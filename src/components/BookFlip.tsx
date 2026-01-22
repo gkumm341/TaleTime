@@ -386,7 +386,7 @@ const Page = React.forwardRef<HTMLDivElement, { children: React.ReactNode }>(
     return (
       <div
         ref={ref}
-        className="relative h-full w-full bg-white dark:bg-gray-900 rounded-2xl shadow-sm overflow-hidden border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10"
+        className="relative h-full w-full bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10"
         style={{
           backgroundImage:
             "radial-gradient(rgba(62,62,62,0.04) 1px, transparent 1px)",
@@ -521,6 +521,21 @@ export function renderTextWithInlineImages(
     return text;
   }
 
+  const extractImageFileName = (rawToken: string): string | null => {
+    const token = rawToken.trim();
+    // 1) Direct filename anywhere in the token (supports bare: 1.png, path: illustrations/1.png)
+    const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg))/i);
+    if (direct?.[1]) {
+      return direct[1].split(/[/\\]/).pop() ?? null;
+    }
+    // 2) Jinja-style helper call: illustration("1.png") / image('1.png') etc
+    const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg))['"]/i);
+    if (quoted?.[1]) {
+      return quoted[1].split(/[/\\]/).pop() ?? null;
+    }
+    return null;
+  };
+
   // Match {{anything}} pattern - use [^{}]+ to avoid matching nested braces
   const regex = /\{\{([^{}]+)\}\}/g;
   const parts: React.ReactNode[] = [];
@@ -541,7 +556,8 @@ export function renderTextWithInlineImages(
     }
 
     // Add the image
-    const imageName = match[1].trim();
+    const placeholderExpr = match[1].trim();
+    const imageName = extractImageFileName(placeholderExpr) ?? placeholderExpr;
     const imageUrl = inlineImages[imageName];
     if (imageUrl) {
       parts.push(
@@ -584,7 +600,13 @@ export function renderTextWithInlineImages(
 function getSinglePlaceholderName(text: string): string | null {
   const trimmed = text.trim();
   const m = trimmed.match(/^\{\{([^{}]+)\}\}$/);
-  return m ? m[1].trim() : null;
+  if (!m) return null;
+  const token = m[1].trim();
+  const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg))/i);
+  if (direct?.[1]) return direct[1].split(/[/\\]/).pop() ?? token;
+  const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg))['"]/i);
+  if (quoted?.[1]) return quoted[1].split(/[/\\]/).pop() ?? token;
+  return token;
 }
 
 function StoryPage({
@@ -609,7 +631,7 @@ function StoryPage({
           <img
             src={fullPageImageUrl}
             alt="Story illustration"
-            className="w-full h-full object-contain rounded-xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 bg-[#F5E9DA]/30 dark:bg-gray-800"
+            className="w-auto h-full rounded-xl "
             loading="lazy"
           />
         </div>
@@ -720,7 +742,7 @@ export default function BookFlip({
   }, [onPageChange, pageCount, pageIndex]);
 
   return (
-    <div className="w-full min-h-[80vh] flex flex-col items-center justify-center gap-4">
+    <div className="py-4">
       {showHeader ? (
         <div className="w-full max-w-5xl flex items-center justify-between px-4">
           <div className="flex flex-col">
@@ -782,6 +804,7 @@ export default function BookFlip({
           ref={bookRef as unknown as React.RefObject<unknown>}
           onFlip={(e: unknown) => setPageIndex(isFlipEvent(e) ? e.data : 0)}
         >
+          
           <Page>
             <CoverPage
               appName={appName}
@@ -801,8 +824,9 @@ export default function BookFlip({
           ))}
 
           {/* End: extra blank page */}
+          
           <Page key="end-blank">
-            <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-[#3E3E3E]/70 dark:text-gray-400">
+            <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-[#6ba8a9]  dark:text-gray-400">
               THE END!</div>
             <div className="h-full w-full" />
 
@@ -821,7 +845,6 @@ export default function BookFlip({
           </Page>
         </HTMLFlipBook>
       </div>
-
 
     </div>
   );

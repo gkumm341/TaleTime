@@ -7,28 +7,63 @@ import { Trash2 } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 
 interface FavoriteBook {
-  id: number;
-  bookId: number;
-  addedAt: string;
-  notes?: string;
-  book: {
-    id: number;
-    title: string;
-    authors: string;
-    coverUrl?: string;
-    epubUrl?: string;
-    estimatedMinutes?: number;
-  };
+  favoriteId: number;
+  id: number; // bookId
+  title: string;
+  authors: string;
+  coverUrl?: string;
+  epubUrl?: string;
+  minutes?: number;
+  words?: number;
+  addedAt: number;
+  notes?: string | null;
 }
 
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<FavoriteBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recent' | 'title'>('recent');
+  const [ratingsById, setRatingsById] = useState<Record<number, number>>({});
 
   useEffect(() => {
     loadFavorites();
   }, [sortBy]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ids = favorites.map((f) => f.id).filter((id) => Number.isFinite(id));
+    if (ids.length === 0) {
+      setRatingsById({});
+      return;
+    }
+
+    const loadRatings = async () => {
+      try {
+        const res = await fetch(`/api/ratings?bookIds=${ids.join(',')}`);
+        if (!res.ok) {
+          if (!cancelled) setRatingsById({});
+          return;
+        }
+        const json = (await res.json()) as { ratings?: Record<string, number> };
+        const next: Record<number, number> = {};
+        for (const [k, v] of Object.entries(json.ratings ?? {})) {
+          const bookId = Number(k);
+          if (!Number.isFinite(bookId)) continue;
+          if (typeof v !== 'number') continue;
+          if (v < 1 || v > 5) continue;
+          next[bookId] = v;
+        }
+        if (!cancelled) setRatingsById(next);
+      } catch {
+        if (!cancelled) setRatingsById({});
+      }
+    };
+
+    void loadRatings();
+    return () => {
+      cancelled = true;
+    };
+  }, [favorites]);
 
   async function loadFavorites() {
     try {
@@ -36,7 +71,7 @@ export default function FavoritesPage() {
       if (!response.ok) throw new Error('Failed to load favorites');
       
       const data = await response.json();
-      setFavorites(data.favorites);
+      setFavorites(data.results ?? []);
     } catch (error) {
       console.error('Failed to load favorites:', error);
     } finally {
@@ -44,16 +79,12 @@ export default function FavoritesPage() {
     }
   }
 
-  async function removeFavorite(favoriteId: number) {
+  async function removeFavorite(bookId: number) {
     try {
-      const response = await fetch('/api/favorites', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ favoriteId }),
-      });
+      const response = await fetch(`/api/favorites?bookId=${bookId}`, { method: 'DELETE' });
 
       if (response.ok) {
-        setFavorites(prev => prev.filter(f => f.id !== favoriteId));
+        setFavorites(prev => prev.filter(f => f.id !== bookId));
       }
     } catch (error) {
       console.error('Failed to remove favorite:', error);
@@ -61,7 +92,8 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="min-h-screen relative bg-white dark:bg-gray-950">
+    <div className="min-h-screen relative bg-white dark:bg-gray-900 transition-colors duration-500">
+      <Image src="/flowers_background.png" alt="Favorites Background" layout="fill" objectFit="cover" quality={75} />
       {/* Responsive Sidebar Navigation */}
       <Sidebar activePage="favorites" />
 
@@ -81,9 +113,8 @@ export default function FavoritesPage() {
           {/* Header */}
           <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom duration-700">
             <div className="flex items-center gap-3">
-              <span className="text-4xl animate-pulse">❤️</span>
               <h1 className="text-4xl font-bold text-[#6BA8A9]">
-                Your Favorites
+                Your Favorite Books
               </h1>
             </div>
             
@@ -123,23 +154,32 @@ export default function FavoritesPage() {
             <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {favorites.map((favorite, index) => (
                 <div
-                  key={favorite.id}
+                  key={favorite.favoriteId}
                   className="group rounded-2xl border-2 border-pink-200/50 dark:border-pink-900/50 overflow-hidden hover:shadow-2xl hover:shadow-pink-300/50 dark:hover:shadow-pink-900/50 transition-all duration-500 bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 hover:border-pink-400 dark:hover:border-pink-600 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <Link href={`/book/${favorite.bookId}`}>
-                    {favorite.book.coverUrl && (
-                      <div className="relative w-full h-32 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
-                        <Image
-                          src={favorite.book.coverUrl}
-                          alt={favorite.book.title}
-                          fill
-                          className="object-cover group-hover:scale-110 group-hover:rotate-2 transition-all duration-700"
-                          sizes="20vw"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-pink-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      </div>
-                    )}
+                  <Link href={`/book/${favorite.id}/abridged?variant=full`}>
+                    <div className="relative w-full h-96 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
+                      <Image
+                        src={`/api/local-image?title=${encodeURIComponent(favorite.title)}`}
+                        alt={favorite.title}
+                        fill
+                        className="object-cover group-hover:scale-110 group-hover:rotate-2 transition-all duration-700"
+                        sizes="20vw"
+                        unoptimized
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+
+                      {typeof ratingsById[favorite.id] === 'number' && ratingsById[favorite.id] >= 1 && ratingsById[favorite.id] <= 5 && (
+                        <div className="pointer-events-none absolute top-2 left-2 rounded-full bg-yellow-100/90 text-yellow-800 text-[11px] font-extrabold px-2 py-1 shadow-md ring-1 ring-yellow-300/50">
+                          {'★'.repeat(ratingsById[favorite.id])}
+                        </div>
+                      )}
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-pink-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    </div>
                   </Link>
                   
                   <div className="p-2 space-y-1 relative">
@@ -154,23 +194,17 @@ export default function FavoritesPage() {
                       <Trash2 className="w-3 h-3" />
                     </button>
                     
-                    <Link href={`/book/${favorite.bookId}`}>
+                    <Link href={`/book/${favorite.id}/abridged?variant=full`}>
                       <h3 className="font-bold text-xs line-clamp-2 group-hover:bg-gradient-to-r group-hover:from-pink-600 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all relative z-10 pr-6">
-                        {favorite.book.title}
+                        {favorite.title}
                       </h3>
                     </Link>
                     
                     <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 font-medium relative z-10">
-                      <span className="text-xs lg:text-base">✍️</span> {favorite.book.authors}
+                      <span className="text-xs lg:text-base">✍️</span> {favorite.authors}
                     </p>
                     
-                    <div className="hidden lg:flex items-center gap-2 text-xs pt-2 relative z-10">
-                      {favorite.book.estimatedMinutes && (
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-100 to-pink-100 dark:from-rose-900 dark:to-pink-900 text-rose-800 dark:text-rose-200 text-xs font-semibold shadow-sm border border-rose-200 dark:border-rose-800">
-                          📖 {favorite.book.estimatedMinutes} min
-                        </span>
-                      )}
-                    </div>
+              
                     
                     <p className="hidden lg:block text-xs text-gray-500 dark:text-gray-400 pt-2 relative z-10">
                       Added {new Date(favorite.addedAt).toLocaleDateString()}

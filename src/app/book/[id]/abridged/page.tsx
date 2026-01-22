@@ -599,7 +599,7 @@ export default function AbridgedBookPage() {
       // Remove image placeholders for text measurement
       const textOnly = candidate.replace(imageRegex, '');
       textNode.textContent = textOnly;
-      
+
       // scrollHeight/clientHeight forces layout; add a small fudge for rounding.
       // Subtract image height from available space
       const availableHeight = scrollBox.clientHeight - extraImageHeight;
@@ -695,7 +695,7 @@ export default function AbridgedBookPage() {
             const candidateCut = prev + 1;
             const candidateRemainder = remaining.slice(candidateCut).trim();
             if (!candidateRemainder) break;
-            
+
             // Don't break inside a placeholder
             const candidateBefore = remaining.slice(0, candidateCut);
             const candOpenBraces = (candidateBefore.match(/\{\{/g) || []).length;
@@ -705,7 +705,7 @@ export default function AbridgedBookPage() {
               prev = remaining.lastIndexOf(' ', prev - 1);
               continue;
             }
-            
+
             if (candidateRemainder.length >= minRemainderChars || wordCount(candidateRemainder) >= minRemainderWords) {
               cut = candidateCut;
               remainder = candidateRemainder;
@@ -816,13 +816,26 @@ export default function AbridgedBookPage() {
     }
     flush();
 
-    // Build inline image map from all {{image.png}} placeholders in the content
+    // Build inline image map from all {{...}} placeholders in the content.
+    // Supports:
+    // - {{1.png}}
+    // - {{ illustration("1.png") }} / {{ image('1.png') }}
     const imageMap: InlineImageMap = {};
     const imageExtractRegex = /\{\{([^{}]+)\}\}/g;
     let imageMatch: RegExpExecArray | null;
-    
+
+    const extractImageFileName = (rawToken: string): string | null => {
+      const token = rawToken.trim();
+      const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg))/i);
+      if (direct?.[1]) return direct[1].split(/[/\\]/).pop() ?? null;
+      const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg))['"]/i);
+      if (quoted?.[1]) return quoted[1].split(/[/\\]/).pop() ?? null;
+      return null;
+    };
+
     while ((imageMatch = imageExtractRegex.exec(raw)) !== null) {
-      const imageName = imageMatch[1].trim();
+      const token = imageMatch[1].trim();
+      const imageName = extractImageFileName(token);
       if (imageName && !imageMap[imageName] && data?.title) {
         imageMap[imageName] = `/api/illustration?title=${encodeURIComponent(data.title)}&image=${encodeURIComponent(imageName)}`;
       }
@@ -875,7 +888,7 @@ export default function AbridgedBookPage() {
       <div className="sticky top-0 z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10">
         <div className="max-w-[1500px] mx-auto py-3">
           <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3">
-            <Button onClick={() => router.push('/')}>  
+            <Button onClick={() => router.push('/')}>
               <Home className="w-4 h-4" />
             </Button>
 
@@ -1167,7 +1180,7 @@ export default function AbridgedBookPage() {
                   ref={bookmarkDragRef}
                   className={
                     bookmarkSide === 'right'
-                      ? 'absolute -top-28 left-[62%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[70%] sm:left-[650px]'
+                      ? 'absolute -top-28 left-[54%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
                       : 'absolute -top-28 left-[44%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
                   }
                   style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
@@ -1182,7 +1195,7 @@ export default function AbridgedBookPage() {
                   <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
                     <BookmarkPng
                       alt="Bookmark"
-                      className="h-72 w-52 object-contain sm:h-[44rem] sm:w-[18rem]"
+                      className="h-72 w-52 object-contain sm:h-[44rem] sm:w-[17rem]"
                     />
                   </div>
                 </div>
@@ -1202,7 +1215,7 @@ export default function AbridgedBookPage() {
                   onPointerCancel={onBookmarkPointerCancel}
                 >
                   <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
-                    <BookmarkPng alt="Bookmark" className="h-44 w-32 object-contain sm:h-56 sm:w-40" />
+                    <BookmarkPng alt="Bookmark" className="h-44 w-32 object-contain sm:h-56 sm:w-40 " />
                   </div>
                 </div>
               )}
@@ -1216,7 +1229,7 @@ export default function AbridgedBookPage() {
                       <img
                         src="/bookmarktopleft.png"
                         alt=""
-                        className="absolute -top-2 left-[500px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-32 sm:w-32"
+                        className="absolute -top-2 left-[500px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-[151px] sm:w-40"
                         draggable={false}
                       />
                     )}
@@ -1225,7 +1238,7 @@ export default function AbridgedBookPage() {
                       <img
                         src="/bookmarktop.png"
                         alt=""
-                        className="absolute -top-2 left-[760px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-32 sm:w-40"
+                        className="absolute -top-2 left-[760px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-[150px] sm:w-40"
                         draggable={false}
                       />
                     )}

@@ -33,6 +33,21 @@ function guessContentType(filename: string) {
   return 'application/octet-stream';
 }
 
+function findIllustrationsFolder(bookFolderPath: string): string | null {
+  try {
+    const entries = readdirSync(bookFolderPath, { withFileTypes: true });
+    const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    const candidates = ['illustrations', 'illustration', 'images', 'imgs'];
+    for (const d of dirs) {
+      const lower = d.toLowerCase();
+      if (candidates.includes(lower)) return d;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 /**
  * GET /api/illustration?title=BookTitle&image=1.png
  * Serves an illustration from the book's Illustrations folder.
@@ -83,8 +98,10 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Check Illustrations folder
-  const illustrationsPath = join(BY_TITLE_DIR, matchedFolderName, 'Illustrations');
+  // Check illustrations folder (case-insensitive, plug-and-play)
+  const bookFolderPath = join(BY_TITLE_DIR, matchedFolderName);
+  const illustrationsFolderName = findIllustrationsFolder(bookFolderPath) ?? 'Illustrations';
+  const illustrationsPath = join(bookFolderPath, illustrationsFolderName);
   const imagePath = join(illustrationsPath, safeImage);
 
   // Helper to find and serve an image file

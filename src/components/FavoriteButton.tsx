@@ -105,11 +105,9 @@ export default function FavoriteButton({
         inline-flex items-center justify-center gap-2
         rounded-full
         transition-all duration-200
-        ${
-          isFavorited
-            ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
-            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-        }
+        bg-transparent
+        ${isFavorited ? 'text-red-600 dark:text-red-400' : 'text-white dark:text-gray-400'}
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent
         ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 active:scale-95'}
       `}
       title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
@@ -117,11 +115,7 @@ export default function FavoriteButton({
     >
       <Heart
         size={iconSizes[size]}
-        className={`
-          transition-transform duration-200
-          ${isFavorited ? 'fill-current' : ''}
-          ${isLoading ? 'animate-pulse' : ''}
-        `}
+        className={`transition-transform duration-200 ${isFavorited ? 'fill-current' : 'fill-none'} ${isLoading ? 'animate-pulse' : ''}`}
       />
       {showLabel && (
         <span className="text-sm font-medium">
