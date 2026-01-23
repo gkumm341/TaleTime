@@ -5,7 +5,7 @@ export type StoryBlock =
     }
   | {
       type: 'image';
-      /** Relative filename like "1.png" that will be resolved by the illustration API. */
+      /** Filename like "image1.png" that will be resolved by the illustration API. */
       src: string;
       alt?: string;
     }
@@ -37,6 +37,14 @@ function normalizeWhitespace(text: string): string {
   return text.replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ');
 }
 
+function normalizeImageSrc(src: string): string {
+  // Accept full paths but normalize to a simple filename.
+  // This keeps the format cross-platform and compatible with /api/illustration.
+  const trimmed = src.trim();
+  const parts = trimmed.split(/[/\\]+/g).filter(Boolean);
+  return (parts.at(-1) ?? trimmed).trim();
+}
+
 function ensureString(v: unknown): string | null {
   return typeof v === 'string' ? v : null;
 }
@@ -61,7 +69,7 @@ function coerceBlocks(input: unknown): StoryBlock[] | null {
       const src = ensureString(item.src);
       if (!src) return null;
       const alt = ensureString(item.alt) ?? undefined;
-      blocks.push({ type: 'image', src: src.trim(), ...(alt ? { alt } : {}) });
+      blocks.push({ type: 'image', src: normalizeImageSrc(src), ...(alt ? { alt } : {}) });
       continue;
     }
 
@@ -137,7 +145,7 @@ export function storyBlocksToLegacyText(blocks: StoryBlock[]): string {
     }
 
     if (b.type === 'image') {
-      const src = b.src.trim();
+      const src = normalizeImageSrc(b.src);
       if (src) out.push(`{{${src}}}`);
       continue;
     }

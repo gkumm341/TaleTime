@@ -48,7 +48,7 @@ Supported block types:
 
 Notes:
 
-- `image.src` is usually a filename like `1.png` stored next to the story file.
+- `image.src` should be a filename like `image1.png` (avoid absolute paths like `C:\\...`). The app resolves it from the book’s `Illustrations/` folder via `/api/illustration`.
 - The reader currently converts JSON blocks into the existing placeholder format (e.g. `{{1.png}}`) internally, so it stays compatible with the current rendering and image endpoints.
 
 Preferred (drop files into folders by book title):

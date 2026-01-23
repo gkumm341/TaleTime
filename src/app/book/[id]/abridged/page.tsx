@@ -134,6 +134,11 @@ export default function AbridgedBookPage() {
 
   const selectedTimeOptionId: TimeOptionId = variant;
 
+  const showDebugInfo = useMemo(() => {
+    // Always show in dev; allow opt-in via ?debug=1 for other envs.
+    return process.env.NODE_ENV !== 'production' || searchParams.get('debug') === '1';
+  }, [searchParams]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AbridgedResponse | null>(null);
@@ -1018,10 +1023,17 @@ export default function AbridgedBookPage() {
               </button>
             </div>
 
-            <div className="min-w-0 flex items-center justify-center">
+            <div className="min-w-0 flex flex-col items-center justify-center">
               <div className="min-w-0 text-lg font-semibold text-[#5f9798] dark:text-white truncate">
                 {data?.title ?? 'Preparing story…'}
               </div>
+              {showDebugInfo && data && (
+                <div className="min-w-0 text-[11px] text-[#3E3E3E]/60 dark:text-gray-300/60 truncate">
+                  {data.mode}
+                  {data.sourceFormat ? ` • ${data.sourceFormat}` : ''}
+                  {Array.isArray(data.blocks) ? ` • ${data.blocks.length} blocks` : ''}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 overflow-x-auto whitespace-nowrap">
