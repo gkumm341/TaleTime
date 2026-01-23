@@ -72,8 +72,12 @@ async function getLocalBookIdsWithText(): Promise<number[]> {
 
   const checks = await Promise.all(
     candidates.map(async (c) => {
-      const hasFull = await exists(path.join(c.dir, 'full.txt'));
-      const hasBedtime = await exists(path.join(c.dir, 'bedtime.txt'));
+      const hasFull =
+        (await exists(path.join(c.dir, 'full.txt'))) ||
+        (await exists(path.join(c.dir, 'full.story.json')));
+      const hasBedtime =
+        (await exists(path.join(c.dir, 'bedtime.txt'))) ||
+        (await exists(path.join(c.dir, 'bedtime.story.json')));
       return { id: c.id, ok: hasFull || hasBedtime };
     })
   );
@@ -97,7 +101,16 @@ async function getLocalBookIdsWithText(): Promise<number[]> {
     byTitleFolders.map(async (folder) => {
       const fullPath = path.join(byTitleRoot, folder, 'full.txt');
       const bedtimePath = path.join(byTitleRoot, folder, 'bedtime.txt');
-      return { folder, ok: (await exists(fullPath)) || (await exists(bedtimePath)) };
+      const fullJsonPath = path.join(byTitleRoot, folder, 'full.story.json');
+      const bedtimeJsonPath = path.join(byTitleRoot, folder, 'bedtime.story.json');
+      return {
+        folder,
+        ok:
+          (await exists(fullPath)) ||
+          (await exists(bedtimePath)) ||
+          (await exists(fullJsonPath)) ||
+          (await exists(bedtimeJsonPath)),
+      };
     })
   );
 

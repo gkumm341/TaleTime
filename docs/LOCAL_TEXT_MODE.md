@@ -14,10 +14,52 @@ In `.env.local`:
 
 Place text files under the directory configured by `LOCAL_TEXT_DIR`.
 
+## Structured story JSON (recommended)
+
+In addition to plain `.txt`, TaleTime supports a structured “blocks” format:
+
+- `.data/texts/by-title/<Title>/bedtime.story.json`
+- `.data/texts/by-title/<Title>/full.story.json`
+
+This format removes ambiguity around paragraphs vs. hard line-wrapping and makes it easy to add images, headings, and scene breaks.
+
+Example:
+
+```json
+{
+  "version": 1,
+  "title": "Alice’s Adventures in Wonderland",
+  "author": "Lewis Carroll",
+  "blocks": [
+    { "type": "paragraph", "text": "One warm afternoon…" },
+    { "type": "image", "src": "1.png", "alt": "Alice by the river" },
+    { "type": "sceneBreak" },
+    { "type": "heading", "text": "CHAPTER I", "level": 2 }
+  ]
+}
+```
+
+Supported block types:
+
+- `paragraph`: `{ "type": "paragraph", "text": "..." }`
+- `image`: `{ "type": "image", "src": "1.png", "alt": "..." }`
+- `sceneBreak`: `{ "type": "sceneBreak" }`
+- `heading`: `{ "type": "heading", "text": "...", "level": 1|2|3 }`
+
+Notes:
+
+- `image.src` is usually a filename like `1.png` stored next to the story file.
+- The reader currently converts JSON blocks into the existing placeholder format (e.g. `{{1.png}}`) internally, so it stays compatible with the current rendering and image endpoints.
+
 Preferred (drop files into folders by book title):
 
 - `.data/texts/by-title/<Title>/full.txt`
 - `.data/texts/by-title/<Title>/bedtime.txt`
+
+You can also use the structured JSON variants in the same folder:
+
+- `.data/texts/by-title/<Title>/full.story.json`
+- `.data/texts/by-title/<Title>/bedtime.story.json`
 
 Default:
 

@@ -39,12 +39,20 @@ export async function syncLocalByTitleToDb(): Promise<{ inserted: number; skippe
   const entries = await fs.readdir(byTitleDir, { withFileTypes: true });
   const titleFolders = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
-  // Only consider folders that have at least full.txt or bedtime.txt
+  // Only consider folders that have at least full/bedtime in either .txt or .story.json
   const candidates: Array<{ title: string; key: string }> = [];
   for (const folderName of titleFolders) {
     const fullPath = path.join(byTitleDir, folderName, 'full.txt');
     const bedtimePath = path.join(byTitleDir, folderName, 'bedtime.txt');
-    if (!(await fileExists(fullPath)) && !(await fileExists(bedtimePath))) continue;
+    const fullJsonPath = path.join(byTitleDir, folderName, 'full.story.json');
+    const bedtimeJsonPath = path.join(byTitleDir, folderName, 'bedtime.story.json');
+    if (
+      !(await fileExists(fullPath)) &&
+      !(await fileExists(bedtimePath)) &&
+      !(await fileExists(fullJsonPath)) &&
+      !(await fileExists(bedtimeJsonPath))
+    )
+      continue;
 
     const title = folderName.trim();
     if (!title) continue;

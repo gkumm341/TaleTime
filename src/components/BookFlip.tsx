@@ -45,6 +45,8 @@ export type BookFlipHandle = {
   getPageCount: () => number;
 };
 
+const MAX_TEXT_LINES_PER_PAGE = 22;
+
 type FlipBookApi = {
   flipNext: () => void;
   flipPrev: () => void;
@@ -386,13 +388,14 @@ const Page = React.forwardRef<HTMLDivElement, { children: React.ReactNode }>(
     return (
       <div
         ref={ref}
-        className="relative h-full w-full bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10"
-        style={{
-          backgroundImage:
-            "radial-gradient(rgba(62,62,62,0.04) 1px, transparent 1px)",
-          backgroundSize: "18px 18px",
-        }}
+        className="tt-storybook-page relative h-full w-full rounded-2xl shadow-xl overflow-hidden"
       >
+        <div aria-hidden="true" className="tt-storybook-corners">
+          <div className="tt-storybook-corner tt-storybook-corner--tl" />
+          <div className="tt-storybook-corner tt-storybook-corner--tr" />
+          <div className="tt-storybook-corner tt-storybook-corner--bl" />
+          <div className="tt-storybook-corner tt-storybook-corner--br" />
+        </div>
         {children}
       </div>
     );
@@ -449,26 +452,11 @@ function CoverPage({
 
   return (
     <div
-      className="h-full w-full flex flex-col "
+      className="tt-storybook-cover relative h-full w-full flex flex-col"
       style={backdropStyle}
     >
-      {/* <div className="txt-xs font-semibold text-[#B5CDA3]">
-        {appName ?? "TaleTime"}
-      </div> */}
-      {/* 
-      <div className="">
-        <h1 className="text-3xl font-extrabold text-[#5f9798] dark:text-white leading-tight">
-          {storyTitle}
-        </h1>
-        {author ? (
-          <p className="text-[#3E3E3E]/70 dark:text-gray-300">by {author}</p>
-        ) : (
-          <p className="text-[#3E3E3E]/70 dark:text-gray-300">A short story</p>
-        )}
-      </div> */}
-
       {coverImageSrc ? (
-        <div className="flex-1 overflow-hidden rounded-2xl box-border border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 p-2 flex items-center justify-center">
+        <div className="relative flex-1 overflow-hidden rounded-2xl box-border border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 p-2 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="absolute inset-[16%]">
             <img
@@ -477,6 +465,7 @@ function CoverPage({
               className="h-full w-full"
             />
           </div>
+
           <img
             src="/frame.png"
             alt=""
@@ -517,8 +506,36 @@ export function renderTextWithInlineImages(
   text: string,
   inlineImages?: InlineImageMap
 ): React.ReactNode {
+  const normalizeProse = (raw: string) => {
+    const cleaned = raw.replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ");
+    const paras = cleaned
+      .split(/(?:\n\s*\n+|\u2029)+/g)
+      .map((p) => p.replace(/\s*\n\s*/g, " ").replace(/[ \t]+/g, " ").trim())
+      .filter(Boolean);
+    return {
+      paragraphs: paras,
+      // Use \n to represent paragraph breaks for measurement/pagination.
+      normalized: paras.join("\n"),
+    };
+  };
+
+  const renderBookParagraphs = (raw: string) => {
+    const { paragraphs } = normalizeProse(raw);
+    if (paragraphs.length === 0) return null;
+    return paragraphs.map((p, idx) => (
+      <p key={idx} className="tt-storybook-paragraph">
+        {p}
+      </p>
+    ));
+  };
+
+  const hasPlaceholders = /\{\{([^{}]+)\}\}/.test(text);
+  if (!hasPlaceholders) {
+    return renderBookParagraphs(text);
+  }
+
   if (!inlineImages || Object.keys(inlineImages).length === 0) {
-    return text;
+    return renderBookParagraphs(text);
   }
 
   const extractImageFileName = (rawToken: string): string | null => {
@@ -611,21 +628,25 @@ function getSinglePlaceholderName(text: string): string | null {
 
 function StoryPage({
   title,
+  bookTitle,
   text,
   imageSrc,
   inlineImages,
+  isSpreadStart,
 }: {
   title?: string;
+  bookTitle?: string;
   text?: string;
   imageSrc?: string;
   inlineImages?: InlineImageMap;
+  isSpreadStart?: boolean;
 }) {
   const singlePlaceholderName = useMemo(() => getSinglePlaceholderName(text ?? ''), [text]);
   const fullPageImageUrl = singlePlaceholderName ? inlineImages?.[singlePlaceholderName] : undefined;
 
   if (fullPageImageUrl) {
     return (
-      <div className="h-full w-full p-6 flex flex-col">
+      <div className="h-full w-full p-8 sm:p-10 flex flex-col">
         <div className="flex-1 flex items-center justify-center overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -640,9 +661,18 @@ function StoryPage({
   }
 
   return (
-    <div className="h-full w-full p-6 flex flex-col">
+    <div className="h-full w-full p-8 sm:p-10 flex flex-col">
+      {isSpreadStart ? (
+        <div aria-hidden="true" className="tt-storybook-chapter-ornament" />
+      ) : null}
+
+      {bookTitle ? (
+        <h1 className="tt-logo w-full text-center text-3xl font-extrabold tracking-tight mt-6 -mb-4">
+          {bookTitle}
+        </h1>
+      ) : null}
       {title ? (
-        <h2 className="text-xl font-bold text-[#3E3E3E] dark:text-white">{title}</h2>
+        <h2 className="tt-storybook-title text-xl font-bold">{title}</h2>
       ) : (
         <div className="h-6" />
       )}
@@ -660,9 +690,9 @@ function StoryPage({
         </div>
       ) : null}
 
-      <div className="mt-4 flex-1 overflow-hidden">
-        <div className="h-full overflow-hidden pr-2">
-          <div className="text-[#3E3E3E] dark:text-gray-200 leading-relaxed">
+      <div className="mt-6 flex-1 overflow-hidden">
+        <div className="h-full overflow-hidden pr-6">
+          <div className="tt-storybook-prose tt-storybook-prose-book leading-snug" lang="en">
             {renderTextWithInlineImages(text ?? "", inlineImages)}
           </div>
         </div>
@@ -687,8 +717,149 @@ export default function BookFlip({
   const [pageIndex, setPageIndex] = useState(0);
   const dims = useFlipDimensions(isMobile);
 
+  const [paginatedPages, setPaginatedPages] = React.useState<PageData[] | null>(
+    null
+  );
+
+  React.useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const pageWidth = dims.width;
+    // StoryPage uses up to sm:p-10 (40px) + inner pr-6 (24px). Keep it conservative.
+    const availableTextWidth = Math.max(240, pageWidth - 40 * 2 - 24);
+
+    const measureEl = document.createElement("div");
+    measureEl.setAttribute("data-tt-measure", "storybook");
+    measureEl.className =
+      "tt-storybook-prose tt-storybook-prose-book leading-snug word-break-break-word overflow-wrap-anywhere";
+    Object.assign(measureEl.style, {
+      position: "fixed",
+      left: "-99999px",
+      top: "0",
+      width: `${availableTextWidth}px`,
+      visibility: "hidden",
+      pointerEvents: "none",
+      whiteSpace: "pre-line",
+      wordBreak: "break-word",
+      overflowWrap: "anywhere",
+    } as Partial<CSSStyleDeclaration>);
+
+    document.body.appendChild(measureEl);
+
+    const getLineHeightPx = () => {
+      const style = window.getComputedStyle(measureEl);
+      const lh = Number.parseFloat(style.lineHeight);
+      if (Number.isFinite(lh) && lh > 0) return lh;
+      const fs = Number.parseFloat(style.fontSize);
+      return (Number.isFinite(fs) && fs > 0 ? fs : 16) * 1.2;
+    };
+
+    const lineHeightPx = getLineHeightPx();
+    const maxHeight = lineHeightPx * MAX_TEXT_LINES_PER_PAGE + 0.5;
+
+    const normalizeProseForPagination = (raw: string) => {
+      const cleaned = raw.replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ");
+      const paras = cleaned
+        .split(/\n\s*\n+/g)
+        .map((p) => p.replace(/\s*\n\s*/g, " ").replace(/[ \t]+/g, " ").trim())
+        .filter(Boolean);
+      // Use a sentinel for paragraph boundaries so rendering can keep indents
+      // while measurement treats it as a single line break.
+      return paras.join("\u2029");
+    };
+
+    const fits = (candidate: string) => {
+      measureEl.textContent = candidate.replace(/\u2029/g, "\n");
+      return measureEl.scrollHeight <= maxHeight;
+    };
+
+    const findChunk = (text: string) => {
+      // Fast path
+      if (fits(text)) return { head: text, tail: "" };
+
+      let low = 1;
+      let high = text.length;
+      let best = 1;
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const candidate = text.slice(0, mid);
+        if (fits(candidate)) {
+          best = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+
+      // Prefer breaking on whitespace so we don't split words.
+      let breakIndex = best;
+      const before = text.slice(0, breakIndex);
+      const lastWs = Math.max(
+        before.lastIndexOf(" "),
+        before.lastIndexOf("\n"),
+        before.lastIndexOf("\t"),
+        before.lastIndexOf("\u2029")
+      );
+      if (lastWs > 0) breakIndex = lastWs;
+
+      const head = text.slice(0, breakIndex).trimEnd();
+      const tail = text.slice(breakIndex).trimStart();
+      return { head: head.length > 0 ? head : text.slice(0, best).trimEnd(), tail };
+    };
+
+    const paginateTextOnlyPage = (p: PageData): PageData[] => {
+      const text = p.text ?? "";
+      if (text.trim().length === 0) return [p];
+
+      // Avoid splitting pages that may contain inline images/placeholders.
+      if (p.imageSrc || p.inlineImages || /\{\{[^{}]+\}\}/.test(text)) return [p];
+
+      const normalized = normalizeProseForPagination(text);
+      if (normalized.trim().length === 0) return [p];
+
+      const out: PageData[] = [];
+      let remaining = normalized;
+      let chunkIndex = 0;
+      while (remaining.trim().length > 0) {
+        const { head, tail } = findChunk(remaining);
+        const id = `${p.id}-chunk-${chunkIndex}`;
+        out.push({
+          ...p,
+          id,
+          // Keep title/image only on the first chunk.
+          title: chunkIndex === 0 ? p.title : undefined,
+          imageSrc: chunkIndex === 0 ? p.imageSrc : undefined,
+          inlineImages: chunkIndex === 0 ? p.inlineImages : undefined,
+          text: head,
+        });
+
+        if (!tail || tail === remaining) break;
+        remaining = tail;
+        chunkIndex += 1;
+
+        // Safety valve
+        if (chunkIndex > 50) break;
+      }
+
+      return out.length > 0 ? out : [p];
+    };
+
+    try {
+      const next = pages.flatMap(paginateTextOnlyPage);
+      setPaginatedPages(next);
+    } finally {
+      measureEl.remove();
+    }
+  }, [pages, dims.width]);
+
+  const storyPages = paginatedPages ?? pages;
+
   const endPageCount = 2; // blank end page + closed book image page
-  const pageCount = useMemo(() => pages.length + 1 + endPageCount, [pages.length]);
+  const frontBlankPageCount = 1; // keep first inside page blank so story starts on the right
+  const pageCount = useMemo(
+    () => storyPages.length + 1 + frontBlankPageCount + endPageCount,
+    [storyPages.length]
+  );
 
   const width = dims.width;
   const height = dims.height;
@@ -740,6 +911,10 @@ export default function BookFlip({
   React.useEffect(() => {
     onPageChange?.(pageIndex, pageCount);
   }, [onPageChange, pageCount, pageIndex]);
+
+  React.useEffect(() => {
+    if (pageIndex > pageCount - 1) setPageIndex(Math.max(0, pageCount - 1));
+  }, [pageCount, pageIndex]);
 
   return (
     <div className="py-4">
@@ -814,9 +989,21 @@ export default function BookFlip({
             />
           </Page>
 
-          {pages.map((p, idx) => (
+          {/* Blank inside page so story starts on the right (but numbered 1) */}
+          <Page key="front-blank">
+            <div className="h-full w-full" />
+          </Page>
+
+          {storyPages.map((p, idx) => (
             <Page key={p.id}>
-              <StoryPage title={p.title} text={p.text} imageSrc={p.imageSrc} inlineImages={p.inlineImages} />
+              <StoryPage
+                title={p.title}
+                bookTitle={idx === 0 ? storyTitle : undefined}
+                text={p.text}
+                imageSrc={p.imageSrc}
+                inlineImages={p.inlineImages}
+                isSpreadStart={isMobile || idx % 2 === 0}
+              />
               <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-xs text-[#3E3E3E]/60 dark:text-gray-400 tabular-nums">
                 {idx + 1}
               </div>

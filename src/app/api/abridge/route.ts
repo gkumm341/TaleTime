@@ -7,6 +7,7 @@ import path from 'node:path';
 import { getUserFromSessionId } from '@/lib/server/auth';
 import { getPremiumEntitlementForUserId } from '@/lib/server/entitlements';
 import { isPremiumActive } from '@/lib/entitlements';
+import { parseStoryJson, storyBlocksToLegacyText, type StoryBlock } from '@/lib/story-blocks';
 
 export const runtime = 'nodejs';
 
@@ -52,11 +53,21 @@ function resolveLocalTextCandidates(params: {
   return { baseDir, candidates };
 }
 
-async function loadFirstExistingTextFile(paths: string[]): Promise<{ filePath: string; text: string } | null> {
+async function loadFirstExistingStoryFile(paths: string[]): Promise<
+  { filePath: string; text: string; blocks?: StoryBlock[]; sourceFormat: 'txt' | 'story-json' } | null
+> {
   for (const p of paths) {
     try {
-      const text = await fs.readFile(p, 'utf8');
-      return { filePath: p, text };
+      const raw = await fs.readFile(p, 'utf8');
+
+      if (p.toLowerCase().endsWith('.json')) {
+        const parsed = parseStoryJson(raw);
+        const blocks = parsed.doc.blocks;
+        const text = storyBlocksToLegacyText(blocks);
+        return { filePath: p, text, blocks, sourceFormat: 'story-json' };
+      }
+
+      return { filePath: p, text: raw, sourceFormat: 'txt' };
     } catch {
       // ignore
     }
@@ -469,17 +480,23 @@ export async function POST(req: NextRequest) {
       if (byTitleFolder) {
         const byTitleDir = path.join(byTitleRoot, byTitleFolder);
         if (variant === 'full') {
+          candidates.push(path.join(byTitleDir, 'full.story.json'));
           candidates.push(path.join(byTitleDir, 'full.txt'));
         } else {
+          candidates.push(path.join(byTitleDir, 'bedtime.story.json'));
           candidates.push(path.join(byTitleDir, 'bedtime.txt'));
+          candidates.push(path.join(byTitleDir, 'full.story.json'));
           candidates.push(path.join(byTitleDir, 'full.txt'));
         }
       }
 
       if (variant === 'full' || variant === 'timed') {
+        candidates.push(path.join(bookDir, 'full.story.json'));
         candidates.push(path.join(bookDir, 'full.txt'));
       } else {
+        candidates.push(path.join(bookDir, 'bedtime.story.json'));
         candidates.push(path.join(bookDir, 'bedtime.txt'));
+        candidates.push(path.join(bookDir, 'full.story.json'));
         candidates.push(path.join(bookDir, 'full.txt'));
 
         // Alternative layout: ${LOCAL_TEXT_DIR}/bookBedtime/<Title> (Bedtime).txt
@@ -489,7 +506,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const loaded = await loadFirstExistingTextFile(candidates);
+      const loaded = await loadFirstExistingStoryFile(candidates);
       if (!loaded) {
         return NextResponse.json(
           {
@@ -511,6 +528,8 @@ export async function POST(req: NextRequest) {
           title: book.title,
           author: book.authors || 'Unknown',
           content: cleaned,
+          blocks: loaded.blocks ?? null,
+          sourceFormat: loaded.sourceFormat,
           mode: 'local' as Mode,
         });
       }
@@ -519,7 +538,7 @@ export async function POST(req: NextRequest) {
         // Prefer a dedicated bedtime file; otherwise fall back to an extractive 10-minute version.
         const bedtimeMinutes = 10;
         const bedtimeTargetWords = bedtimeMinutes * wpm;
-        const bedtimeContent = loaded.filePath.toLowerCase().endsWith('bedtime.txt')
+        const bedtimeContent = loaded.filePath.toLowerCase().endsWith('bedtime.txt') || loaded.filePath.toLowerCase().endsWith('bedtime.story.json')
           ? cleaned
           : extractiveAbridge(cleaned, bedtimeTargetWords);
 
@@ -530,7 +549,9 @@ export async function POST(req: NextRequest) {
           title: book.title,
           author: book.authors || 'Unknown',
           content: bedtimeContent,
-          mode: (loaded.filePath.toLowerCase().endsWith('bedtime.txt') ? 'local' : 'extractive') as Mode,
+          blocks: loaded.blocks ?? null,
+          sourceFormat: loaded.sourceFormat,
+          mode: ((loaded.filePath.toLowerCase().endsWith('bedtime.txt') || loaded.filePath.toLowerCase().endsWith('bedtime.story.json')) ? 'local' : 'extractive') as Mode,
         });
       }
 

@@ -5,8 +5,15 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import BookFlip, { type PageData, type InlineImageMap } from '@/components/BookFlip';
+import { storyBlocksToLegacyText, type StoryBlock } from '@/lib/story-blocks';
 import { ChevronLeft, Clock, Loader2, RotateCcw, Home } from 'lucide-react';
 import Image from 'next/image';
+import { PiSpeakerHighDuotone } from "react-icons/pi";
+import { TbPlayerStop } from "react-icons/tb";
+import { CiPlay1 } from "react-icons/ci";
+import { BsMoonStarsFill } from 'react-icons/bs';
+import { GiBookCover } from 'react-icons/gi';
+import { FaPauseCircle, FaPlay, FaPlayCircle, FaStop, FaStopCircle } from 'react-icons/fa';
 import BookmarkPng from '@/components/BookmarkPng';
 import {
   clearAbridgedBookmark,
@@ -45,6 +52,8 @@ interface AbridgedResponse {
   title: string;
   author: string;
   content: string;
+  blocks?: StoryBlock[] | null;
+  sourceFormat?: 'txt' | 'story-json';
   mode: 'llm' | 'extractive' | 'local';
 }
 
@@ -110,6 +119,7 @@ export default function AbridgedBookPage() {
 
   const isMobile = useIsMobile(768);
   const dims = useFlipDimensions(isMobile);
+  const useSideControls = !isMobile;
 
   const id = useMemo(() => Number(params.id), [params.id]);
   const minutes = useMemo(() => Number(searchParams.get('minutes') || '0'), [searchParams]);
@@ -502,6 +512,55 @@ export default function AbridgedBookPage() {
     return () => controller.abort();
   }, [variant, data?.title]);
 
+  const handleAudioPlay = useCallback(async () => {
+    if (isCheckingAudio) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    try {
+      const t = readStoredResumeTime();
+      if (t > 0.25 && audio.currentTime < 0.25) {
+        try {
+          audio.currentTime = t;
+        } catch {
+          // ignore seek failures
+        }
+      }
+      await audio.play();
+    } catch {
+      setIsAudioPlaying(!audio.paused);
+    }
+  }, [isCheckingAudio, readStoredResumeTime]);
+
+  const handleAudioPause = useCallback(() => {
+    if (isCheckingAudio) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    try {
+      audio.pause();
+      writeStoredResumeTime(audio.currentTime);
+    } catch {
+      // ignore
+    }
+    setIsAudioPlaying(false);
+  }, [isCheckingAudio, writeStoredResumeTime]);
+
+  const handleAudioStop = useCallback(() => {
+    if (isCheckingAudio) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch {
+      // ignore seek failures
+    }
+    lastStoredAudioSecondRef.current = -1;
+    writeStoredResumeTime(0);
+    setIsAudioPlaying(false);
+  }, [isCheckingAudio, writeStoredResumeTime]);
+
   useEffect(() => {
     if (!id || Number.isNaN(id)) {
       setError('Missing or invalid parameters');
@@ -569,7 +628,9 @@ export default function AbridgedBookPage() {
   }, [id, minutes, variant, preferences?.defaultWpm]);
 
   useLayoutEffect(() => {
-    const raw = (data?.content ?? '').trim();
+    const raw = (data?.blocks && Array.isArray(data.blocks)
+      ? storyBlocksToLegacyText(data.blocks)
+      : data?.content ?? '').trim();
     if (!raw) {
       setPages([]);
       return;
@@ -590,6 +651,10 @@ export default function AbridgedBookPage() {
       .map((p) => p.trim())
       .filter(Boolean);
 
+    const applyMeasuredText = (textOnly: string) => {
+      textNode.textContent = textOnly;
+    };
+
     const fits = (candidate: string) => {
       // Count image placeholders in the candidate
       const imageMatches = candidate.match(imageRegex);
@@ -598,7 +663,7 @@ export default function AbridgedBookPage() {
 
       // Remove image placeholders for text measurement
       const textOnly = candidate.replace(imageRegex, '');
-      textNode.textContent = textOnly;
+      applyMeasuredText(textOnly);
 
       // scrollHeight/clientHeight forces layout; add a small fudge for rounding.
       // Subtract image height from available space
@@ -816,6 +881,56 @@ export default function AbridgedBookPage() {
     }
     flush();
 
+    // Post-pass: avoid starting a page with a tiny "bridge" line like "And in another moment…"
+    // If the previous page can fit it (and optionally the next short sentence), pull it back.
+    const splitChunkParas = (chunk: string) =>
+      chunk
+        .split(/\n{2,}/g)
+        .map((p) => p.trim())
+        .filter(Boolean);
+
+    const isBridgePara = (p: string) => {
+      const s = p.trim();
+      if (!s) return false;
+      if (isImageOnlyParagraph(s)) return false;
+      if (s.length > 56) return false;
+      return /(?:\.{3}|…)\s*$/.test(s);
+    };
+
+    const isShortFollow = (p: string) => {
+      const s = p.trim();
+      if (!s) return false;
+      if (isImageOnlyParagraph(s)) return false;
+      return s.length <= 72 && wordCount(s) <= 10;
+    };
+
+    for (let i = 1; i < chunks.length; i++) {
+      const prev = chunks[i - 1];
+      const cur = chunks[i];
+      if (!prev || !cur) continue;
+      if (isImageOnlyParagraph(prev.trim())) continue;
+
+      const curParas = splitChunkParas(cur);
+      if (curParas.length === 0) continue;
+
+      const first = curParas[0];
+      if (!isBridgePara(first)) continue;
+
+      const group: string[] = [first];
+      const second = curParas[1];
+      if (second && isShortFollow(second)) group.push(second);
+
+      const prevCandidate = `${prev}\n\n${group.join('\n\n')}`;
+      if (!fits(prevCandidate)) continue;
+
+      chunks[i - 1] = prevCandidate;
+      chunks[i] = curParas.slice(group.length).join('\n\n').trim();
+      if (!chunks[i]) {
+        chunks.splice(i, 1);
+        i -= 1;
+      }
+    }
+
     // Build inline image map from all {{...}} placeholders in the content.
     // Supports:
     // - {{1.png}}
@@ -851,7 +966,10 @@ export default function AbridgedBookPage() {
   }, [data?.content, data?.title, preferences?.fontSize, preferences?.lineHeight, dims.width, dims.height]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 relative overflow-hidden">
+    <div
+      className="min-h-screen flex flex-col bg-cover bg-center bg-fixed relative overflow-x-hidden overflow-y-hidden"
+      style={{ backgroundImage: "url('/abridgeBacground.png')" }}
+    >
       {/* Offscreen measuring box used to paginate text precisely (no clipped/missing content). */}
       <div
         aria-hidden="true"
@@ -868,170 +986,115 @@ export default function AbridgedBookPage() {
           >
             <p
               ref={measureTextRef}
-              className="text-[#3E3E3E] dark:text-gray-200 leading-relaxed whitespace-pre-wrap"
+              className="tt-storybook-prose tt-storybook-prose-book leading-snug whitespace-pre-wrap"
             />
           </div>
         </div>
       </div>
-      {coverBackdropUrl && (
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
         <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0"
-        >
+          className="absolute inset-0 bg-center bg-cover blur-xl scale-110 opacity-70 dark:opacity-45"
+          style={{ backgroundImage: "url('/abridgeBacground.png')" }}
+        />
+
+        {coverBackdropUrl && (
           <div
-            className="absolute inset-0 bg-center bg-cover blur-3xl scale-110 opacity-40 dark:opacity-30"
+            className="absolute inset-0 bg-center bg-cover blur-3xl scale-110 opacity-25 dark:opacity-20"
             style={{ backgroundImage: `url(${coverBackdropUrl})` }}
           />
-          <div className="absolute inset-0 bg-white/65 dark:bg-gray-950/55" />
-        </div>
-      )}
-      <div className="sticky top-0 z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10">
-        <div className="max-w-[1500px] mx-auto py-3">
-          <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3">
-            <Button onClick={() => router.push('/')}>
-              <Home className="w-4 h-4" />
-            </Button>
+        )}
 
-            <div className="min-w-0 flex items-center justify-center gap-3">
+        <div className="absolute inset-0 bg-gradient-to-l from-[#FDF6EC]/25 to-[#F1FAF9]/25 dark:from-gray-950/45 dark:to-gray-950/45" />
+      </div>
+      <div className="sticky top-0 z-20  dark:bg-gray-950/80 backdrop-blur border-b border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="flex items-center justify-start min-w-0">
+              <button onClick={() => router.push('/')}>
+                <div className="relative flex items-center gap-2">
+                  <Image src="/owlFace2.png" alt="TaleTime Logo" width={48} height={48} />
+                  <h2 className="tt-logo font-heading text-3xl">TaleTime</h2>
+                </div>
+              </button>
+            </div>
+
+            <div className="min-w-0 flex items-center justify-center">
               <div className="min-w-0 text-lg font-semibold text-[#5f9798] dark:text-white truncate">
                 {data?.title ?? 'Preparing story…'}
-              </div>
-              <div className="shrink-0 inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-gray-950/40 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-200">
-                <Clock className="w-3.5 h-3.5" />
-                {variant === 'full' ? 'Full story' : 'Bedtime adaptation'}
               </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 overflow-x-auto whitespace-nowrap">
-              <Button
-                onClick={() => flipNav?.prev()}
-                variant="outline"
-                size="sm"
-                disabled={!flipNav || flipMeta.pageIndex <= 0}
-                type="button"
-              >
-                Prev
-              </Button>
-              <Button
-                onClick={() => flipNav?.next()}
-                size="sm"
-                disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1}
-                type="button"
-              >
-                Next
-              </Button>
-
-              <Button
-                variant={bookmark ? 'outline' : 'default'}
-                size="sm"
-                className="gap-2"
-                disabled={!flipNav || !bookmarkHydrated}
-                title={
-                  bookmark
-                    ? (bookmark.pageIndex === flipMeta.pageIndex ? 'Remove bookmark' : 'Update bookmark to this page')
-                    : 'Bookmark this page'
-                }
-                aria-pressed={Boolean(bookmark)}
-                onClick={async () => {
-                  if (!flipNav) return;
-                  const current = flipMeta.pageIndex;
-
-                  // Prevent bookmarking cover/invalid pages.
-                  if (!Number.isFinite(current) || current < 1) {
-                    return;
-                  }
-
-                  try {
-                    if (bookmark && bookmark.pageIndex === current) {
-                      await clearAbridgedBookmark(id, variant);
-                      setBookmark(null);
-                    } else {
-                      const next = await setAbridgedBookmark(id, variant, current);
-                      setBookmark(next);
-                    }
-                  } catch {
-                    // ignore
-                  }
-                }}
-                type="button"
-              >
-                <BookmarkPng alt="Bookmark" className="h-7 w-7 object-contain" />
-                {bookmark ? 'Bookmarked' : 'Bookmark'}
-              </Button>
-
-              {shouldShowTaleTimeAudio && (
+              {/* On desktop, these controls move to the right-side blank area under the bookmark. */}
+              {!useSideControls && (
                 <>
-                  <audio
-                    ref={audioRef}
-                    preload="none"
-                    src={taleTimeAudioSrc}
-                    onLoadedMetadata={() => {
-                      const audio = audioRef.current;
-                      if (!audio) return;
-                      const t = readStoredResumeTime();
-                      // Only apply if we're at the start; avoids jumping while already listening.
-                      if (t > 0.25 && audio.currentTime < 0.25) {
-                        try {
-                          audio.currentTime = t;
-                        } catch {
-                          // ignore seek failures
-                        }
-                      }
-                    }}
-                    onPlay={() => setIsAudioPlaying(true)}
-                    onPause={() => {
-                      const audio = audioRef.current;
-                      if (audio) writeStoredResumeTime(audio.currentTime);
-                      setIsAudioPlaying(false);
-                    }}
-                    onTimeUpdate={() => {
-                      const audio = audioRef.current;
-                      if (!audio) return;
-                      // Throttle-ish via coarse rounding to reduce storage churn.
-                      const sec = Math.floor(audio.currentTime);
-                      if (sec > 0 && sec !== lastStoredAudioSecondRef.current) {
-                        lastStoredAudioSecondRef.current = sec;
-                        writeStoredResumeTime(sec);
-                      }
-                    }}
-                    onEnded={() => {
-                      writeStoredResumeTime(0);
-                      setIsAudioPlaying(false);
-                    }}
-                  />
-
                   <Button
+                    onClick={() => flipNav?.prev()}
                     variant="outline"
                     size="sm"
+                    disabled={!flipNav || flipMeta.pageIndex <= 0}
+                    type="button"
+                  >
+                    Prev
+                  </Button>
+                  <Button
+                    onClick={() => flipNav?.next()}
+                    size="sm"
+                    disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1}
+                    type="button"
+                  >
+                    Next
+                  </Button>
+
+                  <Button
+                    variant={bookmark ? 'outline' : 'default'}
+                    size="sm"
                     className="gap-2"
-                    disabled={isCheckingAudio}
-                    aria-pressed={isAudioPlaying}
-                    aria-label={
-                      isCheckingAudio
-                        ? 'Loading audio…'
-                        : isAudioPlaying
-                          ? 'Pause TaleTime audio'
-                          : hasAudioResumePoint
-                            ? 'Resume TaleTime audio'
-                            : 'Play TaleTime audio'
-                    }
+                    disabled={!flipNav || !bookmarkHydrated}
                     title={
-                      isCheckingAudio
-                        ? 'Loading audio…'
-                        : isAudioPlaying
-                          ? 'Pause TaleTime audio'
-                          : hasAudioResumePoint
-                            ? 'Resume TaleTime audio'
-                            : 'Play TaleTime audio'
+                      bookmark
+                        ? (bookmark.pageIndex === flipMeta.pageIndex ? 'Remove bookmark' : 'Update bookmark to this page')
+                        : 'Bookmark this page'
                     }
+                    aria-pressed={Boolean(bookmark)}
                     onClick={async () => {
-                      if (isCheckingAudio) return;
-                      const audio = audioRef.current;
-                      if (!audio) return;
+                      if (!flipNav) return;
+                      const current = flipMeta.pageIndex;
+
+                      // Prevent bookmarking cover/invalid pages.
+                      if (!Number.isFinite(current) || current < 1) {
+                        return;
+                      }
 
                       try {
-                        if (audio.paused) {
+                        if (bookmark && bookmark.pageIndex === current) {
+                          await clearAbridgedBookmark(id, variant);
+                          setBookmark(null);
+                        } else {
+                          const next = await setAbridgedBookmark(id, variant, current);
+                          setBookmark(next);
+                        }
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    type="button"
+                  >
+                    <BookmarkPng alt="Bookmark" className="h-7 w-7 object-contain " />
+                    {bookmark ? 'Bookmarked' : 'Bookmark'}
+                  </Button>
+
+                  {shouldShowTaleTimeAudio && (
+                    <>
+                      <audio
+                        ref={audioRef}
+                        preload="none"
+                        src={taleTimeAudioSrc}
+                        onLoadedMetadata={() => {
+                          const audio = audioRef.current;
+                          if (!audio) return;
                           const t = readStoredResumeTime();
+                          // Only apply if we're at the start; avoids jumping while already listening.
                           if (t > 0.25 && audio.currentTime < 0.25) {
                             try {
                               audio.currentTime = t;
@@ -1039,59 +1102,85 @@ export default function AbridgedBookPage() {
                               // ignore seek failures
                             }
                           }
-                          await audio.play();
-                        } else {
-                          audio.pause();
-                        }
-                      } catch {
-                        setIsAudioPlaying(!audio.paused);
-                      }
-                    }}
-                  >
-                    {isCheckingAudio && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isCheckingAudio
-                      ? 'Audio Loading…'
-                      : isAudioPlaying
-                        ? 'Pause'
-                        : hasAudioResumePoint
-                          ? 'Resume'
-                          : 'Audio'}
-                  </Button>
+                        }}
+                        onPlay={() => setIsAudioPlaying(true)}
+                        onPause={() => {
+                          const audio = audioRef.current;
+                          if (audio) writeStoredResumeTime(audio.currentTime);
+                          setIsAudioPlaying(false);
+                        }}
+                        onTimeUpdate={() => {
+                          const audio = audioRef.current;
+                          if (!audio) return;
+                          // Throttle-ish via coarse rounding to reduce storage churn.
+                          const sec = Math.floor(audio.currentTime);
+                          if (sec > 0 && sec !== lastStoredAudioSecondRef.current) {
+                            lastStoredAudioSecondRef.current = sec;
+                            writeStoredResumeTime(sec);
+                          }
+                        }}
+                        onEnded={() => {
+                          writeStoredResumeTime(0);
+                          setIsAudioPlaying(false);
+                        }}
+                      />
 
-                  {/* Restart from the beginning (clears saved resume point). */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={isCheckingAudio || !hasTaleTimeAudio}
-                    title="Restart audio from the beginning"
-                    aria-label="Restart audio from the beginning"
-                    onClick={async () => {
-                      const audio = audioRef.current;
-                      if (!audio) return;
+                      <div className="flex flex-col gap-2 w-40">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">Audio</span>
+                          {isCheckingAudio && <Loader2 className="w-4 h-4 animate-spin text-gray-500" aria-hidden="true" />}
+                        </div>
 
-                      const wasPlaying = !audio.paused;
-                      try {
-                        audio.pause();
-                        audio.currentTime = 0;
-                      } catch {
-                        // ignore seek failures
-                      }
-                      lastStoredAudioSecondRef.current = -1;
-                      writeStoredResumeTime(0);
-                      setIsAudioPlaying(false);
+                        <div className="flex items-center justify-start gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className={
+                              isAudioPlaying
+                                ? 'border-0 rounded-xl bg-sky-100 text-sky-800 hover:bg-sky-200 hover:text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 dark:hover:bg-sky-900/45'
+                                : 'border-0 rounded-xl bg-emerald-100 text-emerald-800 hover:bg-emerald-200 hover:text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:bg-emerald-900/45'
+                            }
+                            disabled={isCheckingAudio || !hasTaleTimeAudio}
+                            title={
+                              isAudioPlaying
+                                ? 'Pause audio'
+                                : hasAudioResumePoint
+                                  ? 'Resume audio'
+                                  : 'Play audio'
+                            }
+                            aria-label={
+                              isAudioPlaying
+                                ? 'Pause audio'
+                                : hasAudioResumePoint
+                                  ? 'Resume audio'
+                                  : 'Play audio'
+                            }
+                            onClick={isAudioPlaying ? handleAudioPause : handleAudioPlay}
+                            type="button"
+                          >
+                            {isAudioPlaying ? (
+                              <FaPauseCircle className="h-6 w-6" aria-hidden="true" />
+                            ) : (
+                              <FaPlayCircle className="h-6 w-6" aria-hidden="true" />
+                            )}
+                          </Button>
 
-                      if (wasPlaying) {
-                        try {
-                          await audio.play();
-                        } catch {
-                          setIsAudioPlaying(!audio.paused);
-                        }
-                      }
-                    }}
-                    type="button"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="border-0 rounded-xl bg-rose-100 text-rose-800 hover:bg-rose-200 hover:text-rose-900 dark:bg-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-900/45"
+                            disabled={isCheckingAudio || !hasTaleTimeAudio}
+                            title="Stop audio and reset to the beginning"
+                            aria-label="Stop audio and reset to the beginning"
+                            onClick={handleAudioStop}
+                            type="button"
+                          >
+                            <FaStopCircle className="h-6 w-6" aria-hidden="true" />
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
               {/* Version segmented control */}
@@ -1114,11 +1203,15 @@ export default function AbridgedBookPage() {
                       }}
                       className={
                         isSelected
-                          ? 'px-4 py-2 rounded-lg bg-[#6BA8A9] text-white text-sm font-semibold shadow'
+                          ? 'px-4 py-2 rounded-lg bg-[#ff9b8b] text-white text-sm font-semibold shadow'
                           : 'px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60'
                       }
                     >
-                      {label}
+                      <span className="inline-flex items-center gap-2">
+                        {opt.id === 'bedtime' && <BsMoonStarsFill className="h-4 w-4" aria-hidden="true" />}
+                        {opt.id === 'full' && <GiBookCover className="h-6 w-6" aria-hidden="true" />}
+                        {label}
+                      </span>
                     </button>
                   );
                 })}
@@ -1172,91 +1265,268 @@ export default function AbridgedBookPage() {
         )}
 
         {!loading && !error && data && (
-          <div className="w-full flex justify-center">
-            <div className="relative overflow-visible">
-              {/* Draggable bookmark: drop ON the book to activate/update; drop OFF to deactivate. */}
-              {shouldShowBigBookmark && (
-                <div
-                  ref={bookmarkDragRef}
-                  className={
-                    bookmarkSide === 'right'
-                      ? 'absolute -top-28 left-[54%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
-                      : 'absolute -top-28 left-[44%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
-                  }
-                  style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
-                  role="img"
-                  aria-label="Bookmark (drag off to remove)"
-                  title="Drag off the book to remove bookmark"
-                  onPointerDown={onBookmarkPointerDown}
-                  onPointerMove={onBookmarkPointerMove}
-                  onPointerUp={onBookmarkPointerUp}
-                  onPointerCancel={onBookmarkPointerCancel}
-                >
-                  <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
-                    <BookmarkPng
-                      alt="Bookmark"
-                      className="h-72 w-52 object-contain sm:h-[44rem] sm:w-[17rem]"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {shouldShowDockedBookmark && (
-                <div
-                  ref={bookmarkDragRef}
-                  className="absolute -right-72 z-30 drop-shadow-xl opacity-80 scale-90"
-                  style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
-                  role="img"
-                  aria-label="Bookmark (drag onto book to add)"
-                  title="Drag onto the book to add bookmark"
-                  onPointerDown={onBookmarkPointerDown}
-                  onPointerMove={onBookmarkPointerMove}
-                  onPointerUp={onBookmarkPointerUp}
-                  onPointerCancel={onBookmarkPointerCancel}
-                >
-                  <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
-                    <BookmarkPng alt="Bookmark" className="h-44 w-32 object-contain sm:h-56 sm:w-40 " />
-                  </div>
-                </div>
-              )}
-
-              <div ref={bookAreaRef} className="relative">
-                {/* Top markers: show only on non-bookmarked spreads */}
-                {shouldShowTopMarkers && (
-                  <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20">
-                    {topMarkerSide === 'left' && (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src="/bookmarktopleft.png"
-                        alt=""
-                        className="absolute -top-2 left-[500px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-[151px] sm:w-40"
-                        draggable={false}
+          <div className="w-full">
+            <div className="flex items-start justify-center gap-12">
+              {useSideControls && <div className="w-40 shrink-0" aria-hidden="true" />}
+              <div className="relative overflow-visible">
+                {/* Draggable bookmark: drop ON the book to activate/update; drop OFF to deactivate. */}
+                {shouldShowBigBookmark && (
+                  <div
+                    ref={bookmarkDragRef}
+                    className={
+                      bookmarkSide === 'right'
+                        ? 'absolute -top-28 left-[54%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
+                        : 'absolute -top-28 left-[44%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
+                    }
+                    style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
+                    role="img"
+                    aria-label="Bookmark (drag off to remove)"
+                    title="Drag off the book to remove bookmark"
+                    onPointerDown={onBookmarkPointerDown}
+                    onPointerMove={onBookmarkPointerMove}
+                    onPointerUp={onBookmarkPointerUp}
+                    onPointerCancel={onBookmarkPointerCancel}
+                  >
+                    <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
+                      <BookmarkPng
+                        alt="Bookmark"
+                        className="h-72 w-52 object-contain sm:h-[44rem] sm:w-[17rem]"
                       />
-                    )}
-                    {topMarkerSide === 'right' && (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src="/bookmarktop.png"
-                        alt=""
-                        className="absolute -top-2 left-[760px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-[150px] sm:w-40"
-                        draggable={false}
-                      />
-                    )}
+                    </div>
                   </div>
                 )}
 
-                <BookFlip
-                  appName="TaleTime"
-                  storyTitle={data.title}
-                  author={data.author}
-                  coverImageSrc={coverImageSrc}
-                  pages={pages}
-                  showHeader={false}
-                  showTip={false}
-                  onNavigationReady={handleFlipNavReady}
-                  onPageChange={handleFlipPageChange}
-                />
+                <div ref={bookAreaRef} className="relative">
+                  {/* Top markers: show only on non-bookmarked spreads */}
+                  {shouldShowTopMarkers && (
+                    <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20">
+                      {topMarkerSide === 'left' && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src="/bookmarktopleft.png"
+                          alt=""
+                          className="absolute -top-2 left-[500px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-[151px] sm:w-40"
+                          draggable={false}
+                        />
+                      )}
+                      {topMarkerSide === 'right' && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src="/bookmarktop.png"
+                          alt=""
+                          className="absolute -top-2 left-[760px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-[150px] sm:w-40"
+                          draggable={false}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  <BookFlip
+                    appName="TaleTime"
+                    storyTitle={data.title}
+                    author={data.author}
+                    coverImageSrc={coverImageSrc}
+                    pages={pages}
+                    showHeader={false}
+                    showTip={false}
+                    onNavigationReady={handleFlipNavReady}
+                    onPageChange={handleFlipPageChange}
+                  />
+                </div>
               </div>
+
+              {/* Desktop: controls live in a real right-hand column so the whole layout stays centered. */}
+              {useSideControls && (
+                <div className="flex flex-col items-center gap-4 shrink-0 w-40">
+                  {shouldShowDockedBookmark ? (
+                    <div
+                      ref={bookmarkDragRef}
+                      className="drop-shadow-xl opacity-80 scale-90"
+                      style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
+                      role="img"
+                      aria-label="Bookmark (drag onto book to add)"
+                      title="Drag onto the book to add bookmark"
+                      onPointerDown={onBookmarkPointerDown}
+                      onPointerMove={onBookmarkPointerMove}
+                      onPointerUp={onBookmarkPointerUp}
+                      onPointerCancel={onBookmarkPointerCancel}
+                    >
+                      <div className={isDraggingBookmark ? 'cursor-grabbing' : 'cursor-grab'}>
+                        <BookmarkPng
+                          alt="Bookmark"
+                          className="h-44 w-32 object-contain sm:h-56 sm:w-40 sm:mb-6 sm:mt-8"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    // Keep a consistent vertical anchor so controls stay "under" where the bookmark sits.
+                    <div className="h-56 w-40" aria-hidden="true" />
+                  )}
+
+                  <div className="flex flex-col gap-2 w-40">
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => flipNav?.prev()}
+                        variant="outline"
+                        size="sm"
+                        disabled={!flipNav || flipMeta.pageIndex <= 0}
+                        type="button"
+                        className="flex-1 shadow-lg"
+                      >
+                        Prev
+                      </Button>
+                      <Button
+                        onClick={() => flipNav?.next()}
+                        size="sm"
+                        disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1}
+                        type="button"
+                        className="flex-1 shadow-lg"
+                      >
+                        Next
+                      </Button>
+                    </div>
+
+                    <Button
+                      variant={bookmark ? 'outline' : 'default'}
+                      size="sm"
+                      className="gap-2 justify-center shadow-lg"
+                      disabled={!flipNav || !bookmarkHydrated}
+                      title={
+                        bookmark
+                          ? (bookmark.pageIndex === flipMeta.pageIndex ? 'Remove bookmark' : 'Update bookmark to this page')
+                          : 'Bookmark this page'
+                      }
+                      aria-pressed={Boolean(bookmark)}
+                      onClick={async () => {
+                        if (!flipNav) return;
+                        const current = flipMeta.pageIndex;
+
+                        // Prevent bookmarking cover/invalid pages.
+                        if (!Number.isFinite(current) || current < 1) {
+                          return;
+                        }
+
+                        try {
+                          if (bookmark && bookmark.pageIndex === current) {
+                            await clearAbridgedBookmark(id, variant);
+                            setBookmark(null);
+                          } else {
+                            const next = await setAbridgedBookmark(id, variant, current);
+                            setBookmark(next);
+                          }
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                      type="button"
+                    >
+                      <BookmarkPng alt="Bookmark" className="h-7 w-7 object-contain" />
+                      {bookmark ? 'Bookmarked' : 'Bookmark'}
+                    </Button>
+
+                    {shouldShowTaleTimeAudio && (
+                      <>
+                        <audio
+                          ref={audioRef}
+                          preload="none"
+                          src={taleTimeAudioSrc}
+                          onLoadedMetadata={() => {
+                            const audio = audioRef.current;
+                            if (!audio) return;
+                            const t = readStoredResumeTime();
+                            // Only apply if we're at the start; avoids jumping while already listening.
+                            if (t > 0.25 && audio.currentTime < 0.25) {
+                              try {
+                                audio.currentTime = t;
+                              } catch {
+                                // ignore seek failures
+                              }
+                            }
+                          }}
+                          onPlay={() => setIsAudioPlaying(true)}
+                          onPause={() => {
+                            const audio = audioRef.current;
+                            if (audio) writeStoredResumeTime(audio.currentTime);
+                            setIsAudioPlaying(false);
+                          }}
+                          onTimeUpdate={() => {
+                            const audio = audioRef.current;
+                            if (!audio) return;
+                            // Throttle-ish via coarse rounding to reduce storage churn.
+                            const sec = Math.floor(audio.currentTime);
+                            if (sec > 0 && sec !== lastStoredAudioSecondRef.current) {
+                              lastStoredAudioSecondRef.current = sec;
+                              writeStoredResumeTime(sec);
+                            }
+                          }}
+                          onEnded={() => {
+                            writeStoredResumeTime(0);
+                            setIsAudioPlaying(false);
+                          }}
+                        />
+
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-center mt-10 -ml-1">
+                            <div className='flex items-center gap-2'><PiSpeakerHighDuotone className='h-5 w-5 text-gray-500' />
+                              <span className="text-xl font-semibold tt-logo dark:text-gray-200">Audio</span></div>
+
+                            {isCheckingAudio && <Loader2 className="w-4 h-4 animate-spin text-gray-500" aria-hidden="true" />}
+                          </div>
+                          <div className="border-4 bg-blue-100 shadow-lg border-blue-100 rounded-2xl dark:border-gray-700 p-4">
+                            <div className="flex items-center justify-center gap-6 ">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className={
+                                  isAudioPlaying
+                                    ? 'border-0 rounded-xl shadow-lg bg-sky-100 text-sky-800 hover:bg-sky-200 hover:text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 dark:hover:bg-sky-900/45'
+                                    : 'border-0 rounded-xl shadow-lg bg-[#5f9798] text-white hover:bg-emerald-200 hover:text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:bg-emerald-900/45'
+                                }
+                                disabled={isCheckingAudio || !hasTaleTimeAudio}
+                                title={
+                                  isAudioPlaying
+                                    ? 'Pause audio'
+                                    : hasAudioResumePoint
+                                      ? 'Resume audio'
+                                      : 'Play audio'
+                                }
+                                aria-label={
+                                  isAudioPlaying
+                                    ? 'Pause audio'
+                                    : hasAudioResumePoint
+                                      ? 'Resume audio'
+                                      : 'Play audio'
+                                }
+                                onClick={isAudioPlaying ? handleAudioPause : handleAudioPlay}
+                                type="button"
+                              >
+                                {isAudioPlaying ? (
+                                  <FaPauseCircle className="h-6 w-6" aria-hidden="true" />
+                                ) : (
+                                  <FaPlay className="h-5 w-5" aria-hidden="true" />
+                                )}
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="border-0 rounded-xl bg-[#ff9b8b] text-white hover:bg-rose-200 hover:text-rose-900 dark:bg-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-900/45"
+                                disabled={isCheckingAudio || !hasTaleTimeAudio}
+                                title="Stop audio and reset to the beginning"
+                                aria-label="Stop audio and reset to the beginning"
+                                onClick={handleAudioStop}
+                                type="button"
+                              >
+                                <FaStop className="h-5 w-5 shadow-lg" aria-hidden="true" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
