@@ -44,10 +44,10 @@ export default function RegisterPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-gradient-to-br from-[#F5E9DA] via-white to-[#F5E9DA] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur rounded-2xl border border-white/50 shadow-xl p-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Register</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+      <main className="min-h-screen bg-tt-gradient-soft flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-tt-surface/90 dark:bg-gray-900/90 backdrop-blur rounded-tt border border-white/50 shadow-xl p-6">
+          <h1 className="text-2xl font-bold text-tt-primary dark:text-white">Register</h1>
+          <p className="text-sm text-tt-muted dark:text-gray-400 mt-1">
             Create an account to unlock bedtime stories.
           </p>
 
@@ -59,22 +59,22 @@ export default function RegisterPage() {
 
           <div className="mt-6 space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email</label>
+              <label className="block text-sm font-semibold text-tt-muted dark:text-gray-300 mb-2">Email</label>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-[#B5CDA3] dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6BA8A9]"
+                className="w-full px-4 py-3 rounded-tt border border-tt-border dark:border-gray-700 bg-tt-surface dark:bg-gray-800 text-tt-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-tt-tertiary"
                 placeholder="you@example.com"
                 autoComplete="email"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Password</label>
+              <label className="block text-sm font-semibold text-tt-muted dark:text-gray-300 mb-2">Password</label>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
-                className="w-full px-4 py-3 rounded-lg border border-[#B5CDA3] dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6BA8A9]"
+                className="w-full px-4 py-3 rounded-tt border border-tt-border dark:border-gray-700 bg-tt-surface dark:bg-gray-800 text-tt-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-tt-tertiary"
                 placeholder="At least 8 characters"
                 autoComplete="new-password"
                 onKeyDown={(e) => {
@@ -90,9 +90,9 @@ export default function RegisterPage() {
               {loading ? 'Creating account…' : 'Create account'}
             </Button>
 
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-tt-muted dark:text-gray-400">
               Already have an account?{' '}
-              <Link className="text-[#6BA8A9] font-semibold hover:underline" href={`/signin?next=${encodeURIComponent(next)}`}>
+              <Link className="text-tt-tertiary font-semibold hover:underline" href={`/signin?next=${encodeURIComponent(next)}`}>
                 Sign in
               </Link>
             </div>

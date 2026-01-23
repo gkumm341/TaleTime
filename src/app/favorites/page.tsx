@@ -92,7 +92,7 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="min-h-screen relative bg-white dark:bg-gray-900 transition-colors duration-500">
+    <div className="min-h-screen relative bg-tt-surface dark:bg-gray-900 transition-colors duration-500">
       <Image src="/flowers_background.png" alt="Favorites Background" layout="fill" objectFit="cover" quality={75} />
       {/* Responsive Sidebar Navigation */}
       <Sidebar activePage="favorites" />
@@ -104,16 +104,16 @@ export default function FavoritesPage() {
           {/* Mobile Header - TaleTime Logo */}
           <div className="md:hidden text-center mb-6 animate-in fade-in slide-in-from-top duration-700">
             <div className="text-5xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
-            <h1 className="text-4xl font-black text-[#6BA8A9] drop-shadow-lg">
+            <h1 className="text-4xl font-black text-tt-tertiary drop-shadow-lg">
               TaleTime
             </h1>
-            <p className="text-sm font-bold text-[#FF8B7B] mt-2">Your story telling companion</p>
+            <p className="text-sm font-bold text-tt-accent mt-2">Your story telling companion</p>
           </div>
         
           {/* Header */}
           <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom duration-700">
             <div className="flex items-center gap-3">
-              <h1 className="text-4xl font-bold text-[#6BA8A9]">
+              <h1 className="text-4xl font-bold text-tt-tertiary">
                 Your Favorite Books
               </h1>
             </div>
@@ -122,7 +122,7 @@ export default function FavoritesPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'recent' | 'title')}
-                className="px-4 py-2 rounded-lg border border-[#B5CDA3] dark:border-[#B5CDA3] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#6BA8A9] focus:border-transparent shadow-sm font-medium"
+                className="px-4 py-2 rounded-tt border border-tt-border dark:border-tt-border bg-tt-surface/90 dark:bg-gray-800/90 backdrop-blur-sm text-tt-primary dark:text-white focus:ring-2 focus:ring-tt-tertiary focus:border-transparent shadow-sm font-medium"
               >
                 <option value="recent">Recently Added</option>
                 <option value="title">Title (A-Z)</option>
@@ -133,17 +133,17 @@ export default function FavoritesPage() {
           {/* Content */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#6BA8A9] border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-tt-tertiary border-t-transparent"></div>
             </div>
           ) : favorites.length === 0 ? (
             <div className="text-center py-20 animate-in fade-in duration-700">
-              <div className="inline-block bg-white dark:bg-gray-900 backdrop-blur-xl rounded-3xl p-12 border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 shadow-lg">
+              <div className="inline-block bg-tt-surface dark:bg-gray-900 backdrop-blur-xl rounded-3xl p-12 border border-tt-border/20 dark:border-tt-border/10 shadow-lg">
                 <div className="text-6xl mb-4">💔</div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No favorites yet</h2>
+                <h2 className="text-2xl font-bold text-tt-primary dark:text-white mb-2">No favorites yet</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">Start adding books to your favorites by clicking the heart icon!</p>
                 <Link 
                   href="/"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#6BA8A9] hover:bg-[#5F9798] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-tt-tertiary hover:bg-tt-tertiary/90 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   <span className="text-lg">🏠</span>
                   Browse Stories

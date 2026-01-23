@@ -2,13 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --tt-primary: 50 50 72;       /* #323248 */
+  --tt-secondary: 243 219 174;  /* #F3DBAE */
+  --tt-tertiary: 151 163 192;   /* #97A3C0 */
+
+  --tt-accent: 218 172 130;     /* #DAAC82 */
+  --tt-ink: 33 20 29;           /* #21141D */
+  --tt-muted: 95 89 106;        /* #5F596A */
+
+  --tt-surface: 255 250 243;    /* #FFFAF3 */
+  --tt-border: 95 89 106;       /* same as muted */
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
+    color-scheme: light;
   }
   
   body {
+    @apply bg-tt-secondary text-tt-primary antialiased;
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  h1, h2, h3, h4 { @apply text-tt-primary; }
+  p { @apply text-tt-ink/90; }
+  a { @apply text-tt-primary underline-offset-4 hover:underline; }
+  hr { @apply border-tt-border/20; }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(218, 172, 130, 0.35);
   }
   
   /* Custom scrollbar styles */
@@ -18,22 +43,48 @@
   }
   
   ::-webkit-scrollbar-track {
-    background: rgba(107, 168, 169, 0.1);
+    @apply bg-tt-tertiary/10;
     border-radius: 4px;
   }
   
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, #6BA8A9, #5F9798);
+    @apply bg-gradient-to-b from-tt-tertiary to-tt-muted;
     border-radius: 4px;
     transition: all 0.3s ease;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, #5F9798, #558788);
+    @apply bg-gradient-to-b from-tt-muted to-tt-primary/70;
   }
 }
 
 @layer components {
+  /* TaleTime brand component classes */
+  .tt-page { @apply bg-tt-secondary text-tt-primary; }
+
+  .tt-surface { @apply bg-tt-surface border border-tt-border/20 rounded-tt shadow-tt; }
+  .tt-card { @apply tt-surface p-6; }
+
+  .tt-btn {
+    @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold
+           transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .tt-btn-primary { @apply tt-btn bg-tt-primary text-tt-secondary hover:bg-tt-primary/90; }
+  .tt-btn-secondary { @apply tt-btn bg-tt-tertiary text-tt-primary hover:bg-tt-tertiary/90; }
+  .tt-btn-accent { @apply tt-btn bg-tt-accent text-tt-ink hover:bg-tt-accent/90; }
+
+  .tt-input {
+    @apply w-full rounded-tt border border-tt-border/25 bg-tt-surface px-3 py-2 text-tt-primary
+           placeholder:text-tt-muted/70 focus:border-tt-accent focus:ring-2 focus:ring-tt-accent/30;
+  }
+
+  .tt-badge {
+    @apply inline-flex items-center rounded-full bg-tt-tertiary/35 px-3 py-1 text-xs font-semibold text-tt-primary;
+  }
+
+  .tt-gradient-soft { @apply bg-gradient-to-br from-tt-secondary via-white to-tt-tertiary/40; }
+  .tt-gradient-night { @apply bg-gradient-to-br from-tt-primary via-tt-tertiary to-tt-secondary; }
+
   .tt-logo {
     font-family: var(--font-baloo), ui-rounded, system-ui, -apple-system, sans-serif;
     font-weight: 700;

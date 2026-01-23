@@ -1009,26 +1009,26 @@ export default function AbridgedBookPage() {
           />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-l from-[#FDF6EC]/25 to-[#F1FAF9]/25 dark:from-gray-950/45 dark:to-gray-950/45" />
+        <div className="absolute inset-0 bg-gradient-to-l from-tt-secondary/25 to-tt-secondary/25 dark:from-gray-950/45 dark:to-gray-950/45" />
       </div>
-      <div className="sticky top-0 z-20  dark:bg-gray-950/80 backdrop-blur border-b border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10">
+      <div className="sticky top-0 z-20  dark:bg-gray-950/80 backdrop-blur border-b border-tt-border/20 dark:border-tt-border/10">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="flex items-center justify-start min-w-0">
               <button onClick={() => router.push('/')}>
-                <div className="relative flex items-center gap-2">
-                  <Image src="/owlFace2.png" alt="TaleTime Logo" width={48} height={48} />
+                <div className="relative flex items-center">
+                  <Image src="/owlFace2.png" alt="TaleTime Logo" width={64} height={64} />
                   <h2 className="tt-logo font-heading text-3xl">TaleTime</h2>
                 </div>
               </button>
             </div>
 
             <div className="min-w-0 flex flex-col items-center justify-center">
-              <div className="min-w-0 text-lg font-semibold text-[#5f9798] dark:text-white truncate">
+              <div className="min-w-0 text-lg font-semibold text-tt-tertiary dark:text-white truncate">
                 {data?.title ?? 'Preparing story…'}
               </div>
               {showDebugInfo && data && (
-                <div className="min-w-0 text-[11px] text-[#3E3E3E]/60 dark:text-gray-300/60 truncate">
+                <div className="min-w-0 text-[11px] text-tt-primary/60 dark:text-gray-300/60 truncate">
                   {data.mode}
                   {data.sourceFormat ? ` • ${data.sourceFormat}` : ''}
                   {Array.isArray(data.blocks) ? ` • ${data.blocks.length} blocks` : ''}
@@ -1139,7 +1139,7 @@ export default function AbridgedBookPage() {
 
                       <div className="flex flex-col gap-2 w-40">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">Audio</span>
+                          <span className="text-xs font-semibold text-tt-muted dark:text-gray-200">Audio</span>
                           {isCheckingAudio && <Loader2 className="w-4 h-4 animate-spin text-gray-500" aria-hidden="true" />}
                         </div>
 
@@ -1149,8 +1149,8 @@ export default function AbridgedBookPage() {
                             size="icon"
                             className={
                               isAudioPlaying
-                                ? 'border-0 rounded-xl bg-sky-100 text-sky-800 hover:bg-sky-200 hover:text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 dark:hover:bg-sky-900/45'
-                                : 'border-0 rounded-xl bg-emerald-100 text-emerald-800 hover:bg-emerald-200 hover:text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:bg-emerald-900/45'
+                                ? 'border-0 rounded-tt bg-sky-100 text-sky-800 hover:bg-sky-200 hover:text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 dark:hover:bg-sky-900/45'
+                                : 'border-0 rounded-tt bg-emerald-100 text-emerald-800 hover:bg-emerald-200 hover:text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:bg-emerald-900/45'
                             }
                             disabled={isCheckingAudio || !hasTaleTimeAudio}
                             title={
@@ -1180,7 +1180,7 @@ export default function AbridgedBookPage() {
                           <Button
                             variant="outline"
                             size="icon"
-                            className="border-0 rounded-xl bg-rose-100 text-rose-800 hover:bg-rose-200 hover:text-rose-900 dark:bg-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-900/45"
+                            className="border-0 rounded-tt bg-rose-100 text-rose-800 hover:bg-rose-200 hover:text-rose-900 dark:bg-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-900/45"
                             disabled={isCheckingAudio || !hasTaleTimeAudio}
                             title="Stop audio and reset to the beginning"
                             aria-label="Stop audio and reset to the beginning"
@@ -1196,7 +1196,7 @@ export default function AbridgedBookPage() {
                 </>
               )}
               {/* Version segmented control */}
-              <div className="inline-flex rounded-xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-gray-950/40 p-1 shadow-sm shrink-0">
+              <div className="inline-flex rounded-tt border border-black/10 dark:border-white/10 bg-tt-surface/70 dark:bg-gray-950/40 p-1 shadow-sm shrink-0">
                 {TIME_OPTIONS.map((opt) => {
                   const isSelected = selectedTimeOptionId === opt.id;
                   const label = opt.id === 'full' ? 'Full story' : 'Bedtime adaptation';
@@ -1215,8 +1215,8 @@ export default function AbridgedBookPage() {
                       }}
                       className={
                         isSelected
-                          ? 'px-4 py-2 rounded-lg bg-[#ff9b8b] text-white text-sm font-semibold shadow'
-                          : 'px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60'
+                          ? 'px-4 py-2 rounded-lg bg-tt-accent text-white text-sm font-semibold shadow'
+                          : 'px-4 py-2 rounded-lg text-sm font-semibold text-tt-muted dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60'
                       }
                     >
                       <span className="inline-flex items-center gap-2">
@@ -1236,13 +1236,13 @@ export default function AbridgedBookPage() {
       {/* Body */}
       <main className="max-w-7xl mx-auto px-4 py-6 relative z-10">
         {loading && (
-          <div className="py-16 text-center text-gray-600 dark:text-gray-400">
+          <div className="py-16 text-center text-tt-muted dark:text-gray-400">
             {variant === 'full' ? 'Loading full text…' : 'Loading bedtime version…'}
           </div>
         )}
 
         {!loading && error && (
-          <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-6 text-center">
+          <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-tt p-6 text-center">
             <div className="font-semibold text-rose-800 dark:text-rose-200">{error}</div>
             <div className="mt-4">
               <div className="flex flex-wrap gap-2 justify-center">
@@ -1484,15 +1484,15 @@ export default function AbridgedBookPage() {
 
                             {isCheckingAudio && <Loader2 className="w-4 h-4 animate-spin text-gray-500" aria-hidden="true" />}
                           </div>
-                          <div className="border-4 bg-blue-100 shadow-lg border-blue-100 rounded-2xl dark:border-gray-700 p-4">
+                          <div className="border-4 bg-blue-100 shadow-lg border-blue-100 rounded-tt dark:border-tt-muted p-4">
                             <div className="flex items-center justify-center gap-6 ">
                               <Button
                                 variant="outline"
                                 size="icon"
                                 className={
                                   isAudioPlaying
-                                    ? 'border-0 rounded-xl shadow-lg bg-sky-100 text-sky-800 hover:bg-sky-200 hover:text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 dark:hover:bg-sky-900/45'
-                                    : 'border-0 rounded-xl shadow-lg bg-[#5f9798] text-white hover:bg-emerald-200 hover:text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:bg-emerald-900/45'
+                                    ? 'border-0 rounded-tt shadow-lg bg-sky-100 text-sky-800 hover:bg-sky-200 hover:text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 dark:hover:bg-sky-900/45'
+                                    : 'border-0 rounded-tt shadow-lg bg-tt-tertiary text-white hover:bg-emerald-200 hover:text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:bg-emerald-900/45'
                                 }
                                 disabled={isCheckingAudio || !hasTaleTimeAudio}
                                 title={
@@ -1522,7 +1522,7 @@ export default function AbridgedBookPage() {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="border-0 rounded-xl bg-[#ff9b8b] text-white hover:bg-rose-200 hover:text-rose-900 dark:bg-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-900/45"
+                                className="border-0 rounded-tt bg-tt-accent text-white hover:bg-rose-200 hover:text-rose-900 dark:bg-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-900/45"
                                 disabled={isCheckingAudio || !hasTaleTimeAudio}
                                 title="Stop audio and reset to the beginning"
                                 aria-label="Stop audio and reset to the beginning"
@@ -1543,7 +1543,7 @@ export default function AbridgedBookPage() {
           </div>
         )}
 
-        <div className="text-xs text-[#3E3E3E]/60 dark:text-gray-400 text-center mt-4">
+        <div className="text-xs text-tt-primary/60 dark:text-gray-400 text-center mt-4">
           {isMobile
             ? "Tip: swipe/drag to flip pages."
             : "Tip: click/drag page corners to flip."}

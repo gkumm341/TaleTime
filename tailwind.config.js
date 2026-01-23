@@ -2,9 +2,10 @@
 module.exports = {
   darkMode: 'class',
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -13,6 +14,16 @@ module.exports = {
         body: ["var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
       },
       colors: {
+        tt: {
+          primary: "rgb(var(--tt-primary) / <alpha-value>)",
+          secondary: "rgb(var(--tt-secondary) / <alpha-value>)",
+          tertiary: "rgb(var(--tt-tertiary) / <alpha-value>)",
+          accent: "rgb(var(--tt-accent) / <alpha-value>)",
+          ink: "rgb(var(--tt-ink) / <alpha-value>)",
+          muted: "rgb(var(--tt-muted) / <alpha-value>)",
+          surface: "rgb(var(--tt-surface) / <alpha-value>)",
+          border: "rgb(var(--tt-border) / <alpha-value>)",
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -48,9 +59,14 @@ module.exports = {
         ring: "hsl(var(--ring))",
       },
       borderRadius: {
+        tt: "1.25rem",
+        "tt-xl": "1.5rem",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        tt: "0 12px 30px rgba(33, 20, 29, 0.14)",
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",

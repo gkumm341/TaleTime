@@ -4,19 +4,19 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-tt text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tt-accent/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-[#6BA8A9] text-white hover:bg-[#5F9798]",
+        default: "bg-tt-primary text-tt-secondary hover:bg-tt-primary/90",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border border-[#B5CDA3] bg-background hover:bg-[#6BA8A9]/10 hover:text-[#6BA8A9] hover:border-[#6BA8A9]",
+          "border border-tt-border/25 bg-tt-surface hover:bg-tt-tertiary/20 hover:text-tt-primary hover:border-tt-primary/40",
         secondary:
-          "bg-[#FF8B7B] text-white hover:bg-[#FF8B7B]/90",
-        ghost: "hover:bg-[#6BA8A9]/10 hover:text-[#6BA8A9]",
-        link: "text-[#6BA8A9] underline-offset-4 hover:underline hover:text-[#5F9798]",
+          "bg-tt-accent text-tt-ink hover:bg-tt-accent/90",
+        ghost: "hover:bg-tt-tertiary/20 hover:text-tt-primary",
+        link: "text-tt-primary underline-offset-4 hover:underline hover:text-tt-accent",
       },
       size: {
         default: "h-10 px-4 py-2",

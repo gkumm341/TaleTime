@@ -88,9 +88,9 @@ export function AuthButtons({
           <div className="text-xs text-gray-600 dark:text-gray-300 max-w-[14rem] truncate">
             {user.email}
             {user.isPaid ? (
-              <span className="ml-2 text-[11px] font-semibold text-[#6BA8A9]">Paid</span>
+              <span className="ml-2 text-[11px] font-semibold text-tt-tertiary">Paid</span>
             ) : (
-              <span className="ml-2 text-[11px] font-semibold text-[#FF8B7B]">Free</span>
+              <span className="ml-2 text-[11px] font-semibold text-tt-accent">Free</span>
             )}
           </div>
         )}

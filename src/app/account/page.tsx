@@ -65,9 +65,9 @@ export default function AccountPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-gradient-to-br from-[#F5E9DA] via-white to-[#F5E9DA] p-4">
+      <main className="min-h-screen bg-gradient-to-br from-tt-secondary via-white to-tt-secondary p-4">
         <div className="max-w-2xl mx-auto pt-10">
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur rounded-2xl border border-white/50 shadow-xl p-6">
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur rounded-tt border border-white/50 shadow-xl p-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Account</h1>
 
             {loading ? (
@@ -91,14 +91,14 @@ export default function AccountPage() {
                 </div>
                 <div className="text-sm text-gray-700 dark:text-gray-300">
                   Plan: {user.isPaid ? (
-                    <span className="font-semibold text-[#6BA8A9]">Paid (Bedtime unlocked)</span>
+                    <span className="font-semibold text-tt-tertiary">Paid (Bedtime unlocked)</span>
                   ) : (
-                    <span className="font-semibold text-[#FF8B7B]">Free (Bedtime locked)</span>
+                    <span className="font-semibold text-tt-accent">Free (Bedtime locked)</span>
                   )}
                 </div>
 
                 {!user.isPaid && (
-                  <div className="rounded-xl border border-[#B5CDA3]/40 dark:border-[#B5CDA3]/20 p-4 bg-white/60 dark:bg-gray-900/50">
+                  <div className="rounded-tt border border-tt-border/40 dark:border-tt-border/20 p-4 bg-white/60 dark:bg-gray-900/50">
                     <div className="font-semibold text-gray-900 dark:text-white">Unlock Bedtime</div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       Payment integration is coming next. For now, you can use a development-only mock upgrade to test the flow.

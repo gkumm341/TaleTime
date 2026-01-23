@@ -170,12 +170,12 @@ export default function ContinueBookmarked() {
     return (
       <div className="w-full">
         <div className="flex items-center gap-3 mb-6">
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffd9b5] to-[#ffb7b0] ring-1 ring-black/5 shadow-sm">
-            <Bookmark className="h-6 w-6 text-[#ff7b6b]" />
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent/40 ring-1 ring-tt-border/10 shadow-sm">
+            <Bookmark className="h-6 w-6 text-tt-accent" />
           </span>
-          <h1 className="text-2xl font-bold text-[#6BA8A9]">Continue</h1>
+          <h1 className="text-2xl font-bold text-tt-tertiary">Continue</h1>
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-300">Loading your bookmarked books…</div>
+        <div className="text-sm text-tt-muted dark:text-gray-300">Loading your bookmarked books…</div>
       </div>
     );
   }
@@ -184,18 +184,18 @@ export default function ContinueBookmarked() {
     <div className="w-full">
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffd9b5] to-[#ffb7b0] ring-1 ring-black/5 shadow-sm">
-            <Bookmark className="h-6 w-6 text-[#ff7b6b]" />
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent/40 ring-1 ring-tt-border/10 shadow-sm">
+            <Bookmark className="h-6 w-6 text-tt-accent" />
           </span>
           <div>
-            <h1 className="text-2xl font-bold text-[#6BA8A9]">Continue</h1>
-            <div className="text-sm text-gray-600 dark:text-gray-300">Your bookmarked stories</div>
+            <h1 className="text-2xl font-bold text-tt-tertiary">Continue</h1>
+            <div className="text-sm text-tt-muted dark:text-gray-300">Your bookmarked stories</div>
           </div>
         </div>
         
         <Link
           href="/"
-          className="text-sm font-semibold text-[#FF8B7B] hover:text-[#6BA8A9] transition-all flex items-center gap-1.5 group"
+          className="text-sm font-semibold text-tt-accent hover:text-tt-tertiary transition-all flex items-center gap-1.5 group"
         >
           Home
           <span className="group-hover:translate-x-1 transition-transform"><Home className="h-4 w-4" /></span>
@@ -203,15 +203,15 @@ export default function ContinueBookmarked() {
       </div>
 
       {empty ? (
-        <div className="rounded-3xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 bg-white dark:bg-gray-900 p-8 shadow-lg">
-          <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">No bookmarks yet</div>
-          <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+        <div className="rounded-tt-xl border border-tt-border/20 dark:border-tt-border/10 bg-tt-surface dark:bg-gray-900 p-8 shadow-tt">
+          <div className="text-lg font-semibold text-tt-primary dark:text-gray-100">No bookmarks yet</div>
+          <div className="mt-2 text-sm text-tt-muted dark:text-gray-300">
             Add a bookmark in Full story or Bedtime adaptation, then come back here to continue reading.
           </div>
           <div className="mt-6">
             <Link
               href="/"
-              className="inline-flex items-center justify-center rounded-full bg-[#6BA8A9] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5a9697] transition-colors"
+              className="inline-flex items-center justify-center rounded-full bg-tt-tertiary px-5 py-2.5 text-sm font-semibold text-white hover:bg-tt-tertiary/90 transition-colors"
             >
               Find a story
             </Link>
@@ -228,7 +228,7 @@ export default function ContinueBookmarked() {
             return (
               <div
                 key={item.book.id}
-                className="group rounded-3xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 bg-white dark:bg-gray-900 overflow-hidden shadow-lg hover:shadow-xl hover:shadow-[#6BA8A9]/10 transition-all"
+                className="group rounded-tt-xl border border-tt-border/20 dark:border-tt-border/10 bg-tt-surface dark:bg-gray-900 overflow-hidden shadow-tt hover:shadow-lg hover:shadow-tt-tertiary/10 transition-all"
               >
                 <Link href={primaryHref} className="block">
                   <div className="relative w-full aspect-[3/4] bg-gray-50 dark:bg-gray-800 overflow-hidden">
@@ -250,10 +250,10 @@ export default function ContinueBookmarked() {
                   </div>
 
                   <div className="p-4">
-                    <div className="font-bold text-sm line-clamp-2 group-hover:text-[#6BA8A9] transition-colors">
+                    <div className="font-bold text-sm line-clamp-2 group-hover:text-tt-tertiary transition-colors">
                       {item.book.title}
                     </div>
-                    <div className="mt-1 text-xs text-gray-600 dark:text-gray-400 line-clamp-1 font-medium">
+                    <div className="mt-1 text-xs text-tt-muted dark:text-gray-400 line-clamp-1 font-medium">
                       {item.book.authors}
                     </div>
                   </div>
@@ -261,10 +261,10 @@ export default function ContinueBookmarked() {
 
                 <div className="px-4 pb-4 flex flex-wrap gap-2">
                   {item.hasFull && (
-                    <div className="inline-flex items-center rounded-full border border-[#6BA8A9]/30 text-[#6BA8A9] overflow-hidden">
+                    <div className="inline-flex items-center rounded-full border border-tt-tertiary/30 text-tt-tertiary overflow-hidden">
                       <Link
                         href={`/book/${item.book.id}/abridged?variant=full`}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-[#6BA8A9]/10 transition-colors"
+                        className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-tt-tertiary/10 transition-colors"
                         title="Open Full story"
                       >
                         <BookOpen className="h-4 w-4" />
@@ -276,7 +276,7 @@ export default function ContinueBookmarked() {
                         type="button"
                         onClick={() => void handleUnbookmark(item.book.id, 'full')}
                         disabled={clearingKey === `${item.book.id}:full`}
-                        className="px-2 py-2 hover:bg-[#6BA8A9]/10 transition-colors disabled:opacity-50"
+                        className="px-2 py-2 hover:bg-tt-tertiary/10 transition-colors disabled:opacity-50"
                         aria-label="Remove Full bookmark"
                         title="Remove Full bookmark"
                       >
@@ -286,10 +286,10 @@ export default function ContinueBookmarked() {
                   )}
 
                   {item.hasBedtime && (
-                    <div className="inline-flex items-center rounded-full border border-[#FF8B7B]/40 text-[#FF8B7B] overflow-hidden">
+                    <div className="inline-flex items-center rounded-full border border-tt-accent/40 text-tt-accent overflow-hidden">
                       <Link
                         href={`/book/${item.book.id}/abridged?variant=bedtime`}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-[#FF8B7B]/10 transition-colors"
+                        className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-tt-accent/10 transition-colors"
                         title="Open Bedtime adaptation"
                       >
                         <Moon className="h-4 w-4" />
@@ -301,7 +301,7 @@ export default function ContinueBookmarked() {
                         type="button"
                         onClick={() => void handleUnbookmark(item.book.id, 'bedtime')}
                         disabled={clearingKey === `${item.book.id}:bedtime`}
-                        className="px-2 py-2 hover:bg-[#FF8B7B]/10 transition-colors disabled:opacity-50"
+                        className="px-2 py-2 hover:bg-tt-accent/10 transition-colors disabled:opacity-50"
                         aria-label="Remove Bedtime bookmark"
                         title="Remove Bedtime bookmark"
                       >

@@ -90,16 +90,16 @@ export function PWAInstallPrompt() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50">
-      <Card className="backdrop-blur-md bg-white/95 shadow-2xl border border-white/50 animate-slide-up">
+      <Card className="backdrop-blur-md bg-tt-surface/95 shadow-tt border border-white/50 animate-slide-up">
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="bg-[#6BA8A9] rounded-lg p-2">
+              <div className="bg-tt-tertiary rounded-lg p-2">
                 <Smartphone className="text-white" size={20} />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-800">Install TaleTime</h3>
-                <p className="text-sm text-gray-600">Get the app for a better experience</p>
+                <h3 className="font-semibold text-tt-primary">Install TaleTime</h3>
+                <p className="text-sm text-tt-muted">Get the app for a better experience</p>
               </div>
             </div>
             <Button
@@ -113,7 +113,7 @@ export function PWAInstallPrompt() {
           </div>
           
           <div className="space-y-2">
-            <ul className="text-xs text-gray-600 space-y-1">
+            <ul className="text-xs text-tt-muted space-y-1">
               <li>• Works offline</li>
               <li>• Faster loading</li>
               <li>• Push notifications</li>
@@ -123,7 +123,7 @@ export function PWAInstallPrompt() {
               <Button
                 onClick={handleInstallClick}
                 size="sm"
-                className="flex-1 bg-[#6BA8A9] hover:bg-[#5F9798] text-white"
+                className="flex-1 bg-tt-tertiary hover:bg-tt-tertiary/90 text-white"
               >
                 <Download className="mr-1" size={14} />
                 Install

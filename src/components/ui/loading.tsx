@@ -13,7 +13,7 @@ export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) 
   }
 
   return (
-    <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${sizeClasses[size]} ${className}`}></div>
+    <div className={`animate-spin rounded-full border-2 border-tt-border/30 border-t-tt-accent ${sizeClasses[size]} ${className}`}></div>
   )
 }
 
@@ -26,7 +26,7 @@ interface SkeletonProps {
 export function Skeleton({ className, width, height }: SkeletonProps) {
   return (
     <div 
-      className={`animate-pulse bg-gray-300 rounded ${className}`}
+      className={`animate-pulse bg-tt-border/30 rounded ${className}`}
       style={{ width, height }}
     ></div>
   )
@@ -34,7 +34,7 @@ export function Skeleton({ className, width, height }: SkeletonProps) {
 
 export function StoryCardSkeleton() {
   return (
-    <div className="bg-white/70 rounded-3xl p-6 shadow-xl border border-white/50">
+    <div className="tt-card">
       <div className="flex items-start justify-between mb-4">
         <Skeleton className="h-6 w-3/4" />
         <Skeleton className="h-8 w-8 rounded-full" />
@@ -71,12 +71,12 @@ interface LoadingPageProps {
 
 export function LoadingPage({ title = "Loading...", description }: LoadingPageProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5E9DA] via-white to-[#F5E9DA] flex items-center justify-center p-4">
+    <div className="min-h-screen tt-gradient-soft flex items-center justify-center p-4">
       <div className="text-center">
         <LoadingSpinner size="lg" className="mx-auto mb-4" />
-        <h2 className="text-2xl font-semibold text-gray-700 mb-2">{title}</h2>
+        <h2 className="text-2xl font-semibold text-tt-primary mb-2">{title}</h2>
         {description && (
-          <p className="text-gray-600">{description}</p>
+          <p className="text-tt-muted">{description}</p>
         )}
       </div>
     </div>

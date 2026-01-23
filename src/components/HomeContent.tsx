@@ -170,11 +170,11 @@ export function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-r from-[#c7cdc8] via-[#fdf7f4] to-[#c7cdc8] dark:bg-gray-950 overflow-hidden">
+    <div className="min-h-screen relative tt-gradient-soft dark:bg-tt-primary overflow-hidden">
 
       {/* Soft overlay to keep text readable */}
       <div
-        className="pointer-events-none absolute inset-0 bg-white/70 dark:bg-gray-950/70"
+        className="pointer-events-none absolute inset-0 bg-tt-surface/70 dark:bg-tt-primary/70"
         aria-hidden="true"
       />
       {/* Responsive Sidebar Navigation */}
@@ -182,10 +182,10 @@ export function HomeContent() {
      
 
         {/* Storage Info */}
-        <div className="pt-4 border-t border-black/5 bg-white/60 p-3 rounded-2xl ring-1 ring-black/5">
+        <div className="pt-4 border-t border-tt-border/10 bg-tt-surface/60 p-3 rounded-tt ring-1 ring-tt-border/10">
           <div className="mb-2 flex items-center gap-2">
-            <Library className="h-4 w-4 text-[#6BA8A9]" />
-            <h3 className="text-xs font-semibold text-slate-800">Your Library</h3>
+            <Library className="h-4 w-4 text-tt-tertiary" />
+            <h3 className="text-xs font-semibold text-tt-primary">Your Library</h3>
           </div>
           <StorageInfo />
         </div>
@@ -222,28 +222,28 @@ export function HomeContent() {
                     }
                   }}
                   placeholder="Search by title, author, character, keyword..."
-                  className="w-full pl-12 pr-10 py-3 rounded-2xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-gray-900/80 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-[#6BA8A9]/40 focus:border-transparent shadow-sm backdrop-blur"
+                  className="tt-input pl-12 pr-10 py-3"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={clearSearch}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-tt-tertiary/20 transition-colors"
                   >
-                    <X className="w-4 h-4 text-gray-500" />
+                    <X className="w-4 h-4 text-tt-muted" />
                   </button>
                 )}
               </div>
               <button
                 type="submit"
                 disabled={isSearching || !searchQuery.trim()}
-                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#6BA8A9] to-[#5F9798] text-white font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="tt-btn-primary px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {isSearching ? 'Searching...' : 'Search'}
               </button>
             </form>
             {searchResults !== null && (
-              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              <div className="mt-2 text-sm text-tt-muted">
                 {searchResults.length > 0 ? (
                   <span>Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;</span>
                 ) : (
@@ -252,7 +252,7 @@ export function HomeContent() {
                 <button
                   type="button"
                   onClick={clearSearch}
-                  className="ml-2 text-[#6BA8A9] hover:underline"
+                  className="ml-2 text-tt-accent hover:underline"
                 >
                   Clear search
                 </button>
@@ -264,17 +264,17 @@ export function HomeContent() {
           <ActiveFilters filters={filters} onRemove={handleRemoveFilter} />
 
           {/* Controls Row */}
-          <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-gray-900/50 backdrop-blur px-4 py-3 shadow-sm">
+          <div className="tt-surface px-4 py-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="text-sm font-medium text-tt-primary">
                     Sort by:
                   </label>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="px-4 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#FF8B7B]/40 focus:border-transparent shadow-sm"
+                    className="tt-input px-4 py-2 w-auto"
                   >
                     <option value="popularity">Most Popular</option>
                     <option value="title">Title (A-Z)</option>
@@ -284,13 +284,13 @@ export function HomeContent() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="text-sm font-medium text-tt-primary">
                     Books per page:
                   </label>
                   <select
                     value={itemsPerPage}
                     onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                    className="px-4 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#6BA8A9]/40 focus:border-transparent shadow-sm"
+                    className="tt-input px-4 py-2 w-auto"
                   >
                     <option value={25}>25</option>
                     <option value={50}>50</option>
@@ -302,8 +302,8 @@ export function HomeContent() {
               <div className="flex items-center gap-3 justify-between lg:justify-end">
                 {/* Version segmented control */}
                 <div className="flex items-center gap-2">
-                  <div className="text-sm text-gray-700 dark:text-gray-300"> </div>
-                  <div className="inline-flex rounded-xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-gray-950/40 p-1 shadow-sm">
+                  <div className="text-sm text-tt-primary"> </div>
+                  <div className="inline-flex rounded-tt border border-tt-border/20 bg-tt-surface/70 dark:bg-tt-primary/40 p-1 shadow-sm">
                     {TIME_OPTIONS.map((opt) => {
                       const isSelected = selectedTimeOptionId === opt.id;
                       const label = opt.id === 'full' ? 'Full story' : 'Bedtime adaptation';
@@ -319,8 +319,8 @@ export function HomeContent() {
                           }}
                           className={
                             isSelected
-                              ? 'px-4 py-2 rounded-lg bg-[#6BA8A9] text-white text-sm font-semibold shadow'
-                              : 'px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60'
+                              ? 'px-4 py-2 rounded-lg bg-tt-primary text-tt-secondary text-sm font-semibold shadow'
+                              : 'px-4 py-2 rounded-lg text-sm font-semibold text-tt-primary hover:bg-tt-tertiary/30'
                           }
                         >
                           {label}
@@ -338,9 +338,9 @@ export function HomeContent() {
       
           {/* Error State */}
           {error && (
-            <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-6 text-center shadow-sm">
-              <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffd9b5] to-[#ffb7b0] ring-1 ring-black/5">
-                <BookOpen className="h-7 w-7 text-[#ff7b6b]" />
+            <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-tt p-6 text-center shadow-sm">
+              <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent ring-1 ring-tt-border/10">
+                <BookOpen className="h-7 w-7 text-tt-accent" />
               </div>
               <p className="text-rose-800 dark:text-rose-200 font-semibold">
                 {error}
@@ -370,7 +370,7 @@ export function HomeContent() {
               </div>
 
               {/* Book Count */}
-              <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-center text-sm text-tt-muted">
                 Showing {books.length} book{books.length !== 1 ? 's' : ''}
               </div>
             </>
@@ -378,14 +378,14 @@ export function HomeContent() {
 
           {/* Empty State */}
           {!loading && !error && books.length === 0 && searchResults === null && (
-            <div className="bg-white dark:bg-gray-900 rounded-3xl p-12 text-center shadow-lg border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10">
-              <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffd9b5] to-[#ffb7b0] ring-1 ring-black/5">
-                <BookOpen className="h-7 w-7 text-[#ff7b6b]" />
+            <div className="tt-card p-12 text-center shadow-lg rounded-tt-xl">
+              <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent ring-1 ring-tt-border/10">
+                <BookOpen className="h-7 w-7 text-tt-accent" />
               </div>
-              <h3 className="text-xl font-semibold text-[#6BA8A9] mb-2">
+              <h3 className="text-xl font-semibold text-tt-tertiary mb-2">
                 No books found
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-tt-muted mb-4">
                 {filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly
                   ? 'Try adjusting your filters to see more results.'
                   : 'Try running the populate script to add books to your catalog.'}
@@ -393,7 +393,7 @@ export function HomeContent() {
               {(filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly) && (
                 <button
                   onClick={() => setFilters({ ageCategories: [], durations: [], languages: [], offlineOnly: false })}
-                  className="px-6 h-11 rounded-full bg-gradient-to-r from-[#ffb59f] to-[#ff7f76] text-white font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                  className="tt-btn-accent px-6 h-11 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all"
                 >
                   Clear all filters
                 </button>

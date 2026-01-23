@@ -46,13 +46,13 @@ export default function PremiumPage() {
       <div className="relative z-10 ml-0 md:ml-72 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
         <div className="max-w-2xl mx-auto space-y-6">
           <div>
-            <h1 className="text-3xl font-black text-[#6BA8A9]">Go Premium</h1>
+            <h1 className="text-3xl font-black text-tt-tertiary">Go Premium</h1>
             <p className="text-gray-700 dark:text-gray-300 mt-2">
               Premium unlocks narration, bedtime retellings, animations, videos, and AI-powered story creation.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#B5CDA3]/30 dark:border-[#B5CDA3]/20 bg-white/90 dark:bg-gray-900/60 p-6 shadow-xl">
+          <div className="rounded-tt border border-tt-border/30 dark:border-tt-border/20 bg-white/90 dark:bg-gray-900/60 p-6 shadow-xl">
             <div className="flex items-baseline justify-between gap-4">
               <div>
                 <div className="text-lg font-bold text-gray-900 dark:text-white">Premium</div>

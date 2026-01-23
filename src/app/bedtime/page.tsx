@@ -69,7 +69,7 @@ export default function BedtimeModePage() {
   }, [selectedDuration]);
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-b from-gray-900 via-[#3E3E3E] to-gray-950">
+    <div className="min-h-screen relative bg-gradient-to-b from-gray-900 via-tt-primary to-gray-950">
       <Sidebar activePage="bedtime" />
 
       <div className="relative z-10 ml-0 md:ml-72 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
@@ -83,15 +83,15 @@ export default function BedtimeModePage() {
             </h1>
             <Sparkles className="w-8 h-8 text-yellow-300" />
           </div>
-          <p className="text-lg text-[#B5CDA3] max-w-2xl mx-auto">
+          <p className="text-lg text-tt-border max-w-2xl mx-auto">
             Perfect stories for winding down. Choose your reading time and drift into dreamland.
           </p>
         </div>
 
         {/* Duration Selector */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-6">
+        <div className="bg-white/10 backdrop-blur-lg rounded-tt border border-white/20 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-[#B5CDA3]" />
+            <Clock className="w-5 h-5 text-tt-border" />
             <h2 className="text-lg font-semibold text-white">
               How much time before sleep?
             </h2>
@@ -102,21 +102,21 @@ export default function BedtimeModePage() {
               <button
                 key={duration}
                 onClick={() => setSelectedDuration(duration as 5 | 10 | 15)}
-                className={`relative px-6 py-8 rounded-xl border-2 transition-all transform hover:scale-105 ${
+                className={`relative px-6 py-8 rounded-tt border-2 transition-all transform hover:scale-105 ${
                   selectedDuration === duration
-                    ? 'border-[#6BA8A9] bg-[#6BA8A9]/20 shadow-lg shadow-[#6BA8A9]/50'
-                    : 'border-white/30 bg-white/5 hover:border-[#B5CDA3] hover:bg-white/10'
+                    ? 'border-tt-tertiary bg-tt-tertiary/20 shadow-lg shadow-tt-tertiary/50'
+                    : 'border-white/30 bg-white/5 hover:border-tt-border hover:bg-white/10'
                 }`}
               >
                 <div className="flex flex-col items-center gap-2">
                   <span className="text-3xl font-bold text-white">
                     {duration}
                   </span>
-                  <span className="text-sm text-[#B5CDA3]">
+                  <span className="text-sm text-tt-border">
                     minutes
                   </span>
                   {selectedDuration === duration && (
-                    <span className="absolute -top-2 -right-2 w-6 h-6 bg-[#6BA8A9] rounded-full flex items-center justify-center text-white text-xs font-bold">
+                    <span className="absolute -top-2 -right-2 w-6 h-6 bg-tt-tertiary rounded-full flex items-center justify-center text-white text-xs font-bold">
                       ✓
                     </span>
                   )}
@@ -129,8 +129,8 @@ export default function BedtimeModePage() {
         {/* Book Count */}
         {!loading && (
           <div className="text-center">
-            <p className="text-[#B5CDA3]">
-              Found <span className="font-bold text-[#6BA8A9]">{books.length}</span> bedtime {books.length === 1 ? 'story' : 'stories'}
+            <p className="text-tt-border">
+              Found <span className="font-bold text-tt-tertiary">{books.length}</span> bedtime {books.length === 1 ? 'story' : 'stories'}
             </p>
           </div>
         )}
@@ -161,16 +161,16 @@ export default function BedtimeModePage() {
         {/* Empty State */}
         {!loading && !error && books.length === 0 && (
           <div className="text-center py-12">
-            <Moon className="w-16 h-16 mx-auto text-[#B5CDA3] mb-4 opacity-50" />
+            <Moon className="w-16 h-16 mx-auto text-tt-border mb-4 opacity-50" />
             <h3 className="text-xl font-semibold text-white mb-2">
               No stories found for this duration
             </h3>
-            <p className="text-[#B5CDA3] mb-4">
+            <p className="text-tt-border mb-4">
               Try selecting a longer duration or check back later.
             </p>
             <button
               onClick={() => router.push('/')}
-              className="px-6 py-3 bg-[#6BA8A9] text-white rounded-lg hover:bg-[#5F9798] transition-colors"
+              className="px-6 py-3 bg-tt-tertiary text-white rounded-tt hover:bg-tt-tertiary transition-colors"
             >
               Browse All Stories
             </button>
@@ -178,12 +178,12 @@ export default function BedtimeModePage() {
         )}
 
         {/* Bedtime Tips */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-6 mt-8">
+        <div className="bg-white/10 backdrop-blur-lg rounded-tt border border-white/20 p-6 mt-8">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-yellow-300" />
             Bedtime Reading Tips
           </h3>
-          <ul className="space-y-2 text-[#B5CDA3] text-sm">
+          <ul className="space-y-2 text-tt-border text-sm">
             <li className="flex items-start gap-2">
               <span className="text-yellow-300">✨</span>
               <span>Dim the lights to create a relaxing atmosphere</span>

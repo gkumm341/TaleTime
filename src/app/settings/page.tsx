@@ -122,8 +122,8 @@ export default function SettingsPage() {
         )}
 
         {/* Reading Preferences */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-6 space-y-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <div className="bg-tt-surface dark:bg-gray-800 rounded-tt border border-gray-300 dark:border-gray-600 p-6 space-y-6">
+          <h2 className="text-xl font-semibold text-tt-primary dark:text-white">
             Reading Preferences
           </h2>
 
@@ -164,14 +164,14 @@ export default function SettingsPage() {
         </div>
 
         {/* App Behavior */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <div className="bg-tt-surface dark:bg-gray-800 rounded-tt border border-gray-300 dark:border-gray-600 p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-tt-primary dark:text-white">
             App Behavior
           </h2>
 
           <label className="flex items-center justify-between cursor-pointer">
             <div>
-              <div className="font-medium text-gray-900 dark:text-white">Auto-save position</div>
+              <div className="font-medium text-tt-primary dark:text-white">Auto-save position</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Automatically save your reading position
               </div>
@@ -186,7 +186,7 @@ export default function SettingsPage() {
 
           <label className="flex items-center justify-between cursor-pointer">
             <div>
-              <div className="font-medium text-gray-900 dark:text-white">Show reading stats</div>
+              <div className="font-medium text-tt-primary dark:text-white">Show reading stats</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Display reading progress panel by default
               </div>
@@ -204,8 +204,8 @@ export default function SettingsPage() {
         <StorageInfoCard />
 
         {/* Data Management */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <div className="bg-tt-surface dark:bg-gray-800 rounded-tt border border-gray-300 dark:border-gray-600 p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-tt-primary dark:text-white">
             Data Management
           </h2>
 
@@ -274,8 +274,8 @@ function StorageInfoCard() {
   }, []);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-6">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+    <div className="bg-tt-surface dark:bg-gray-800 rounded-tt border border-gray-300 dark:border-gray-600 p-6">
+      <h2 className="text-xl font-semibold text-tt-primary dark:text-white mb-4 flex items-center gap-2">
         <HardDrive size={24} />
         Storage Usage
       </h2>

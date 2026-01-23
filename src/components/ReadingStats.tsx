@@ -29,24 +29,24 @@ export function ReadingStats({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md space-y-3">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+    <div className="bg-tt-surface dark:bg-gray-800 rounded-lg p-4 shadow-md space-y-3">
+      <h3 className="text-sm font-semibold text-tt-primary dark:text-white mb-3">
         Reading Progress
       </h3>
 
       {/* Progress Bar */}
       <div className="space-y-1">
-        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+        <div className="flex justify-between text-xs text-tt-muted dark:text-gray-400">
           <span>{Math.round(progressPercent)}% complete</span>
           {minutesRemaining !== undefined && (
-            <span className="font-medium text-[#6BA8A9] dark:text-[#6BA8A9]">
+            <span className="font-medium text-tt-tertiary dark:text-tt-tertiary">
               {formatTime(minutesRemaining)} left
             </span>
           )}
         </div>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
-            className="bg-[#6BA8A9] dark:bg-[#6BA8A9] h-2 rounded-full transition-all duration-300"
+            className="bg-tt-tertiary dark:bg-tt-tertiary h-2 rounded-full transition-all duration-300"
             style={{ width: `${Math.min(progressPercent, 100)}%` }}
           />
         </div>
@@ -58,7 +58,7 @@ export function ReadingStats({
         {minutesRemaining !== undefined && (
           <div className="flex flex-col items-center text-center">
             <Clock size={16} className="text-gray-500 dark:text-gray-400 mb-1" />
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+            <div className="text-sm font-semibold text-tt-primary dark:text-white">
               {formatTime(minutesRemaining)}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -71,7 +71,7 @@ export function ReadingStats({
         {totalTimeMinutes > 0 && (
           <div className="flex flex-col items-center text-center">
             <BookOpen size={16} className="text-gray-500 dark:text-gray-400 mb-1" />
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+            <div className="text-sm font-semibold text-tt-primary dark:text-white">
               {formatTime(totalTimeMinutes)}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -84,7 +84,7 @@ export function ReadingStats({
         {averageWpm && (
           <div className="flex flex-col items-center text-center">
             <TrendingUp size={16} className="text-gray-500 dark:text-gray-400 mb-1" />
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+            <div className="text-sm font-semibold text-tt-primary dark:text-white">
               {averageWpm}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">

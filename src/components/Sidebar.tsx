@@ -19,7 +19,7 @@ import { AuthButtons } from '@/components/AuthButtons';
 import { StorageInfo } from './StorageInfo';
 
 interface SidebarProps {
-  activePage?: 'home' | 'continue' | 'favorites' | 'history' | 'settings';
+  activePage?: 'home' | 'continue' | 'favorites' | 'history' | 'settings' | 'browse';
   children?: ReactNode;
 }
 
@@ -36,7 +36,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-30 md:hidden p-3 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 bg-gradient-to-r from-[#ffb59f] to-[#ff7f76]"
+        className="fixed top-4 left-4 z-30 md:hidden p-3 rounded-full text-white shadow-tt hover:shadow-lg transition-all duration-300 transform hover:scale-110 bg-gradient-to-r from-tt-secondary to-tt-accent"
         aria-label="Toggle menu"
       >
         <Menu className="w-6 h-6" />
@@ -63,29 +63,29 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
           {/* Close button for mobile */}
           <button
             onClick={closeSidebar}
-            className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/30 rounded-full transition-colors mb-4"
+            className="md:hidden p-2 text-tt-muted hover:bg-tt-tertiary/10 dark:hover:bg-tt-tertiary/30 rounded-full transition-colors mb-4"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
 
           {/* Logo */}
-    <div className="text-center pb-4 border-b border-black/5 dark:border-white/10 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#fff3e7] via-white to-[#eaf7f6] p-3 ring-1 ring-black/5">
-  <div className="absolute top-0 right-0 w-28 h-28 bg-[#6BA8A9]/20 rounded-full blur-2xl"></div>
-  <div className="absolute -top-4 -left-4 w-24 h-24 bg-[#FF8B7B]/15 rounded-full blur-2xl"></div>
+    <div className="text-center pb-4 border-b border-tt-border/5 dark:border-white/10 relative overflow-hidden rounded-tt tt-gradient-soft p-3 ring-1 ring-tt-border/10">
+  <div className="absolute top-0 right-0 w-28 h-28 bg-tt-tertiary/20 rounded-full blur-2xl"></div>
+  <div className="absolute -top-4 -left-4 w-24 h-24 bg-tt-accent/15 rounded-full blur-2xl"></div>
 
   <div className="relative">
     <Image
-      src="/hat.png"
+      src="/hatLogo.png"
       alt=""
       width={80}
       height={80}
-      className="absolute -top-10 left-12 animate-bounce-subtle"
+      className="absolute -top-11 left-12 animate-bounce-slow"
       priority
     />
 
     <h2 className="tt-logo font-heading text-3xl mt-9">TaleTime</h2>
-    <p className="text-xs font-medium text-slate-600 mt-1">Your storytelling companion</p>
+    <p className="text-xs font-medium text-tt-muted mt-1">Your storytelling companion</p>
   </div>
 </div>
 
@@ -95,20 +95,19 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
             <Link 
               href="/"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'home'
-                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
-                  : 'bg-white/70 hover:bg-white/90'
+                  ? 'tt-gradient-soft shadow-sm'
+                  : 'bg-tt-surface/70 hover:bg-tt-surface/90'
               }`}
             >
               <Home
-                className="h-5 w-5 drop-shadow-sm"
+                className="h-5 w-5 drop-shadow-sm text-tt-tertiary"
                 strokeWidth={navIconStrokeWidth}
-                style={{ color: '#2fbf8a' }}
                 fill="currentColor"
                 fillOpacity={0.18}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'home' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Home</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'home' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>Home</span>
             </Link>
 
     
@@ -116,73 +115,69 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
             <Link 
               href="/continue"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'continue'
-                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
-                  : 'bg-white/70 hover:bg-white/90'
+                  ? 'tt-gradient-soft shadow-sm'
+                  : 'bg-tt-surface/70 hover:bg-tt-surface/90'
               }`}
             >
               <CheckCircle2
-                className="h-5 w-5 drop-shadow-sm"
+                className="h-5 w-5 drop-shadow-sm text-tt-tertiary"
                 strokeWidth={navIconStrokeWidth}
-                style={{ color: '#2fbf8a' }}
                 fill="currentColor"
                 fillOpacity={0.14}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'continue' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Continue</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'continue' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>Continue</span>
             </Link>
             
             <Link 
               href="/favorites"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'favorites'
-                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
-                  : 'bg-white/70 hover:bg-white/90'
+                  ? 'tt-gradient-soft shadow-sm'
+                  : 'bg-tt-surface/70 hover:bg-tt-surface/90'
               }`}
             >
               <Heart
-                className="h-5 w-5 drop-shadow-sm"
+                className="h-5 w-5 drop-shadow-sm text-tt-accent"
                 strokeWidth={navIconStrokeWidth}
-                style={{ color: '#ff6b6b' }}
                 fill="currentColor"
                 fillOpacity={0.16}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'favorites' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Favorites</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'favorites' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>Favorites</span>
             </Link>
             
             <Link 
               href="/history"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'history'
-                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
-                  : 'bg-white/70 hover:bg-white/90'
+                  ? 'tt-gradient-soft shadow-sm'
+                  : 'bg-tt-surface/70 hover:bg-tt-surface/90'
               }`}
             >
               <Clock
-                className="h-5 w-5 drop-shadow-sm"
+                className="h-5 w-5 drop-shadow-sm text-tt-tertiary"
                 strokeWidth={navIconStrokeWidth}
-                style={{ color: '#4a90e2' }}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'history' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>History</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'history' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>History</span>
             </Link>
 
             <Link 
               href="/settings"
               onClick={closeSidebar}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'settings'
-                  ? 'bg-gradient-to-r from-[#fff3e7] to-[#eaf7f6] shadow-sm'
-                  : 'bg-white/70 hover:bg-white/90'
+                  ? 'tt-gradient-soft shadow-sm'
+                  : 'bg-tt-surface/70 hover:bg-tt-surface/90'
               }`}
             >
               <Settings
-                className="h-5 w-5 drop-shadow-sm"
+                className="h-5 w-5 drop-shadow-sm text-tt-tertiary"
                 strokeWidth={navIconStrokeWidth}
-                style={{ color: '#a66dd4' }}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'settings' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Settings</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'settings' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>Settings</span>
             </Link>
           </div>
 
@@ -193,10 +188,10 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
               const el = document.getElementById('sidebar-filters');
               el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
-            className="w-full mt-2 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-black/5 bg-white/70 hover:bg-white/90 text-slate-800 font-semibold shadow-sm hover:shadow-md transition-all"
+            className="w-full mt-2 flex items-center justify-between gap-3 px-4 py-3 rounded-tt border border-tt-border/10 bg-tt-surface/70 hover:bg-tt-surface/90 text-tt-primary font-semibold shadow-sm hover:shadow-tt transition-all"
           >
             <span className="flex items-center gap-2">
-              <Search className="h-4 w-4" strokeWidth={navIconStrokeWidth} style={{ color: '#ff6b6b' }} />
+              <Search className="h-4 w-4 text-tt-accent" strokeWidth={navIconStrokeWidth} />
               <span className="text-sm">Find Your Story</span>
             </span>
             <span className="text-sm">›</span>

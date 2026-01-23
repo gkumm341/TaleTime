@@ -103,17 +103,16 @@ export default function HistoryPage() {
       }
 
       const res = await fetch(`/api/catalog?ids=${uniqueIds.join(',')}&limit=${uniqueIds.length}`);
-      const json = (await res.json()) as {
-        results?: Array<{ id: number; title: string; authors: string; minutes?: number | null }>;
-      };
-      const byId = new Map<number, (typeof json.results)[number]>();
+      type CatalogBook = { id: number; title: string; authors: string; minutes?: number | null };
+      const json = (await res.json()) as { results?: CatalogBook[] };
+      const byId = new Map<number, CatalogBook>();
       for (const r of json.results ?? []) byId.set(r.id, r);
 
-      const items: UnifiedHistoryItem[] = entries
+      const mapped = entries
         .map((e) => {
           const book = byId.get(e.bookId);
           if (!book) return null;
-          return {
+          const item: UnifiedHistoryItem = {
             key: `bookmark:${e.bookId}:${e.variant}`,
             bookId: e.bookId,
             title: book.title,
@@ -122,11 +121,12 @@ export default function HistoryPage() {
             variant: e.variant,
             source: 'bookmark',
             estimatedMinutes: book.minutes ?? null,
-          } satisfies UnifiedHistoryItem;
+          };
+          return item;
         })
-        .filter((x): x is UnifiedHistoryItem => Boolean(x));
+        .filter((x): x is UnifiedHistoryItem => x !== null);
 
-      setBookmarkHistory(items);
+      setBookmarkHistory(mapped);
     } catch (error) {
       console.error('Failed to load bedtime/full bookmarks:', error);
       setBookmarkHistory([]);
@@ -289,7 +289,7 @@ export default function HistoryPage() {
     .reduce((sum, item) => sum + (item.timeSpentMinutes || 0), 0);
 
   return (
-    <div className="min-h-screen relative bg-white dark:bg-gray-950">
+    <div className="min-h-screen relative bg-tt-surface dark:bg-gray-950">
       <Sidebar activePage="history" />
 
       <div className="relative z-10 ml-0 md:ml-72 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
@@ -297,25 +297,25 @@ export default function HistoryPage() {
           {/* Mobile Header - TaleTime Logo */}
           <div className="md:hidden text-center mb-6 animate-in fade-in slide-in-from-top duration-700">
             <div className="text-5xl mb-3 animate-bounce" style={{ animationDuration: '2s' }}>✨</div>
-            <h1 className="text-4xl font-black text-[#6BA8A9] drop-shadow-lg">
+            <h1 className="text-4xl font-black text-tt-tertiary drop-shadow-lg">
               TaleTime
             </h1>
-            <p className="text-sm font-bold text-[#FF8B7B] mt-2">Your story telling companion</p>
+            <p className="text-sm font-bold text-tt-accent mt-2">Your story telling companion</p>
           </div>
 
           <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom duration-700">
             <div className="flex items-center gap-3">
               <span className="text-4xl animate-pulse"></span>
-              <h1 className="text-4xl font-bold text-[#6BA8A9]">
+              <h1 className="text-4xl font-bold text-tt-tertiary">
                 Reading History
               </h1>
             </div>
             {totalBooks > 0 && (
               <div className="flex flex-wrap gap-4 text-sm items-center">
-                <div className="px-4 py-2 rounded-lg bg-[#6BA8A9]/20 dark:from-[#6BA8A9]/20 dark:to-[#6BA8A9]/10 border border-[#6BA8A9]/30 dark:border-[#6BA8A9]/40 font-semibold shadow-md">
+                <div className="px-4 py-2 rounded-tt bg-tt-tertiary/20 dark:from-tt-tertiary/20 dark:to-tt-tertiary/10 border border-tt-tertiary/30 dark:border-tt-tertiary/40 font-semibold shadow-md">
                   {totalBooks} {totalBooks === 1 ? 'book' : 'books'}
                 </div>
-                <div className="px-4 py-2 rounded-lg bg-[#FF8B7B]/20 dark:from-[#FF8B7B]/20 dark:to-[#FF8B7B]/10 border border-[#FF8B7B]/30 dark:border-[#FF8B7B]/40 font-semibold shadow-md">
+                <div className="px-4 py-2 rounded-tt bg-tt-accent/20 dark:from-tt-accent/20 dark:to-tt-accent/10 border border-tt-accent/30 dark:border-tt-accent/40 font-semibold shadow-md">
                   {Math.round(totalMinutesRead)} min total
                 </div>
                 <button
@@ -331,17 +331,17 @@ export default function HistoryPage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#6BA8A9] border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-tt-tertiary border-t-transparent"></div>
             </div>
           ) : totalBooks === 0 ? (
             <div className="text-center py-20 animate-in fade-in duration-700">
-              <div className="inline-block bg-white dark:bg-gray-900 backdrop-blur-xl rounded-3xl p-12 border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 shadow-lg">
+              <div className="inline-block bg-tt-surface dark:bg-gray-900 backdrop-blur-xl rounded-3xl p-12 border border-tt-border/20 dark:border-tt-border/10 shadow-lg">
                 <div className="text-6xl mb-4"></div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No reading history yet</h2>
+                <h2 className="text-2xl font-bold text-tt-primary dark:text-white mb-2">No reading history yet</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">Start reading books to build your history!</p>
                 <Link 
                   href="/"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#6BA8A9] hover:bg-[#5F9798] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-tt-tertiary hover:bg-tt-tertiary/90 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   <span className="text-lg"></span>
                   Browse Stories
@@ -352,7 +352,7 @@ export default function HistoryPage() {
             <div className="space-y-8">
               {unifiedByGroups.today.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-bottom duration-700">
-                  <h2 className="text-2xl font-bold mb-4 text-[#6BA8A9] flex items-center gap-2">
+                  <h2 className="text-2xl font-bold mb-4 text-tt-tertiary flex items-center gap-2">
                     <span className="text-2xl"></span>
                     Today
                   </h2>
@@ -374,7 +374,7 @@ export default function HistoryPage() {
 
               {unifiedByGroups.lastWeek.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-bottom duration-700 delay-150">
-                  <h2 className="text-2xl font-bold mb-4 text-[#6BA8A9] flex items-center gap-2">
+                  <h2 className="text-2xl font-bold mb-4 text-tt-tertiary flex items-center gap-2">
                     <span className="text-2xl"></span>
                     Last 7 Days
                   </h2>
@@ -396,7 +396,7 @@ export default function HistoryPage() {
 
               {unifiedByGroups.earlier.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-bottom duration-700 delay-300">
-                  <h2 className="text-2xl font-bold mb-4 text-[#6BA8A9] flex items-center gap-2">
+                  <h2 className="text-2xl font-bold mb-4 text-tt-tertiary flex items-center gap-2">
                     <span className="text-2xl"></span>
                     Earlier
                   </h2>
@@ -444,7 +444,7 @@ function HistoryCard({ item, rating, onRemove, onRate, onClearRating, animationD
 
   return (
     <div
-      className="group rounded-2xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 overflow-hidden hover:shadow-xl hover:shadow-[#6BA8A9]/10 dark:hover:shadow-[#6BA8A9]/5 transition-all duration-500 bg-white dark:bg-gray-900 hover:border-[#6BA8A9]/40 dark:hover:border-[#6BA8A9]/30 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700"
+      className="group rounded-tt border border-tt-border/20 dark:border-tt-border/10 overflow-hidden hover:shadow-xl hover:shadow-tt-tertiary/10 dark:hover:shadow-tt-tertiary/5 transition-all duration-500 bg-tt-surface dark:bg-gray-900 hover:border-tt-tertiary/40 dark:hover:border-tt-tertiary/30 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <Link href={href}>
@@ -462,15 +462,15 @@ function HistoryCard({ item, rating, onRemove, onRate, onClearRating, animationD
           />
           <div className="absolute bottom-0 left-0 right-0 h-2 bg-gray-200 dark:bg-gray-700">
             <div
-              className="h-full bg-[#6BA8A9] transition-all duration-500"
+              className="h-full bg-tt-tertiary transition-all duration-500"
               style={{ width: `${item.progressPercent}%` }}
             />
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#6BA8A9]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-tt-tertiary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         </div>
       </Link>
       <div className="p-2 space-y-1 relative">
-        <div className="absolute top-0 right-0 w-20 h-20 bg-[#6BA8A9]/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+        <div className="absolute top-0 right-0 w-20 h-20 bg-tt-tertiary/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
         <button
           onClick={() => onRemove(item)}
           className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 z-10"
@@ -524,7 +524,7 @@ function HistoryCard({ item, rating, onRemove, onRate, onClearRating, animationD
         )}
 
         <Link href={href}>
-          <h3 className="font-bold text-xs line-clamp-2 group-hover:text-[#6BA8A9] transition-all relative z-10 pr-6">
+          <h3 className="font-bold text-xs line-clamp-2 group-hover:text-tt-tertiary transition-all relative z-10 pr-6">
             {item.title}
           </h3>
         </Link>
@@ -534,7 +534,7 @@ function HistoryCard({ item, rating, onRemove, onRate, onClearRating, animationD
         </p>
 
         <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 pt-1 relative z-10">
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#6BA8A9]/10 text-[#6BA8A9] border border-[#6BA8A9]/20 font-semibold">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-tt-tertiary/10 text-tt-tertiary border border-tt-tertiary/20 font-semibold">
             {variantLabel}
           </span>
           {typeof rating === 'number' && rating >= 1 && rating <= 5 ? (

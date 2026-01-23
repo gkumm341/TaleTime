@@ -7,11 +7,11 @@ import { PremiumBenefits } from '@/components/PremiumBenefits';
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-20 border-b border-black/5 bg-white/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 border-b border-tt-border/10 bg-tt-surface/70 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffd9b5] to-[#ffb7b0] shadow-sm ring-1 ring-black/5">
-            <Sparkles className="h-5 w-5 text-[#ff7b6b]" />
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent shadow-sm ring-1 ring-tt-border/10">
+            <Sparkles className="h-5 w-5 text-tt-accent" />
           </span>
           <span className="tt-logo text-2xl">TaleTime</span>
         </Link>

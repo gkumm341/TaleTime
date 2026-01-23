@@ -27,12 +27,12 @@ export function ActiveFilters({ filters, onRemove }: ActiveFiltersProps) {
         return (
           <span
             key={`age-${categoryId}`}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-[#FF8B7B]/20 dark:bg-[#FF8B7B]/20 text-[#3E3E3E] dark:text-[#FF8B7B]"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-tt-accent/20 dark:bg-tt-accent/20 text-tt-primary dark:text-tt-accent"
           >
             {category.label}
             <button
               onClick={() => onRemove('age', categoryId)}
-              className="hover:bg-[#FF8B7B]/30 dark:hover:bg-[#FF8B7B]/30 rounded-full p-0.5"
+              className="hover:bg-tt-accent/30 dark:hover:bg-tt-accent/30 rounded-full p-0.5"
               aria-label={`Remove ${category.label} filter`}
             >
               <X size={14} />
@@ -48,12 +48,12 @@ export function ActiveFilters({ filters, onRemove }: ActiveFiltersProps) {
         return (
           <span
             key={`duration-${durationId}`}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-[#6BA8A9]/20 dark:bg-[#6BA8A9]/20 text-[#3E3E3E] dark:text-[#6BA8A9]"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-tt-tertiary/20 dark:bg-tt-tertiary/20 text-tt-primary dark:text-tt-tertiary"
           >
             {duration.label}
             <button
               onClick={() => onRemove('duration', durationId)}
-              className="hover:bg-[#6BA8A9]/30 dark:hover:bg-[#6BA8A9]/30 rounded-full p-0.5"
+              className="hover:bg-tt-tertiary/30 dark:hover:bg-tt-tertiary/30 rounded-full p-0.5"
               aria-label={`Remove ${duration.label} filter`}
             >
               <X size={14} />
@@ -69,12 +69,12 @@ export function ActiveFilters({ filters, onRemove }: ActiveFiltersProps) {
         return (
           <span
             key={`language-${languageCode}`}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-[#B5CDA3]/20 dark:bg-[#B5CDA3]/20 text-[#3E3E3E] dark:text-[#B5CDA3]"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-tt-border/20 dark:bg-tt-border/20 text-tt-primary dark:text-tt-border"
           >
             {language.label}
             <button
               onClick={() => onRemove('language', languageCode)}
-              className="hover:bg-[#B5CDA3]/30 dark:hover:bg-[#B5CDA3]/30 rounded-full p-0.5"
+              className="hover:bg-tt-border/30 dark:hover:bg-tt-border/30 rounded-full p-0.5"
               aria-label={`Remove ${language.label} filter`}
             >
               <X size={14} />
@@ -85,12 +85,12 @@ export function ActiveFilters({ filters, onRemove }: ActiveFiltersProps) {
 
       {filters.offlineOnly && (
         <span
-          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-[#6BA8A9]/20 dark:bg-[#6BA8A9]/20 text-[#3E3E3E] dark:text-[#6BA8A9]"
+          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-tt-tertiary/20 dark:bg-tt-tertiary/20 text-tt-primary dark:text-tt-tertiary"
         >
           📥 Available offline
           <button
             onClick={() => onRemove('offline', '')}
-            className="hover:bg-[#6BA8A9]/30 dark:hover:bg-[#6BA8A9]/30 rounded-full p-0.5"
+            className="hover:bg-tt-tertiary/30 dark:hover:bg-tt-tertiary/30 rounded-full p-0.5"
             aria-label="Remove offline filter"
           >
             <X size={14} />

@@ -39,8 +39,8 @@ export function PremiumBenefits({
 
   const wrapperClass = fixed ? 'fixed top-4 right-4 z-40' : (className ?? 'inline-flex');
   const btnClass = fixed
-    ? 'shadow-lg hover:shadow-xl'
-    : 'h-9 px-3 rounded-md font-semibold text-sm bg-[#FF8B7B] text-white shadow-md hover:bg-[#FF9B8B] transition-all flex items-center gap-2';
+    ? 'shadow-tt hover:shadow-lg'
+    : 'h-9 px-3 rounded-md font-semibold text-sm bg-tt-accent text-white shadow-md hover:bg-tt-accent/90 transition-all flex items-center gap-2';
 
   return (
     <>
@@ -75,15 +75,15 @@ export function PremiumBenefits({
 
               {/* Dialog */}
               <div
-                className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 border border-[#B5CDA3]/30 dark:border-[#B5CDA3]/20 shadow-2xl flex flex-col overflow-hidden"
+                className="relative w-full max-w-lg rounded-tt bg-tt-surface dark:bg-gray-900 border border-tt-border/30 dark:border-tt-border/20 shadow-tt flex flex-col overflow-hidden"
                 style={{ maxHeight: 'calc(100vh - 2rem)' }}
               >
-                <div className="p-6 border-b border-[#B5CDA3]/20 dark:border-[#B5CDA3]/20 flex items-start justify-between gap-4">
+                <div className="p-6 border-b border-tt-border/20 dark:border-tt-border/20 flex items-start justify-between gap-4">
                   <div>
-                    <h2 id={titleId} className="text-xl font-black text-[#6BA8A9]">
+                    <h2 id={titleId} className="text-xl font-black text-tt-tertiary">
                       Premium Benefits
                     </h2>
-                    <p id={descriptionId} className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                    <p id={descriptionId} className="mt-1 text-sm text-tt-muted dark:text-gray-300">
                       Unlock more ways to enjoy stories.
                     </p>
                   </div>
@@ -91,7 +91,7 @@ export function PremiumBenefits({
                     ref={closeButtonRef}
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="p-2 rounded-full hover:bg-[#6BA8A9]/10 dark:hover:bg-[#6BA8A9]/20 text-gray-700 dark:text-gray-300"
+                    className="p-2 rounded-full hover:bg-tt-tertiary/10 dark:hover:bg-tt-tertiary/20 text-tt-muted dark:text-gray-300"
                     aria-label="Close"
                   >
                     <X className="h-5 w-5" />
@@ -99,34 +99,34 @@ export function PremiumBenefits({
                 </div>
 
                 <div className="p-6 space-y-4 overflow-y-auto">
-                  <div className="rounded-xl bg-[#6BA8A9]/10 dark:bg-[#6BA8A9]/20 p-4 border border-[#6BA8A9]/20">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="rounded-xl bg-tt-tertiary/10 dark:bg-tt-tertiary/20 p-4 border border-tt-tertiary/20">
+                    <div className="text-sm font-semibold text-tt-primary dark:text-white">
                       Only $5.99 / month
                     </div>
-                    <div className="text-xs text-gray-700 dark:text-gray-300 mt-1">
+                    <div className="text-xs text-tt-muted dark:text-gray-300 mt-1">
                       Cancel anytime.
                     </div>
                   </div>
 
-                  <ul className="space-y-3 text-sm text-gray-800 dark:text-gray-200">
+                  <ul className="space-y-3 text-sm text-tt-primary dark:text-gray-200">
                     <li className="flex gap-3">
-                      <Mic className="mt-0.5 h-4 w-4 text-[#6BA8A9]" />
+                      <Mic className="mt-0.5 h-4 w-4 text-tt-tertiary" />
                       <span><span className="font-semibold">Narration</span> — listen to stories read aloud.</span>
                     </li>
                     <li className="flex gap-3">
-                      <Moon className="mt-0.5 h-4 w-4 text-[#6BA8A9]" />
+                      <Moon className="mt-0.5 h-4 w-4 text-tt-tertiary" />
                       <span><span className="font-semibold">Bedtime retellings</span> — gentler, shorter versions for sleep.</span>
                     </li>
                     <li className="flex gap-3">
-                      <Sparkles className="mt-0.5 h-4 w-4 text-[#ff7f76]" />
+                      <Sparkles className="mt-0.5 h-4 w-4 text-tt-accent" />
                       <span><span className="font-semibold">Animation</span> — bring scenes to life.</span>
                     </li>
                     <li className="flex gap-3">
-                      <Film className="mt-0.5 h-4 w-4 text-[#ff7f76]" />
+                      <Film className="mt-0.5 h-4 w-4 text-tt-accent" />
                       <span><span className="font-semibold">Videos</span> — story moments in motion.</span>
                     </li>
                     <li className="flex gap-3">
-                      <Wand2 className="mt-0.5 h-4 w-4 text-[#f6d365]" />
+                      <Wand2 className="mt-0.5 h-4 w-4 text-yellow-400" />
                       <span><span className="font-semibold">Create your own</span> — kids can make their own stories and animations with AI.</span>
                     </li>
                   </ul>

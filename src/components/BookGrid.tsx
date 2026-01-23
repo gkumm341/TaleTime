@@ -286,13 +286,13 @@ export function BookGrid({
             }}
             className={
               isCoverOnly
-                ? 'group rounded-2xl border border-black/5 dark:border-white/10 overflow-hidden bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm hover:shadow-xl hover:shadow-black/10 transition-all duration-500 transform hover:-translate-y-1'
-                : 'group rounded-2xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 overflow-hidden hover:shadow-xl hover:shadow-[#6BA8A9]/10 dark:hover:shadow-[#6BA8A9]/5 transition-all duration-500 bg-white dark:bg-gray-900 hover:border-[#6BA8A9]/40 dark:hover:border-[#6BA8A9]/30 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700'
+                ? 'group rounded-tt border border-tt-border/10 dark:border-white/10 overflow-hidden bg-tt-surface/70 dark:bg-tt-primary/70 backdrop-blur-sm hover:shadow-lg hover:shadow-tt-primary/10 transition-all duration-500 transform hover:-translate-y-1'
+                : 'group rounded-tt border border-tt-border/20 dark:border-tt-border/10 overflow-hidden hover:shadow-lg hover:shadow-tt-tertiary/10 dark:hover:shadow-tt-tertiary/5 transition-all duration-500 bg-tt-surface dark:bg-tt-primary hover:border-tt-tertiary/40 dark:hover:border-tt-tertiary/30 transform hover:-translate-y-2 hover:scale-105 animate-in fade-in slide-in-from-bottom duration-700'
             }
             style={{ animationDelay: `${index * 50}ms` }}
           >
             {/* Custom book image from .data/texts/by-title/<Title>/<Title>.png */}
-            <div className={isCoverOnly ? 'relative w-full aspect-[2/3] bg-white/60 dark:bg-gray-800/60 overflow-hidden' : 'relative w-full aspect-[2/3] bg-gray-50 dark:bg-gray-800 overflow-hidden'}>
+            <div className={isCoverOnly ? 'relative w-full aspect-[2/3] bg-tt-surface/60 dark:bg-tt-primary/60 overflow-hidden' : 'relative w-full aspect-[2/3] bg-tt-surface dark:bg-tt-primary overflow-hidden'}>
               <Image
                 src={`/api/local-image?title=${encodeURIComponent(book.title)}`}
                 alt={book.title}
@@ -342,16 +342,16 @@ export function BookGrid({
 
             {!isCoverOnly && (
               <div className="p-2 space-y-1 relative">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-[#6BA8A9]/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                <h3 className="font-bold text-xs lg:text-lg line-clamp-2 group-hover:text-[#6BA8A9] transition-all relative z-10">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-tt-tertiary/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                <h3 className="font-bold text-xs lg:text-lg line-clamp-2 group-hover:text-tt-tertiary transition-all relative z-10">
                   {book.title}
                 </h3>
 
               {!isEditingAuthor ? (
                 <div className="relative z-10">
-                  <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 font-medium lg:flex items-center gap-1.5">
+                  <p className="text-xs lg:text-sm text-tt-muted line-clamp-1 font-medium lg:flex items-center gap-1.5">
                     <span className="text-xs lg:text-base">✍️</span>
-                    <span className={hasAuthors ? '' : 'text-gray-400 dark:text-gray-500 italic'}>
+                    <span className={hasAuthors ? '' : 'text-tt-muted/70 italic'}>
                       {hasAuthors ? displayedAuthors : 'Author unknown'}
                     </span>
                   </p>
@@ -365,7 +365,7 @@ export function BookGrid({
                         setEditingAuthorForId(book.id);
                         setAuthorDraft(displayedAuthors);
                       }}
-                      className={`mt-1 text-[11px] font-semibold text-[#6BA8A9] hover:text-[#5F9798] transition-colors ${
+                      className={`mt-1 text-[11px] font-semibold text-tt-tertiary hover:text-tt-tertiary/80 transition-colors ${
                         hasAuthors ? 'opacity-100 lg:opacity-0 lg:group-hover:opacity-100' : ''
                       }`}
                       aria-label={hasAuthors ? 'Edit author' : 'Add author'}
@@ -383,12 +383,12 @@ export function BookGrid({
                     e.stopPropagation();
                   }}
                 >
-                  <div className="text-[11px] font-semibold text-[#6BA8A9]">Author</div>
+                  <div className="text-[11px] font-semibold text-tt-tertiary">Author</div>
                   <input
                     value={authorDraft}
                     onChange={(e) => setAuthorDraft(e.target.value)}
                     placeholder="e.g., Jane Austen"
-                    className="mt-1 w-full px-2 py-1 rounded-md border border-[#B5CDA3]/60 dark:border-[#B5CDA3]/30 bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#6BA8A9]"
+                    className="tt-input mt-1 w-full px-2 py-1 text-xs"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Escape') {
@@ -409,7 +409,7 @@ export function BookGrid({
                   <div className="mt-1 flex items-center gap-2">
                     <button
                       type="button"
-                      className="text-[11px] font-semibold text-[#6BA8A9] hover:text-[#5F9798] transition-colors"
+                      className="text-[11px] font-semibold text-tt-tertiary hover:text-tt-tertiary/80 transition-colors"
                       onClick={() => {
                         const trimmed = authorDraft.trim();
                         const next = { ...authorOverrides };
@@ -424,7 +424,7 @@ export function BookGrid({
                     </button>
                     <button
                       type="button"
-                      className="text-[11px] font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                      className="text-[11px] font-semibold text-tt-muted hover:text-tt-primary transition-colors"
                       onClick={() => {
                         setEditingAuthorForId(null);
                         setAuthorDraft('');

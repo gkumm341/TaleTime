@@ -98,7 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="msapplication-config" content="/browserconfig.xml" />
         <meta name="msapplication-TileColor" content="#3b82f6" />
       </head>
-      <body className="antialiased font-body">
+      <body className="tt-page antialiased font-body">
         <Providers>{children}</Providers>
       </body>
     </html>

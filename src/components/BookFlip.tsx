@@ -456,7 +456,7 @@ function CoverPage({
       style={backdropStyle}
     >
       {coverImageSrc ? (
-        <div className="relative flex-1 overflow-hidden rounded-2xl box-border border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 p-2 flex items-center justify-center">
+        <div className="relative flex-1 overflow-hidden rounded-tt box-border border border-tt-border/20 dark:border-tt-border/10 p-2 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="absolute inset-[16%]">
             <img
@@ -478,20 +478,20 @@ function CoverPage({
         </div>
       ) : (
         <div className="p-6 text-center">
-          <div className="mx-auto h-16 w-16 rounded-2xl bg-[#6BA8A9]/20 flex items-center justify-center text-[#6BA8A9] font-bold">
+          <div className="mx-auto h-16 w-16 rounded-tt bg-tt-tertiary/20 flex items-center justify-center text-tt-tertiary font-bold">
             TT
           </div>
-          <p className="mt-4 text-[#3E3E3E] dark:text-white font-medium">
+          <p className="mt-4 text-tt-primary dark:text-white font-medium">
             Add a cover image later
           </p>
-          <p className="mt-1 text-[#3E3E3E]/70 dark:text-gray-300 text-sm">
+          <p className="mt-1 text-tt-primary/70 dark:text-gray-300 text-sm">
             This is your book&apos;s cover page.
           </p>
         </div>
       )}
 
       {/* 
-      <div className="mt-6 text-xs text-[#3E3E3E]/60 dark:text-gray-400">
+      <div className="mt-6 text-xs text-tt-primary/60 dark:text-gray-400">
         Tip: drag the page corner or use Next/Prev.
       </div> */}
     </div>
@@ -583,7 +583,7 @@ export function renderTextWithInlineImages(
           <img
             src={imageUrl}
             alt="Story illustration"
-            className="w-full object-contain rounded-xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 bg-[#F5E9DA]/30 dark:bg-gray-800"
+            className="w-full object-contain rounded-xl border border-tt-border/20 dark:border-tt-border/10 bg-tt-secondary/30 dark:bg-gray-800"
             style={{ maxHeight: 'min(160px, 30vh)' }}
             loading="lazy"
           />
@@ -680,7 +680,7 @@ function StoryPage({
       {null}
 
       {imageSrc ? (
-        <div className="mt-4 rounded-2xl border border-[#B5CDA3]/20 dark:border-[#B5CDA3]/10 overflow-hidden bg-[#F5E9DA]/30 dark:bg-gray-800">
+        <div className="mt-4 rounded-tt border border-tt-border/20 dark:border-tt-border/10 overflow-hidden bg-tt-secondary/30 dark:bg-gray-800">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imageSrc}
@@ -921,10 +921,10 @@ export default function BookFlip({
       {showHeader ? (
         <div className="w-full max-w-5xl flex items-center justify-between px-4">
           <div className="flex flex-col">
-            <div className="text-sm font-semibold text-[#3E3E3E] dark:text-white">
+            <div className="text-sm font-semibold text-tt-primary dark:text-white">
               {storyTitle}
             </div>
-            <div className="text-xs text-[#3E3E3E]/60 dark:text-gray-400">
+            <div className="text-xs text-tt-primary/60 dark:text-gray-400">
               Page {Math.min(pageIndex + 1, pageCount)} of {pageCount}
             </div>
           </div>
@@ -1004,7 +1004,7 @@ export default function BookFlip({
                 inlineImages={p.inlineImages}
                 isSpreadStart={isMobile || idx % 2 === 0}
               />
-              <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-xs text-[#3E3E3E]/60 dark:text-gray-400 tabular-nums">
+              <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-xs text-tt-primary/60 dark:text-gray-400 tabular-nums">
                 {idx + 1}
               </div>
             </Page>
@@ -1013,7 +1013,7 @@ export default function BookFlip({
           {/* End: extra blank page */}
           
           <Page key="end-blank">
-            <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-[#6ba8a9]  dark:text-gray-400">
+            <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-tt-tertiary dark:text-gray-400">
               THE END!</div>
             <div className="h-full w-full" />
 

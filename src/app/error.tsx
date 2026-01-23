@@ -18,17 +18,17 @@ export default function Error({ error, reset }: ErrorProps) {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md backdrop-blur-md bg-white/80 shadow-2xl border border-white/50">
+      <div className="min-h-screen bg-tt-gradient-soft flex items-center justify-center p-4">
+        <Card className="w-full max-w-md backdrop-blur-md bg-tt-surface/80 shadow-2xl border border-white/50">
           <CardContent className="p-12 text-center">
             <div className="text-red-500 mb-6">
               <AlertTriangle size={64} className="mx-auto" />
             </div>
             
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Oops!</h1>
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Something went wrong</h2>
+            <h1 className="text-3xl font-bold text-tt-primary mb-2">Oops!</h1>
+            <h2 className="text-xl font-semibold text-tt-muted mb-4">Something went wrong</h2>
             
-            <p className="text-gray-600 mb-8 leading-relaxed">
+            <p className="text-tt-muted mb-8 leading-relaxed">
               We encountered an unexpected error while loading this page. 
               Don't worry, it happens to the best of us!
             </p>
@@ -47,7 +47,7 @@ export default function Error({ error, reset }: ErrorProps) {
             <div className="space-y-3">
               <Button 
                 onClick={reset}
-                className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white py-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                className="w-full bg-gradient-to-r from-tt-accent to-tt-tertiary hover:from-tt-accent/90 hover:to-tt-tertiary/90 text-white py-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
                 <RefreshCw className="mr-2" size={18} />
                 Try Again
