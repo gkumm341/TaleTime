@@ -358,20 +358,42 @@ function useFlipDimensions(isMobile: boolean) {
       const vh = typeof window !== "undefined" ? window.innerHeight : 800;
       const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
 
-      // Leave space for headers/controls around the book.
-      const availableH = Math.max(520, vh - (isMobile ? 160 : 190));
-      const availableW = Math.max(320, vw - (isMobile ? 48 : 96));
+      // react-pageflip's `width` is the width of a *single page*.
+      // In landscape mode the book is a 2-page spread, so total width is ~2x.
+      const spreadPages = isMobile ? 1 : 2;
 
-      const height = Math.min(isMobile ? 740 : 880, availableH);
-      const width = Math.min(isMobile ? 420 : 620, availableW);
+      // Keep a consistent page shape so typography/layout stays predictable.
+      // (Matches the old 620x880-ish page size.)
+      const PAGE_ASPECT = 880 / 620; // height / width
+
+      // Leave space for headers/controls around the book.
+      const availableH = Math.max(520, vh - (isMobile ? 150 : 190));
+      const availableW = Math.max(320, vw - (isMobile ? 32 : 96));
+
+      const minPageW = isMobile ? 320 : 440;
+      const minPageH = isMobile ? 560 : 680;
+
+      const maxPageW = Math.max(minPageW, Math.floor(availableW / spreadPages));
+      const maxPageH = Math.max(minPageH, availableH);
+
+      // Start from height, then derive width by aspect ratio, then clamp to width.
+      // Finally recompute height from the chosen width.
+      const targetH = clamp(
+        maxPageH,
+        minPageH,
+        isMobile ? 920 : 1200
+      );
+      const targetWFromH = targetH / PAGE_ASPECT;
+      const width = clamp(targetWFromH, minPageW, maxPageW);
+      const height = clamp(width * PAGE_ASPECT, minPageH, maxPageH);
 
       setDims({
         width,
         height,
-        minWidth: isMobile ? 340 : 480,
-        maxWidth: isMobile ? 460 : 760,
-        minHeight: isMobile ? 600 : 700,
-        maxHeight: isMobile ? 820 : 980,
+        minWidth: minPageW,
+        maxWidth: maxPageW,
+        minHeight: minPageH,
+        maxHeight: maxPageH,
       });
     };
 
@@ -646,7 +668,7 @@ function StoryPage({
 
   if (fullPageImageUrl) {
     return (
-      <div className="h-full w-full p-8 sm:p-10 flex flex-col">
+      <div className="h-full w-full p-6 sm:p-8 flex flex-col">
         <div className="flex-1 flex items-center justify-center overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -660,24 +682,27 @@ function StoryPage({
     );
   }
 
+  // Detect if this is a "continuation" chunk (no header elements at all).
+  const hasHeader = Boolean(bookTitle || title || isSpreadStart);
+
   return (
-    <div className="h-full w-full p-8 sm:p-10 flex flex-col">
+    <div className="h-full w-full p-6 sm:p-8 flex flex-col">
       {isSpreadStart ? (
         <div aria-hidden="true" className="tt-storybook-chapter-ornament" />
       ) : null}
 
       {bookTitle ? (
-        <h1 className="tt-logo w-full text-center text-3xl font-extrabold tracking-tight mt-6 -mb-4">
+        <h1 className="text-tt-tertiary w-full text-center text-3xl font-extrabold tracking-tight">
           {bookTitle}
+          <div className="border-b-4 border-tt-accent mt-4 dark:border-tt-border/10" />
+
         </h1>
       ) : null}
       {title ? (
-        <h2 className="tt-storybook-title text-xl font-bold">{title}</h2>
-      ) : (
+        <h2 className="tt-storybook-title text-xl font-bold mt-2">{title}</h2>
+      ) : hasHeader ? (
         <div className="h-6" />
-      )}
-
-      {null}
+      ) : null}
 
       {imageSrc ? (
         <div className="mt-4 rounded-tt border border-tt-border/20 dark:border-tt-border/10 overflow-hidden bg-tt-secondary/30 dark:bg-gray-800">
@@ -690,8 +715,8 @@ function StoryPage({
         </div>
       ) : null}
 
-      <div className="mt-6 flex-1 overflow-hidden">
-        <div className="h-full overflow-hidden pr-6">
+      <div className="mt-4 flex-1 overflow-hidden">
+        <div className="h-full overflow-hidden pr-4 pb-6 box-border">
           <div className="tt-storybook-prose tt-storybook-prose-book leading-snug" lang="en">
             {renderTextWithInlineImages(text ?? "", inlineImages)}
           </div>
@@ -724,27 +749,104 @@ export default function BookFlip({
   React.useEffect(() => {
     if (typeof document === "undefined") return;
 
-    const pageWidth = dims.width;
-    // StoryPage uses up to sm:p-10 (40px) + inner pr-6 (24px). Keep it conservative.
-    const availableTextWidth = Math.max(240, pageWidth - 40 * 2 - 24);
+    // Build an off-screen DOM that mirrors the StoryPage text area. This lets us
+    // measure pagination based on the real available height (instead of a fixed
+    // line-count), making pages much more consistently filled.
+    const measureShell = document.createElement("div");
+    measureShell.setAttribute("data-tt-measure-shell", "storybook");
+    measureShell.className = "h-full w-full p-6 sm:p-8 flex flex-col";
+    Object.assign(measureShell.style, {
+      position: "fixed",
+      left: "-99999px",
+      top: "0",
+      width: `${dims.width}px`,
+      height: `${dims.height}px`,
+      visibility: "hidden",
+      pointerEvents: "none",
+    } as Partial<CSSStyleDeclaration>);
 
+    // Mirror StoryPage header elements so pagination doesn't under-fill pages.
+    const ornamentEl = document.createElement("div");
+    ornamentEl.className = "tt-storybook-chapter-ornament";
+    ornamentEl.setAttribute("aria-hidden", "true");
+    measureShell.appendChild(ornamentEl);
+
+    const bookTitleEl = document.createElement("h1");
+    bookTitleEl.className =
+      "text-tt-tertiary w-full text-center text-3xl font-extrabold tracking-tight";
+    const bookTitleDivider = document.createElement("div");
+    bookTitleDivider.className =
+      "border-b-4 border-tt-accent mt-4 dark:border-tt-border/10";
+    bookTitleEl.appendChild(bookTitleDivider);
+    measureShell.appendChild(bookTitleEl);
+
+    const titleEl = document.createElement("h2");
+    titleEl.className = "tt-storybook-title text-xl font-bold mt-2";
+    measureShell.appendChild(titleEl);
+
+    // StoryPage renders <div className="h-6" /> when there is no title.
+    const titleSpacer = document.createElement("div");
+    titleSpacer.className = "h-6";
+    measureShell.appendChild(titleSpacer);
+
+    const measureOuter = document.createElement("div");
+    measureOuter.className = "mt-4 flex-1 overflow-hidden";
+    const measureInner = document.createElement("div");
+    measureInner.className = "h-full overflow-hidden pr-4 pb-6 box-border";
     const measureEl = document.createElement("div");
     measureEl.setAttribute("data-tt-measure", "storybook");
     measureEl.className =
       "tt-storybook-prose tt-storybook-prose-book leading-snug word-break-break-word overflow-wrap-anywhere";
     Object.assign(measureEl.style, {
-      position: "fixed",
-      left: "-99999px",
-      top: "0",
-      width: `${availableTextWidth}px`,
-      visibility: "hidden",
-      pointerEvents: "none",
       whiteSpace: "pre-line",
       wordBreak: "break-word",
       overflowWrap: "anywhere",
     } as Partial<CSSStyleDeclaration>);
 
-    document.body.appendChild(measureEl);
+    measureInner.appendChild(measureEl);
+    measureOuter.appendChild(measureInner);
+    measureShell.appendChild(measureOuter);
+    document.body.appendChild(measureShell);
+
+    const configureMeasureHeader = (opts: {
+      showOrnament: boolean;
+      bookTitle?: string;
+      title?: string;
+    }) => {
+      const hasAnyHeader = opts.showOrnament || opts.bookTitle || opts.title;
+
+      ornamentEl.style.display = opts.showOrnament ? "" : "none";
+
+      if (opts.bookTitle && opts.bookTitle.trim().length > 0) {
+        bookTitleEl.style.display = "";
+        // Preserve divider child; set only the text node.
+        bookTitleEl.childNodes.forEach((node) => {
+          if (node.nodeType === Node.TEXT_NODE) bookTitleEl.removeChild(node);
+        });
+        bookTitleEl.insertBefore(
+          document.createTextNode(opts.bookTitle),
+          bookTitleDivider
+        );
+      } else {
+        bookTitleEl.style.display = "none";
+        // Ensure we don't accumulate text nodes.
+        bookTitleEl.childNodes.forEach((node) => {
+          if (node.nodeType === Node.TEXT_NODE) bookTitleEl.removeChild(node);
+        });
+      }
+
+      if (opts.title && opts.title.trim().length > 0) {
+        titleEl.style.display = "";
+        titleEl.textContent = opts.title;
+        titleSpacer.style.display = "none";
+      } else {
+        titleEl.style.display = "none";
+        titleEl.textContent = "";
+        // Only show the spacer if there's some other header element; 
+        // continuation pages have no header at all.
+        titleSpacer.style.display = hasAnyHeader ? "" : "none";
+      }
+    };
 
     const getLineHeightPx = () => {
       const style = window.getComputedStyle(measureEl);
@@ -755,7 +857,16 @@ export default function BookFlip({
     };
 
     const lineHeightPx = getLineHeightPx();
-    const maxHeight = lineHeightPx * MAX_TEXT_LINES_PER_PAGE + 0.5;
+    const getMaxHeightForCurrentLayout = () => {
+      const innerStyle = window.getComputedStyle(measureInner);
+      const padTop = Number.parseFloat(innerStyle.paddingTop) || 0;
+      const padBottom = Number.parseFloat(innerStyle.paddingBottom) || 0;
+      const measuredMaxHeight = measureInner.clientHeight - padTop - padBottom;
+      const fallbackMaxHeight = lineHeightPx * MAX_TEXT_LINES_PER_PAGE + 0.5;
+      return Number.isFinite(measuredMaxHeight) && measuredMaxHeight > 0
+        ? measuredMaxHeight
+        : fallbackMaxHeight;
+    };
 
     const normalizeProseForPagination = (raw: string) => {
       const cleaned = raw.replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ");
@@ -768,51 +879,98 @@ export default function BookFlip({
       return paras.join("\u2029");
     };
 
-    const fits = (candidate: string) => {
-      measureEl.textContent = candidate.replace(/\u2029/g, "\n");
-      return measureEl.scrollHeight <= maxHeight;
-    };
+    const setMeasuredProse = (candidate: string) => {
+      // Mirror `renderTextWithInlineImages` for non-placeholder text: a list of
+      // <p class="tt-storybook-paragraph"> nodes. Measuring raw textContent
+      // underestimates height because it ignores paragraph flow.
+      const paras = candidate
+        .replace(/\r\n?/g, "\n")
+        .split(/\u2029+/g)
+        .map((p) => p.replace(/\s*\n\s*/g, " ").replace(/[ \t]+/g, " ").trim())
+        .filter(Boolean);
 
-    const findChunk = (text: string) => {
-      // Fast path
-      if (fits(text)) return { head: text, tail: "" };
-
-      let low = 1;
-      let high = text.length;
-      let best = 1;
-      while (low <= high) {
-        const mid = Math.floor((low + high) / 2);
-        const candidate = text.slice(0, mid);
-        if (fits(candidate)) {
-          best = mid;
-          low = mid + 1;
-        } else {
-          high = mid - 1;
-        }
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < paras.length; i++) {
+        const p = document.createElement("p");
+        p.className = "tt-storybook-paragraph";
+        p.textContent = paras[i];
+        frag.appendChild(p);
       }
-
-      // Prefer breaking on whitespace so we don't split words.
-      let breakIndex = best;
-      const before = text.slice(0, breakIndex);
-      const lastWs = Math.max(
-        before.lastIndexOf(" "),
-        before.lastIndexOf("\n"),
-        before.lastIndexOf("\t"),
-        before.lastIndexOf("\u2029")
-      );
-      if (lastWs > 0) breakIndex = lastWs;
-
-      const head = text.slice(0, breakIndex).trimEnd();
-      const tail = text.slice(breakIndex).trimStart();
-      return { head: head.length > 0 ? head : text.slice(0, best).trimEnd(), tail };
+      measureEl.replaceChildren(frag);
     };
 
-    const paginateTextOnlyPage = (p: PageData): PageData[] => {
+    const measureHeight = (candidate: string) => {
+      setMeasuredProse(candidate);
+      return measureEl.scrollHeight;
+    };
+
+    const makeFindChunk = (maxHeight: number) => {
+      const fits = (candidate: string) => measureHeight(candidate) <= maxHeight;
+
+      // Fast path
+      return (text: string) => {
+        if (fits(text)) return { head: text, tail: "" };
+
+        // First, find the maximum fitting index (hard limit).
+        let low = 1;
+        let high = text.length;
+        let maxFit = 1;
+        while (low <= high) {
+          const mid = Math.floor((low + high) / 2);
+          const candidate = text.slice(0, mid);
+          if (fits(candidate)) {
+            maxFit = mid;
+            low = mid + 1;
+          } else {
+            high = mid - 1;
+          }
+        }
+
+        // Prefer breaking on whitespace so we don't split words.
+        let breakIndex = maxFit;
+        const before = text.slice(0, breakIndex);
+        const lastWs = Math.max(
+          before.lastIndexOf(" "),
+          before.lastIndexOf("\n"),
+          before.lastIndexOf("\t"),
+          before.lastIndexOf("\u2029")
+        );
+        // Only snap to whitespace if it's reasonably close; otherwise we would
+        // leave too much unused space on the page. Even when close, avoid
+        // snapping if it would under-fill the page by a lot (common with short
+        // paragraphs at the start of the next page).
+        if (lastWs > 0 && breakIndex - lastWs <= 80) {
+          const candidateMax = text.slice(0, maxFit);
+          const candidateWs = text.slice(0, lastWs);
+          const hMax = measureHeight(candidateMax);
+          const hWs = measureHeight(candidateWs);
+
+          // Keep the whitespace snap if it leaves at most ~1 line unused or
+          // still fills most of the page.
+          const nearFull = hWs >= maxHeight - lineHeightPx * 1.2;
+          const mostlyFull = hWs / maxHeight >= 0.92;
+          const isBetterFit = hWs >= hMax - lineHeightPx * 0.6;
+          if (nearFull || mostlyFull || isBetterFit) breakIndex = lastWs;
+        }
+
+        const head = text.slice(0, breakIndex).trimEnd();
+        const tail = text.slice(breakIndex).trimStart();
+        return {
+          head: head.length > 0 ? head : text.slice(0, maxFit).trimEnd(),
+          tail,
+        };
+      };
+    };
+
+    const paginateTextOnlyPage = (p: PageData, pageIdx: number): PageData[] => {
       const text = p.text ?? "";
       if (text.trim().length === 0) return [p];
 
       // Avoid splitting pages that may contain inline images/placeholders.
-      if (p.imageSrc || p.inlineImages || /\{\{[^{}]+\}\}/.test(text)) return [p];
+      // NOTE: We *do* allow splitting when an inline image map exists but the text
+      // doesn't actually contain placeholders, since many callers attach the map
+      // universally.
+      if (p.imageSrc || /\{\{[^{}]+\}\}/.test(text)) return [p];
 
       const normalized = normalizeProseForPagination(text);
       if (normalized.trim().length === 0) return [p];
@@ -821,15 +979,27 @@ export default function BookFlip({
       let remaining = normalized;
       let chunkIndex = 0;
       while (remaining.trim().length > 0) {
+        // Reconfigure header for EACH chunk: only the first chunk has title/bookTitle.
+        // Continuation chunks have no header, so they get more text space.
+        const isFirstChunk = chunkIndex === 0;
+        configureMeasureHeader({
+          // Mirror StoryPage usage: ornament on spread starts.
+          showOrnament: isFirstChunk && (isMobile || pageIdx % 2 === 0),
+          bookTitle: isFirstChunk && pageIdx === 0 ? storyTitle : undefined,
+          title: isFirstChunk ? p.title : undefined,
+        });
+        const maxHeight = getMaxHeightForCurrentLayout();
+        const findChunk = makeFindChunk(maxHeight);
+
         const { head, tail } = findChunk(remaining);
         const id = `${p.id}-chunk-${chunkIndex}`;
         out.push({
           ...p,
           id,
           // Keep title/image only on the first chunk.
-          title: chunkIndex === 0 ? p.title : undefined,
-          imageSrc: chunkIndex === 0 ? p.imageSrc : undefined,
-          inlineImages: chunkIndex === 0 ? p.inlineImages : undefined,
+          title: isFirstChunk ? p.title : undefined,
+          imageSrc: isFirstChunk ? p.imageSrc : undefined,
+          inlineImages: isFirstChunk ? p.inlineImages : undefined,
           text: head,
         });
 
@@ -845,12 +1015,12 @@ export default function BookFlip({
     };
 
     try {
-      const next = pages.flatMap(paginateTextOnlyPage);
+      const next = pages.flatMap((p, idx) => paginateTextOnlyPage(p, idx));
       setPaginatedPages(next);
     } finally {
-      measureEl.remove();
+      measureShell.remove();
     }
-  }, [pages, dims.width]);
+  }, [pages, dims.width, dims.height]);
 
   const storyPages = paginatedPages ?? pages;
 

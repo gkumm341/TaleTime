@@ -1024,7 +1024,7 @@ export default function AbridgedBookPage() {
             </div>
 
             <div className="min-w-0 flex flex-col items-center justify-center">
-              <div className="min-w-0 text-lg font-semibold text-tt-tertiary dark:text-white truncate">
+              <div className="min-w-0 text-2xl font-semibold text-tt-tertiary dark:text-white truncate">
                 {data?.title ?? 'Preparing story…'}
               </div>
               {showDebugInfo && data && (
