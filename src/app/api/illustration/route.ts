@@ -48,6 +48,12 @@ function findIllustrationsFolder(bookFolderPath: string): string | null {
   return null;
 }
 
+function devLogMissingImage(message: string, details: Record<string, string | undefined>) {
+  if (process.env.NODE_ENV === 'production') return;
+  // eslint-disable-next-line no-console
+  console.log(`[illustration] ${message}`, details);
+}
+
 /**
  * GET /api/illustration?title=BookTitle&image=1.png
  * Serves an illustration from the book's Illustrations folder.
@@ -89,6 +95,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!matchedFolderName) {
+    devLogMissingImage('No matching book folder', { title, requestedKey });
     return new Response(TRANSPARENT_PNG, {
       status: 200,
       headers: {
@@ -158,7 +165,12 @@ export async function GET(req: NextRequest) {
   } catch {
     // Illustrations folder doesn't exist
   }
-
+  devLogMissingImage('Image not found', {
+    title,
+    image: safeImage,
+    attempted: imagePath,
+    illustrationsPath,
+  });
   return new Response(TRANSPARENT_PNG, {
     status: 200,
     headers: {

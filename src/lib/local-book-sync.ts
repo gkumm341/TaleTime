@@ -46,11 +46,15 @@ export async function syncLocalByTitleToDb(): Promise<{ inserted: number; skippe
     const bedtimePath = path.join(byTitleDir, folderName, 'bedtime.txt');
     const fullJsonPath = path.join(byTitleDir, folderName, 'full.story.json');
     const bedtimeJsonPath = path.join(byTitleDir, folderName, 'bedtime.story.json');
+    const fullPagesPath = path.join(byTitleDir, folderName, 'full.pages.json');
+    const bedtimePagesPath = path.join(byTitleDir, folderName, 'bedtime.pages.json');
     if (
       !(await fileExists(fullPath)) &&
       !(await fileExists(bedtimePath)) &&
       !(await fileExists(fullJsonPath)) &&
-      !(await fileExists(bedtimeJsonPath))
+      !(await fileExists(bedtimeJsonPath)) &&
+      !(await fileExists(fullPagesPath)) &&
+      !(await fileExists(bedtimePagesPath))
     )
       continue;
 

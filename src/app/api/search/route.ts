@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { parseStoryJson, storyBlocksToLegacyText } from '@/lib/story-blocks';
+import { parseStoryJson, parseStoryPagesJson, storyBlocksToLegacyText, storyPagesToLegacyText } from '@/lib/story-blocks';
 
 export const runtime = 'nodejs';
 
@@ -209,15 +209,18 @@ async function searchTextContent(folderName: string, query: string): Promise<boo
   const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
   const folderPath = path.join(process.cwd(), baseDir, 'by-title', folderName);
   
-  const textFiles = ['bedtime.story.json', 'full.story.json', 'bedtime.txt', 'full.txt'];
+  const textFiles = ['bedtime.pages.json', 'full.pages.json', 'bedtime.story.json', 'full.story.json', 'bedtime.txt', 'full.txt'];
   const normalizedQuery = normalizeForSearch(query);
   
   for (const file of textFiles) {
     try {
       const raw = await fs.readFile(path.join(folderPath, file), 'utf8');
-      const content = file.endsWith('.json')
-        ? storyBlocksToLegacyText(parseStoryJson(raw).doc.blocks)
-        : raw;
+      let content = raw;
+      if (file.endsWith('.pages.json')) {
+        content = storyPagesToLegacyText(parseStoryPagesJson(raw).doc.pages);
+      } else if (file.endsWith('.story.json')) {
+        content = storyBlocksToLegacyText(parseStoryJson(raw).doc.blocks);
+      }
       const normalizedContent = normalizeForSearch(content);
       if (normalizedContent.includes(normalizedQuery)) {
         return true;

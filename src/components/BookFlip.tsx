@@ -18,6 +18,8 @@ export type PageData = {
   imageSrc?: string;
   /** Maps image placeholders like "1.png" to their URLs for inline rendering */
   inlineImages?: InlineImageMap;
+  /** When true, disables auto-pagination for this page */
+  lockLayout?: boolean;
 };
 
 export type BookFlipProps = {
@@ -478,7 +480,7 @@ function CoverPage({
       style={backdropStyle}
     >
       {coverImageSrc ? (
-        <div className="relative flex-1 overflow-hidden rounded-tt box-border border border-tt-border/20 dark:border-tt-border/10 p-2 flex items-center justify-center">
+        <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="absolute inset-[16%]">
             <img
@@ -489,7 +491,7 @@ function CoverPage({
           </div>
 
           <img
-            src="/frame.png"
+            src="/bookFrame.png"
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 h-full object-fill"
@@ -692,7 +694,7 @@ function StoryPage({
       ) : null}
 
       {bookTitle ? (
-        <h1 className="text-tt-tertiary w-full text-center text-3xl font-extrabold tracking-tight">
+        <h1 className="text-tt-tertiary w-full text-center text-3xl font-extrabold tracking-tight mt-6">
           {bookTitle}
           <div className="border-b-4 border-tt-accent mt-4 dark:border-tt-border/10" />
 
@@ -966,6 +968,8 @@ export default function BookFlip({
       const text = p.text ?? "";
       if (text.trim().length === 0) return [p];
 
+      if (p.lockLayout) return [p];
+
       // Avoid splitting pages that may contain inline images/placeholders.
       // NOTE: We *do* allow splitting when an inline image map exists but the text
       // doesn't actually contain placeholders, since many callers attach the map
@@ -1025,7 +1029,7 @@ export default function BookFlip({
   const storyPages = paginatedPages ?? pages;
 
   const endPageCount = 2; // blank end page + closed book image page
-  const frontBlankPageCount = 1; // keep first inside page blank so story starts on the right
+  const frontBlankPageCount = 0; // start story on the left page
   const pageCount = useMemo(
     () => storyPages.length + 1 + frontBlankPageCount + endPageCount,
     [storyPages.length]
@@ -1149,57 +1153,54 @@ export default function BookFlip({
           ref={bookRef as unknown as React.RefObject<unknown>}
           onFlip={(e: unknown) => setPageIndex(isFlipEvent(e) ? e.data : 0)}
         >
-          
-          <Page>
-            <CoverPage
-              appName={appName}
-              storyTitle={storyTitle}
-              author={author}
-              coverImageSrc={coverImageSrc}
-            />
-          </Page>
-
-          {/* Blank inside page so story starts on the right (but numbered 1) */}
-          <Page key="front-blank">
-            <div className="h-full w-full" />
-          </Page>
-
-          {storyPages.map((p, idx) => (
-            <Page key={p.id}>
-              <StoryPage
-                title={p.title}
-                bookTitle={idx === 0 ? storyTitle : undefined}
-                text={p.text}
-                imageSrc={p.imageSrc}
-                inlineImages={p.inlineImages}
-                isSpreadStart={isMobile || idx % 2 === 0}
+          {[
+            <Page key="cover">
+              <CoverPage
+                appName={appName}
+                storyTitle={storyTitle}
+                author={author}
+                coverImageSrc={coverImageSrc}
               />
-              <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-xs text-tt-primary/60 dark:text-gray-400 tabular-nums">
-                {idx + 1}
+            </Page>,
+            ...(frontBlankPageCount > 0
+              ? [
+                  <Page key="front-blank">
+                    <div className="h-full w-full" />
+                  </Page>,
+                ]
+              : []),
+            ...storyPages.map((p, idx) => (
+              <Page key={p.id}>
+                <StoryPage
+                  title={p.title}
+                  bookTitle={idx === 0 ? storyTitle : undefined}
+                  text={p.text}
+                  imageSrc={p.imageSrc}
+                  inlineImages={p.inlineImages}
+                  isSpreadStart={isMobile || idx % 2 === 0}
+                />
+                <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-xs text-tt-primary/60 dark:text-gray-400 tabular-nums">
+                  {idx + 1}
+                </div>
+              </Page>
+            )),
+            <Page key="end-blank">
+              <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-tt-tertiary dark:text-gray-400">
+                THE END!
               </div>
-            </Page>
-          ))}
-
-          {/* End: extra blank page */}
-          
-          <Page key="end-blank">
-            <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-tt-tertiary dark:text-gray-400">
-              THE END!</div>
-            <div className="h-full w-full" />
-
-          </Page>
-
-          {/* End: back of the blank page (closed book image) */}
-          <Page key="end-closed-book">
-            <div className="flex items-center justify-center h-[755px] w-[940px] -ml-40">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/closedBook2.png"
-                alt="Closed book"
-                className="h-[820px] w-[700px]"
-              />
-            </div>
-          </Page>
+              <div className="h-full w-full" />
+            </Page>,
+            <Page key="end-closed-book">
+              <div className="flex items-center justify-center w-[750px] -ml-[86px] -mt-9">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/closedBook2.png"
+                  alt="Closed book"
+                  className="h-[935px] w-[650px]"
+                />
+              </div>
+            </Page>,
+          ]}
         </HTMLFlipBook>
       </div>
 

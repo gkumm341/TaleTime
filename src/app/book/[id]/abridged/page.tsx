@@ -53,7 +53,8 @@ interface AbridgedResponse {
   author: string;
   content: string;
   blocks?: StoryBlock[] | null;
-  sourceFormat?: 'txt' | 'story-json';
+  pages?: PageData[] | null;
+  sourceFormat?: 'txt' | 'story-json' | 'story-pages';
   mode: 'llm' | 'extractive' | 'local';
 }
 
@@ -139,14 +140,91 @@ export default function AbridgedBookPage() {
     return process.env.NODE_ENV !== 'production' || searchParams.get('debug') === '1';
   }, [searchParams]);
 
+  const showDebugCounters = useMemo(() => searchParams.get('debug') === '1', [searchParams]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AbridgedResponse | null>(null);
 
   const [pages, setPages] = useState<PageData[]>([]);
+  const [orphanStats, setOrphanStats] = useState<{ fixes: number; removed: number }>({ fixes: 0, removed: 0 });
+
+  const pagedPages = useMemo(() => {
+    if (!data?.pages || data.pages.length === 0) return null;
+    if (!data.title) return null;
+
+    const title = data.title;
+    const imageExtractRegex = /\{\{([^{}]+)\}\}/g;
+
+    const extractImageFileName = (rawToken: string): string | null => {
+      const token = rawToken.trim();
+      const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg))/i);
+      if (direct?.[1]) return direct[1].split(/[/\\]/).pop() ?? null;
+      const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg))['"]/i);
+      if (quoted?.[1]) return quoted[1].split(/[/\\]/).pop() ?? null;
+      return null;
+    };
+
+    const resolveIllustrationUrl = (input: string): string => {
+      if (/^https?:\/\//i.test(input) || input.startsWith('/')) return input;
+      const file = input.split(/[/\\]/).pop() ?? input;
+      return `/api/illustration?title=${encodeURIComponent(title)}&image=${encodeURIComponent(file)}`;
+    };
+
+    const imageMap: InlineImageMap = {};
+    for (const p of data.pages) {
+      if (typeof p.text === 'string') {
+        let imageMatch: RegExpExecArray | null;
+        while ((imageMatch = imageExtractRegex.exec(p.text)) !== null) {
+          const token = imageMatch[1].trim();
+          const imageName = extractImageFileName(token);
+          if (imageName && !imageMap[imageName]) {
+            imageMap[imageName] = resolveIllustrationUrl(imageName);
+          }
+        }
+      }
+
+      if (typeof p.imageSrc === 'string' && p.imageSrc.trim()) {
+        const file = p.imageSrc.split(/[/\\]/).pop() ?? p.imageSrc;
+        if (!imageMap[file]) imageMap[file] = resolveIllustrationUrl(file);
+      }
+    }
+
+    return data.pages.map((p, idx) => {
+      const rawPage = p as PageData & { paragraphs?: unknown };
+      const paragraphs = Array.isArray(rawPage.paragraphs)
+        ? rawPage.paragraphs.filter((v) => typeof v === 'string')
+        : undefined;
+      const textFromParagraphs = paragraphs && paragraphs.length > 0 ? paragraphs.join('\n\n') : undefined;
+
+      return {
+        id: p.id || `p${idx + 1}`,
+        title: p.title,
+        text: p.text ?? textFromParagraphs,
+        imageSrc: p.imageSrc ? resolveIllustrationUrl(p.imageSrc) : undefined,
+        inlineImages: Object.keys(imageMap).length > 0 ? imageMap : undefined,
+        lockLayout: true,
+      };
+    });
+  }, [data?.pages, data?.title]);
+
+  const rawText = useMemo(() => {
+    if (pagedPages && pagedPages.length > 0) return '';
+    return (
+      (data?.blocks && Array.isArray(data.blocks)
+        ? storyBlocksToLegacyText(data.blocks)
+        : data?.content ?? '')
+    ).trim();
+  }, [data?.blocks, data?.content, pagedPages]);
+
+  const debugPreview = useMemo(() => rawText.slice(0, 300), [rawText]);
+  const debugPlaceholderCount = useMemo(
+    () => (rawText.match(/\{\{[^{}]+\}\}/g) || []).length,
+    [rawText]
+  );
 
   const measureScrollRef = useRef<HTMLDivElement | null>(null);
-  const measureTextRef = useRef<HTMLParagraphElement | null>(null);
+  const measureTextRef = useRef<HTMLDivElement | null>(null);
 
   const [flipNav, setFlipNav] = useState<{
     next: () => void;
@@ -633,10 +711,12 @@ export default function AbridgedBookPage() {
   }, [id, minutes, variant, preferences?.defaultWpm]);
 
   useLayoutEffect(() => {
-    const raw = (data?.blocks && Array.isArray(data.blocks)
-      ? storyBlocksToLegacyText(data.blocks)
-      : data?.content ?? '').trim();
-    if (!raw) {
+    if (pagedPages && pagedPages.length > 0) {
+      setPages(pagedPages);
+      return;
+    }
+
+    if (!rawText) {
       setPages([]);
       return;
     }
@@ -651,13 +731,26 @@ export default function AbridgedBookPage() {
     // don't force-split a single {{...}} token.
     const IMAGE_HEIGHT_ESTIMATE = Math.min(184, Math.floor(scrollBox.clientHeight * 0.32));
 
-    const paragraphs = raw
+    const paragraphs = rawText
       .split(/\n{2,}/g)
       .map((p) => p.trim())
       .filter(Boolean);
 
     const applyMeasuredText = (textOnly: string) => {
-      textNode.textContent = textOnly;
+      // Mirror StoryPage paragraph normalization to reduce underfilled pages.
+      const cleaned = textOnly.replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ');
+      const paras = cleaned
+        .split(/(?:\n\s*\n+|\u2029)+/g)
+        .map((p) => p.replace(/\s*\n\s*/g, ' ').replace(/[ \t]+/g, ' ').trim())
+        .filter(Boolean);
+
+      textNode.innerHTML = '';
+      for (const p of paras) {
+        const el = document.createElement('p');
+        el.className = 'tt-storybook-paragraph';
+        el.textContent = p;
+        textNode.appendChild(el);
+      }
     };
 
     const fits = (candidate: string) => {
@@ -677,10 +770,38 @@ export default function AbridgedBookPage() {
     };
 
     const isImageOnlyParagraph = (s: string) => /^\s*\{\{[^{}]+\}\}\s*$/.test(s);
+    const isImageOnlyChunk = (s: string) => isImageOnlyParagraph(s);
 
     const wordCount = (s: string) => {
       const m = s.trim().match(/\S+/g);
       return m ? m.length : 0;
+    };
+
+    const isTinyChunk = (s: string) => {
+      if (isImageOnlyChunk(s)) return false;
+      const trimmed = s.trim();
+      if (!trimmed) return false;
+      return wordCount(trimmed) <= 2 || trimmed.length <= 14;
+    };
+
+    const MIN_FILL_RATIO = 0.75;
+
+    const getFillRatio = (candidate: string) => {
+      const text = candidate.trim();
+      if (!text) return 0;
+      const imageMatches = text.match(imageRegex);
+      const imageCount = imageMatches ? imageMatches.length : 0;
+      const extraImageHeight = imageCount * IMAGE_HEIGHT_ESTIMATE;
+      const textOnly = text.replace(imageRegex, '');
+      applyMeasuredText(textOnly);
+      const availableHeight = scrollBox.clientHeight - extraImageHeight;
+      if (availableHeight <= 0) return 1;
+      return scrollBox.scrollHeight / availableHeight;
+    };
+
+    const isUnderfilled = (s: string) => {
+      if (isImageOnlyChunk(s)) return false;
+      return getFillRatio(s) < MIN_FILL_RATIO;
     };
 
     const splitStringToFit = (input: string): string[] => {
@@ -936,6 +1057,225 @@ export default function AbridgedBookPage() {
       }
     }
 
+    // Orphan cleanup: avoid tiny text chunks immediately before image-only chunks.
+    let orphanFixes = 0;
+    let orphanRemoved = 0;
+    const tryLastResort = process.env.NODE_ENV !== 'production';
+
+    let i = 0;
+    while (i < chunks.length - 1) {
+      const current = chunks[i];
+      const next = chunks[i + 1];
+
+      if (!current || !next || !isTinyChunk(current) || !isImageOnlyChunk(next)) {
+        i += 1;
+        continue;
+      }
+
+      // (a) Prefer merging tiny chunk into previous chunk if it fits.
+      if (i - 1 >= 0) {
+        const prev = chunks[i - 1];
+        if (prev && !isImageOnlyChunk(prev)) {
+          const prevCandidate = `${prev}\n\n${current}`;
+          if (fits(prevCandidate)) {
+            chunks[i - 1] = prevCandidate;
+            chunks.splice(i, 1);
+            orphanFixes += 1;
+            orphanRemoved += 1;
+            i = Math.max(0, i - 2);
+            continue;
+          }
+        }
+      }
+
+      // (b) Move tiny chunk to next text chunk after the image-only chunk.
+      if (i + 2 < chunks.length) {
+        const afterImage = chunks[i + 2];
+        if (afterImage && !isImageOnlyChunk(afterImage)) {
+          const nextCandidate = `${current}\n\n${afterImage}`;
+          if (fits(nextCandidate)) {
+            chunks[i + 2] = nextCandidate;
+            chunks.splice(i, 1);
+            orphanFixes += 1;
+            orphanRemoved += 1;
+            i = Math.max(0, i - 1);
+            continue;
+          }
+        }
+      }
+
+      // (c) Last resort: steal a short paragraph from the end of the previous chunk.
+      if (tryLastResort && i - 1 >= 0) {
+        const prev = chunks[i - 1];
+        if (prev && !isImageOnlyChunk(prev)) {
+          const prevParas = splitChunkParas(prev);
+          const lastPara = prevParas[prevParas.length - 1];
+          const rest = prevParas.slice(0, -1).join('\n\n').trim();
+
+          if (lastPara && lastPara.length <= 120 && rest && !isTinyChunk(rest)) {
+            const candidate = `${lastPara}\n\n${current}`;
+            if (fits(candidate)) {
+              chunks[i - 1] = rest;
+              chunks[i] = candidate;
+              orphanFixes += 1;
+            }
+          }
+        }
+      }
+
+      i += 1;
+    }
+
+    if (showDebugCounters) {
+      setOrphanStats({ fixes: orphanFixes, removed: orphanRemoved });
+    } else {
+      setOrphanStats({ fixes: 0, removed: 0 });
+    }
+
+    // Min-fill pass: keep text pages at least ~3/4 full by borrowing paragraphs.
+    for (let i = 0; i < chunks.length - 1; i++) {
+      const current = chunks[i];
+      const next = chunks[i + 1];
+      if (!current || !next) continue;
+      if (isImageOnlyChunk(current) || isImageOnlyChunk(next)) continue;
+      if (!isUnderfilled(current)) continue;
+
+      let cur = current;
+      let nextParas = splitChunkParas(next);
+      let moved = false;
+
+      while (nextParas.length > 0) {
+        const candidate = `${cur}\n\n${nextParas[0]}`;
+        if (!fits(candidate)) break;
+
+        const remainingNext = nextParas.slice(1).join('\n\n').trim();
+        if (remainingNext && getFillRatio(remainingNext) < MIN_FILL_RATIO) break;
+
+        cur = candidate;
+        nextParas = nextParas.slice(1);
+        moved = true;
+
+        if (getFillRatio(cur) >= MIN_FILL_RATIO) break;
+      }
+
+      if (moved) {
+        chunks[i] = cur;
+        const remaining = nextParas.join('\n\n').trim();
+        if (remaining) {
+          chunks[i + 1] = remaining;
+        } else {
+          chunks.splice(i + 1, 1);
+          i -= 1;
+        }
+      }
+    }
+
+    for (let i = chunks.length - 1; i > 0; i--) {
+      const current = chunks[i];
+      const prev = chunks[i - 1];
+      if (!current || !prev) continue;
+      if (isImageOnlyChunk(current) || isImageOnlyChunk(prev)) continue;
+      if (!isUnderfilled(current)) continue;
+
+      let cur = current;
+      let prevParas = splitChunkParas(prev);
+      let moved = false;
+
+      while (prevParas.length > 1) {
+        const last = prevParas[prevParas.length - 1];
+        const remainingPrev = prevParas.slice(0, -1).join('\n\n').trim();
+        if (!remainingPrev) break;
+
+        const candidate = `${last}\n\n${cur}`;
+        if (!fits(candidate)) break;
+        if (getFillRatio(remainingPrev) < MIN_FILL_RATIO) break;
+
+        cur = candidate;
+        prevParas = prevParas.slice(0, -1);
+        moved = true;
+
+        if (getFillRatio(cur) >= MIN_FILL_RATIO) break;
+      }
+
+      if (moved) {
+        chunks[i] = cur;
+        const remainingPrev = prevParas.join('\n\n').trim();
+        if (remainingPrev) {
+          chunks[i - 1] = remainingPrev;
+        } else {
+          chunks.splice(i - 1, 1);
+          i = Math.min(i, chunks.length - 1);
+        }
+      }
+    }
+
+    // Cascade backfill: ensure later pages reach minimum fill by pulling from earlier pages.
+    for (let i = chunks.length - 1; i > 0; i--) {
+      const current = chunks[i];
+      const prev = chunks[i - 1];
+      if (!current || !prev) continue;
+      if (isImageOnlyChunk(current) || isImageOnlyChunk(prev)) continue;
+      if (!isUnderfilled(current)) continue;
+
+      let cur = current;
+      let prevParas = splitChunkParas(prev);
+      let movedAny = false;
+
+      while (prevParas.length > 0 && isUnderfilled(cur)) {
+        const last = prevParas.pop();
+        if (!last) break;
+        const candidate = `${last}\n\n${cur}`;
+        if (!fits(candidate)) {
+          prevParas.push(last);
+          break;
+        }
+        cur = candidate;
+        movedAny = true;
+      }
+
+      if (movedAny) {
+        chunks[i] = cur;
+        const remainingPrev = prevParas.join('\n\n').trim();
+        if (remainingPrev) {
+          chunks[i - 1] = remainingPrev;
+        } else {
+          chunks.splice(i - 1, 1);
+          i = Math.min(i, chunks.length - 1);
+        }
+      }
+    }
+
+    // Merge underfilled pages if combined content still fits.
+    for (let i = 0; i < chunks.length; i++) {
+      const current = chunks[i];
+      if (!current || isImageOnlyChunk(current) || !isUnderfilled(current)) continue;
+
+      if (i > 0) {
+        const prev = chunks[i - 1];
+        if (prev && !isImageOnlyChunk(prev)) {
+          const merged = `${prev}\n\n${current}`;
+          if (fits(merged)) {
+            chunks[i - 1] = merged;
+            chunks.splice(i, 1);
+            i -= 1;
+            continue;
+          }
+        }
+      }
+
+      if (i + 1 < chunks.length) {
+        const next = chunks[i + 1];
+        if (next && !isImageOnlyChunk(next)) {
+          const merged = `${current}\n\n${next}`;
+          if (fits(merged)) {
+            chunks[i] = merged;
+            chunks.splice(i + 1, 1);
+            i -= 1;
+          }
+        }
+      }
+    }
+
     // Build inline image map from all {{...}} placeholders in the content.
     // Supports:
     // - {{1.png}}
@@ -953,7 +1293,7 @@ export default function AbridgedBookPage() {
       return null;
     };
 
-    while ((imageMatch = imageExtractRegex.exec(raw)) !== null) {
+    while ((imageMatch = imageExtractRegex.exec(rawText)) !== null) {
       const token = imageMatch[1].trim();
       const imageName = extractImageFileName(token);
       if (imageName && !imageMap[imageName] && data?.title) {
@@ -968,7 +1308,7 @@ export default function AbridgedBookPage() {
         inlineImages: Object.keys(imageMap).length > 0 ? imageMap : undefined,
       }))
     );
-  }, [data?.content, data?.title, preferences?.fontSize, preferences?.lineHeight, dims.width, dims.height]);
+  }, [rawText, pagedPages, data?.title, preferences?.fontSize, preferences?.lineHeight, dims.width, dims.height, showDebugCounters]);
 
   return (
     <div
@@ -989,9 +1329,9 @@ export default function AbridgedBookPage() {
             className="mt-4 flex-1 overflow-auto pr-2"
             ref={measureScrollRef}
           >
-            <p
+            <div
               ref={measureTextRef}
-              className="tt-storybook-prose tt-storybook-prose-book leading-snug whitespace-pre-wrap"
+              className="tt-storybook-prose tt-storybook-prose-book leading-snug word-break-break-word overflow-wrap-anywhere"
             />
           </div>
         </div>
@@ -1278,6 +1618,28 @@ export default function AbridgedBookPage() {
 
         {!loading && !error && data && (
           <div className="w-full">
+            {/* {showDebugInfo && (
+              <div className="mb-4 rounded-tt border border-tt-border/30 dark:border-tt-border/20 bg-white/70 dark:bg-gray-900/50 p-4 text-xs text-tt-primary/80 dark:text-gray-300/80">
+                <div className="flex flex-wrap gap-3">
+                  <div>sourceFormat: {data.sourceFormat ?? 'unknown'}</div>
+                  <div>blocks: {Array.isArray(data.blocks) ? data.blocks.length : 0}</div>
+                  <div>pages: {pages.length}</div>
+                  <div>placeholders: {debugPlaceholderCount}</div>
+                  {showDebugCounters && (
+                    <>
+                      <div>orphan fixes: {orphanStats.fixes}</div>
+                      <div>chunks removed: {orphanStats.removed}</div>
+                    </>
+                  )}
+                </div>
+                <div className="mt-2">
+                  <div className="font-semibold text-tt-primary/70 dark:text-gray-300/70">raw preview</div>
+                  <div className="mt-1 whitespace-pre-wrap break-words text-tt-primary/70 dark:text-gray-300/70">
+                    {debugPreview || '(empty)'}
+                  </div>
+                </div>
+              </div>
+            )} */}
             <div className="flex items-start justify-center gap-12">
               {useSideControls && <div className="w-40 shrink-0" aria-hidden="true" />}
               <div className="relative overflow-visible">

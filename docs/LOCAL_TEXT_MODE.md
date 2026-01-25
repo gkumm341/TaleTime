@@ -51,6 +51,48 @@ Notes:
 - `image.src` should be a filename like `image1.png` (avoid absolute paths like `C:\\...`). The app resolves it from the book’s `Illustrations/` folder via `/api/illustration`.
 - The reader currently converts JSON blocks into the existing placeholder format (e.g. `{{1.png}}`) internally, so it stays compatible with the current rendering and image endpoints.
 
+## Paginated story JSON (page-locked)
+
+If you want full control over page and paragraph breaks, use the paginated JSON format. Each page becomes exactly one rendered page (no auto-pagination).
+
+Files:
+
+- `.data/texts/by-title/<Title>/full.pages.json`
+- `.data/texts/by-title/<Title>/bedtime.pages.json`
+
+Example:
+
+```json
+{
+  "version": 1,
+  "title": "The Secret Garden",
+  "author": "Frances Hodgson Burnett",
+  "pages": [
+    {
+      "id": "p1",
+      "title": "Chapter 1",
+      "paragraphs": [
+        "When Mary Lennox was sent to Misselthwaite Manor to live with her uncle...",
+        "She had been born in India and had always been ill in one way or another."
+      ]
+    },
+    {
+      "id": "p2",
+      "paragraphs": [
+        "The house was big, and the wind moaned around the corners."
+      ],
+      "image": "garden-1.png"
+    }
+  ]
+}
+```
+
+Notes:
+
+- Use `paragraphs` for exact paragraph breaks (or `text` if you prefer). Paragraphs are joined with a blank line internally.
+- `image` (or `imageSrc`) can be a filename. It’s resolved from the book’s `Illustrations/` folder via `/api/illustration`.
+- Inline image placeholders like `{{garden-1.png}}` still work inside `text`.
+
 Preferred (drop files into folders by book title):
 
 - `.data/texts/by-title/<Title>/full.txt`
@@ -60,6 +102,8 @@ You can also use the structured JSON variants in the same folder:
 
 - `.data/texts/by-title/<Title>/full.story.json`
 - `.data/texts/by-title/<Title>/bedtime.story.json`
+- `.data/texts/by-title/<Title>/full.pages.json`
+- `.data/texts/by-title/<Title>/bedtime.pages.json`
 
 Default:
 

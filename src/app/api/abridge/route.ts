@@ -7,7 +7,14 @@ import path from 'node:path';
 import { getUserFromSessionId } from '@/lib/server/auth';
 import { getPremiumEntitlementForUserId } from '@/lib/server/entitlements';
 import { isPremiumActive } from '@/lib/entitlements';
-import { parseStoryJson, storyBlocksToLegacyText, type StoryBlock } from '@/lib/story-blocks';
+import {
+  parseStoryJson,
+  parseStoryPagesJson,
+  storyBlocksToLegacyText,
+  storyPagesToLegacyText,
+  type StoryBlock,
+  type StoryPageInput,
+} from '@/lib/story-blocks';
 
 export const runtime = 'nodejs';
 
@@ -54,13 +61,29 @@ function resolveLocalTextCandidates(params: {
 }
 
 async function loadFirstExistingStoryFile(paths: string[]): Promise<
-  { filePath: string; text: string; blocks?: StoryBlock[]; sourceFormat: 'txt' | 'story-json' } | null
+  | {
+      filePath: string;
+      text: string;
+      blocks?: StoryBlock[];
+      pages?: StoryPageInput[];
+      sourceFormat: 'txt' | 'story-json' | 'story-pages';
+    }
+  | null
 > {
   for (const p of paths) {
     try {
       const raw = await fs.readFile(p, 'utf8');
 
-      if (p.toLowerCase().endsWith('.json')) {
+      const lower = p.toLowerCase();
+
+      if (lower.endsWith('.pages.json')) {
+        const parsed = parseStoryPagesJson(raw);
+        const pages = parsed.doc.pages;
+        const text = storyPagesToLegacyText(pages);
+        return { filePath: p, text, pages, sourceFormat: 'story-pages' };
+      }
+
+      if (lower.endsWith('.story.json')) {
         const parsed = parseStoryJson(raw);
         const blocks = parsed.doc.blocks;
         const text = storyBlocksToLegacyText(blocks);
@@ -480,22 +503,28 @@ export async function POST(req: NextRequest) {
       if (byTitleFolder) {
         const byTitleDir = path.join(byTitleRoot, byTitleFolder);
         if (variant === 'full') {
+          candidates.push(path.join(byTitleDir, 'full.pages.json'));
           candidates.push(path.join(byTitleDir, 'full.story.json'));
           candidates.push(path.join(byTitleDir, 'full.txt'));
         } else {
+          candidates.push(path.join(byTitleDir, 'bedtime.pages.json'));
           candidates.push(path.join(byTitleDir, 'bedtime.story.json'));
           candidates.push(path.join(byTitleDir, 'bedtime.txt'));
+          candidates.push(path.join(byTitleDir, 'full.pages.json'));
           candidates.push(path.join(byTitleDir, 'full.story.json'));
           candidates.push(path.join(byTitleDir, 'full.txt'));
         }
       }
 
       if (variant === 'full' || variant === 'timed') {
+        candidates.push(path.join(bookDir, 'full.pages.json'));
         candidates.push(path.join(bookDir, 'full.story.json'));
         candidates.push(path.join(bookDir, 'full.txt'));
       } else {
+        candidates.push(path.join(bookDir, 'bedtime.pages.json'));
         candidates.push(path.join(bookDir, 'bedtime.story.json'));
         candidates.push(path.join(bookDir, 'bedtime.txt'));
+        candidates.push(path.join(bookDir, 'full.pages.json'));
         candidates.push(path.join(bookDir, 'full.story.json'));
         candidates.push(path.join(bookDir, 'full.txt'));
 
@@ -515,6 +544,53 @@ export async function POST(req: NextRequest) {
           },
           { status: 400 }
         );
+      }
+
+      if (loaded.pages && loaded.pages.length > 0) {
+        if (variant === 'full') {
+          return NextResponse.json({
+            bookId,
+            minutes: 0,
+            wpm,
+            title: book.title,
+            author: book.authors || 'Unknown',
+            pages: loaded.pages,
+            content: '',
+            blocks: null,
+            sourceFormat: loaded.sourceFormat,
+            mode: 'local' as Mode,
+          });
+        }
+
+        if (variant === 'bedtime') {
+          const bedtimeMinutes = 10;
+          return NextResponse.json({
+            bookId,
+            minutes: bedtimeMinutes,
+            wpm,
+            title: book.title,
+            author: book.authors || 'Unknown',
+            pages: loaded.pages,
+            content: '',
+            blocks: null,
+            sourceFormat: loaded.sourceFormat,
+            mode: 'local' as Mode,
+          });
+        }
+
+        const effectiveMinutes = minutes ?? 10;
+        return NextResponse.json({
+          bookId,
+          minutes: effectiveMinutes,
+          wpm,
+          title: book.title,
+          author: book.authors || 'Unknown',
+          pages: loaded.pages,
+          content: '',
+          blocks: null,
+          sourceFormat: loaded.sourceFormat,
+          mode: 'local' as Mode,
+        });
       }
 
       const raw = loaded.text.trim();
