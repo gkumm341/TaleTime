@@ -14,6 +14,14 @@ function normalizeTitleKey(input: string): string {
     .replace(/\s+/g, ' ');
 }
 
+const HIDDEN_LOCAL_TITLE_KEYS = new Set([
+  normalizeTitleKey('The Blue Fairy Book'),
+]);
+
+function isHiddenLocalTitle(title: string): boolean {
+  return HIDDEN_LOCAL_TITLE_KEYS.has(normalizeTitleKey(title));
+}
+
 async function dirExists(p: string): Promise<boolean> {
   try {
     return (await fs.stat(p)).isDirectory();
@@ -42,6 +50,7 @@ export async function syncLocalByTitleToDb(): Promise<{ inserted: number; skippe
   // Only consider folders that have at least full/bedtime in either .txt or .story.json
   const candidates: Array<{ title: string; key: string }> = [];
   for (const folderName of titleFolders) {
+    if (isHiddenLocalTitle(folderName)) continue;
     const fullPath = path.join(byTitleDir, folderName, 'full.txt');
     const bedtimePath = path.join(byTitleDir, folderName, 'bedtime.txt');
     const fullJsonPath = path.join(byTitleDir, folderName, 'full.story.json');

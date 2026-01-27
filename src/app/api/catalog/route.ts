@@ -21,6 +21,14 @@ function normalizeTitleKey(input: string): string {
     .replace(/\s+/g, ' ');
 }
 
+const HIDDEN_LOCAL_TITLE_KEYS = new Set([
+  normalizeTitleKey('The Blue Fairy Book'),
+]);
+
+function isHiddenLocalTitle(title: string): boolean {
+  return HIDDEN_LOCAL_TITLE_KEYS.has(normalizeTitleKey(title));
+}
+
 function buildTitleCandidates(rawTitle: string): string[] {
   const candidates = [
     rawTitle,
@@ -97,7 +105,8 @@ async function getLocalBookIdsWithText(): Promise<number[]> {
 
   const byTitleFolders = byTitleEntries
     .filter((e) => e.isDirectory())
-    .map((e) => e.name);
+    .map((e) => e.name)
+    .filter((name) => !isHiddenLocalTitle(name));
 
   const byTitleWithText = await Promise.all(
     byTitleFolders.map(async (folder) => {

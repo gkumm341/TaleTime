@@ -75,6 +75,24 @@ function normalizeForSearch(input: string): string {
     .replace(/\s+/g, ' ');
 }
 
+function normalizeTitleKey(input: string): string {
+  return input
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+const HIDDEN_LOCAL_TITLE_KEYS = new Set([
+  normalizeTitleKey('The Blue Fairy Book'),
+]);
+
+function isHiddenLocalTitle(title: string): boolean {
+  return HIDDEN_LOCAL_TITLE_KEYS.has(normalizeTitleKey(title));
+}
+
 function tokenize(input: string): string[] {
   return normalizeForSearch(input).split(' ').filter(Boolean);
 }
@@ -185,7 +203,10 @@ async function loadAllMetadata(): Promise<BookMetadata[]> {
     return [];
   }
 
-  const folders = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  const folders = entries
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .filter((name) => !isHiddenLocalTitle(name));
   const results: BookMetadata[] = [];
 
   for (const folder of folders) {
