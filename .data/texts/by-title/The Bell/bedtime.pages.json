@@ -113,7 +113,8 @@
     },
     {
       "id": "p10",
-      "text": "{{image5.png}}"
+      "text": "{{video.mp4}}",
+      "imageSrc": "image5.png"
     },
     {
       "id": "p11",

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "title": "The Dream of Little Tuk",
-  "author": "Unknown",
+  "author": "Hans Christian Andersen",
   "pages": [
     {
       "id": "p1",
@@ -108,7 +108,7 @@
     },
     {
       "id": "p10",
-      "text": "{{image5.png}}"
+      "text": "{{video.mp4}}"
     },
     {
       "id": "p11",

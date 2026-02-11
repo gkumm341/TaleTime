@@ -6,13 +6,6 @@
     {
       "id": "p1",
       "paragraphs": [
-        "The Jungle Book",
-        "(A calm bedtime retelling)"
-      ]
-    },
-    {
-      "id": "p2",
-      "paragraphs": [
         "Long ago, in a warm and whispering jungle, a tiny boy was found alone beneath the moonlight.",
         "He was carried gently to a quiet cave by Father Wolf, and there Mother Wolf wrapped him close beside her own cubs.",
         "They named the boy Mowgli.",
@@ -27,6 +20,10 @@
       ]
     },
     {
+      "id": "p2",
+      "text": "{{image1.png}}"
+    },
+    {
       "id": "p3",
       "paragraphs": [
         "Baloo taught Mowgli the Law of the Jungle.",
@@ -36,15 +33,19 @@
         "Strong in body. Kind in heart. Quick in mind.",
         "But one day, curiosity led him astray.",
         "High in the trees lived the Bandar-log… the Monkey People with no law, no memory, and no peace.",
-        "They laughed loudly. They promised grand adventures. They carried Mowgli away through the branches."
+        "They laughed loudly. They promised grand adventures. They carried Mowgli away through the branches.",
+        "Baloo roared in sorrow. Bagheera ran through the jungle in fury.",
+        "They sought help from the one creature the monkeys feared.",
+        "Kaa, the great python."
       ]
     },
     {
       "id": "p4",
+      "text": "{{image2.png}}"
+    },
+    {
+      "id": "p5",
       "paragraphs": [
-        "Baloo roared in sorrow. Bagheera ran through the jungle in fury.",
-        "They sought help from the one creature the monkeys feared.",
-        "Kaa, the great python.",
         "Together, they climbed to the ruined city where the monkeys had taken Mowgli.",
         "Kaa’s voice flowed like slow water. His eyes shimmered.",
         "And soon, the monkeys fled.",
@@ -58,7 +59,11 @@
       ]
     },
     {
-      "id": "p5",
+      "id": "p6",
+      "text": "{{image3.png}}"
+    },
+    {
+      "id": "p7",
       "paragraphs": [
         "On the night of the great council, Mowgli stood before the wolves.",
         "In his hands, he carried Red Flower… the fire that all jungle creatures fear.",
@@ -68,15 +73,19 @@
         "And with tears for the first time in his life…",
         "Mowgli left the jungle.",
         "He walked down into the world of men.",
-        "But the jungle never left his heart."
+        "But the jungle never left his heart.",
+        "Among the village, Mowgli learned new ways.",
+        "He learned to speak softly to people. To walk on stone paths. To sleep beneath a roof.",
+        "Yet at night, he still heard the jungle call."
       ]
     },
     {
-      "id": "p6",
+      "id": "p8",
+      "text": "{{image4.png}}"
+    },
+    {
+      "id": "p9",
       "paragraphs": [
-        "Among the village, Mowgli learned new ways.",
-        "He learned to speak softly to people. To walk on stone paths. To sleep beneath a roof.",
-        "Yet at night, he still heard the jungle call.",
         "And one evening… he answered.",
         "Shere Khan was hunting cattle.",
         "Breaking the Law of the Jungle. Breaking the peace between worlds.",
@@ -86,13 +95,17 @@
         "The jungle was safe again.",
         "Mowgli laid Shere Khan’s hide upon the Council Rock.",
         "Not in pride.",
-        "But in farewell."
+        "But in farewell.",
+        "Years passed."
       ]
     },
     {
-      "id": "p7",
+      "id": "p10",
+      "text": "{{image5.png}}"
+    },
+    {
+      "id": "p11",
       "paragraphs": [
-        "Years passed.",
         "Mowgli grew taller. Stronger. Wiser.",
         "But the jungle had more stories to tell.",
         "Far from the wolf pack, lived a brave little mongoose named Rikki-Tikki-Tavi.",
@@ -108,7 +121,11 @@
       ]
     },
     {
-      "id": "p8",
+      "id": "p12",
+      "text": "{{image6.png}}"
+    },
+    {
+      "id": "p13",
       "paragraphs": [
         "Through moonlit paths and silent halls, Rikki faced the snakes.",
         "He fought not for glory… but for those he loved.",
@@ -123,33 +140,38 @@
         "Changing their world forever.",
         "In the deep forests of India, a boy named Toomai loved elephants more than anything.",
         "One night, he followed them into the jungle.",
-        "Through moonlit paths and tall grasses.",
-        "And there, he saw what no one else had ever seen.",
-        "The elephants dancing."
+        "Through moonlit paths and tall grasses."
       ]
     },
     {
-      "id": "p9",
+      "id": "p14",
+      "text": "{{image7.png}}"
+    },
+    {
+      "id": "p15",
       "paragraphs": [
+        "And there, he saw what no one else had ever seen.",
+        "The elephants dancing.",
         "Toomai never forgot that night.",
         "And the jungle never forgot him.",
         "There were many stories in the jungle.",
         "Of loyalty. Of courage. Of kindness.",
         "And each one whispered the same truth.",
-        "That strength does not always roar. That bravery can be quiet. That belonging is something you build with love."
-      ]
-    },
-    {
-      "id": "p10",
-      "paragraphs": [
+        "That strength does not always roar. That bravery can be quiet. That belonging is something you build with love.",
         "And so, if you ever hear the wind moving through the trees…",
         "Or feel the night grow warm and still…",
         "Remember.",
         "Somewhere, the jungle is breathing softly.",
         "And Mowgli… the boy who walked between two worlds…",
-        "Is still part of its story.",
-        "THE END!"
+        "Is still part of its story."
       ]
+    },
+    {
+      "id": "p16",
+      "text": "{{video.mp4}}"    },
+    {
+      "id": "p17",
+      "text": "{{image9.png}}"
     }
   ]
 }

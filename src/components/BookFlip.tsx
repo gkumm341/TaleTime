@@ -846,8 +846,7 @@ function StoryPage({
         return;
       }
 
-      video.currentTime = 0;
-      video.pause();
+      // Keep the last frame visible instead of rewinding to the start.
       setIsVideoPlaying(false);
     };
 
