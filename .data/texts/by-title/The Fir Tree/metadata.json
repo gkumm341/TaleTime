@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:58.959Z",
+  "book": {
+    "id": 99017,
+    "title": "The Fir Tree",
+    "authors": [
+      "Unknown"
+    ],
+    "characters": [
+      "Fir Tree",
+      "Mice",
+      "Sparrows"
+    ],
+    "keywords": [
+      "Andersen",
+      "Christmas",
+      "contentment",
+      "wishing",
+      "regret",
+      "nature"
+    ],
+    "description": "A fir tree wishes for grander things, never appreciating the present until it's too late.",
+    "languages": [
+      "en"
+    ],
+    "subjects": [],
+    "downloadCount": 0,
+    "updatedAt": null,
+    "links": {
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
+    },
+    "estimate": null,
+    "source": {
+      "kind": "local",
+      "externalId": null
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "The Fir Tree",
+    "relativeDir": ".data/texts/by-title/The Fir Tree",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 3760,
+        "sha256": "73d105a080bb5fc7114caea5a88cf1dbee9746acbf22fd0d78e273c4fcb533e7"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 3281,
+        "sha256": "d6d52193cab4fcb3341e063e9f937d1d299ce3f72c995cf9e6dbe08134eaf3e9"
+      },
+      {
+        "role": "audio",
+        "filename": "The_Fir_Tree.mp3",
+        "bytes": 3514137,
+        "sha256": "50fbde26036cc66537ce526e276297ef62b48e3a7e88da252013b8ac968d504c"
+      },
+      {
+        "role": "image",
+        "filename": "The_Fir_Tree.png",
+        "bytes": 2989164,
+        "sha256": "39290d7fcce441d509c44f1b49ee0cd60d77fcdc7ea92a36138a04cf952b1b18"
+      }
+    ]
+  }
+}

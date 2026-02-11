@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:59.018Z",
+  "book": {
+    "id": 41,
+    "title": "The Legend of Sleepy Hollow",
+    "authors": [
+      "Irving, Washington"
+    ],
+    "characters": [
+      "Ichabod Crane",
+      "Katrina Van Tassel",
+      "Brom Bones",
+      "Headless Horseman"
+    ],
+    "keywords": [
+      "Irving",
+      "ghost",
+      "Headless Horseman",
+      "Halloween",
+      "Hudson Valley",
+      "schoolmaster",
+      "pumpkin"
+    ],
+    "description": "A superstitious schoolmaster encounters the legendary Headless Horseman in a haunted valley.",
+    "languages": [],
+    "subjects": [
+      "Ghosts -- Fiction",
+      "New York (State) -- History -- 1775-1865 -- Fiction"
+    ],
+    "downloadCount": 49447,
+    "updatedAt": 1762465432338,
+    "links": {
+      "txtUrl": "https://www.gutenberg.org/ebooks/41.txt.utf-8",
+      "epubUrl": "https://www.gutenberg.org/ebooks/41.epub3.images",
+      "coverUrl": "https://www.gutenberg.org/cache/epub/41/pg41.cover.medium.jpg"
+    },
+    "estimate": {
+      "minutes": 107,
+      "words": 17028,
+      "wpm": 160,
+      "source": "txt-head",
+      "computedAt": 1762465347760
+    },
+    "source": {
+      "kind": "gutenberg",
+      "externalId": 41
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "The Legend of Sleepy Hollow",
+    "relativeDir": ".data/texts/by-title/The Legend of Sleepy Hollow",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 71050,
+        "sha256": "8f6349aacfc5a4985e246f761efcbe026c7463a5cbe9a1175c0d156dab0a49b7"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 3535,
+        "sha256": "c16951796e9b101316bfa9a3dc3b26ff4c833c3b8dd67d1602932ac95e91e76d"
+      },
+      {
+        "role": "image",
+        "filename": "The_Legend_of_Sleepy_Hollow.png",
+        "bytes": 2744919,
+        "sha256": "081f18344a92a2f2414f70266b0180aa2beaf819c42c5d783b8b1656eaab2c02"
+      }
+    ]
+  }
+}

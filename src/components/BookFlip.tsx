@@ -49,6 +49,12 @@ export type BookFlipHandle = {
 
 const MAX_TEXT_LINES_PER_PAGE = 22;
 
+const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg'];
+
+function isVideoFilename(name: string) {
+  return new RegExp(`\\.(${VIDEO_EXTENSIONS.join('|')})$`, 'i').test(name);
+}
+
 type FlipBookApi = {
   flipNext: () => void;
   flipPrev: () => void;
@@ -565,12 +571,12 @@ export function renderTextWithInlineImages(
   const extractImageFileName = (rawToken: string): string | null => {
     const token = rawToken.trim();
     // 1) Direct filename anywhere in the token (supports bare: 1.png, path: illustrations/1.png)
-    const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg))/i);
+    const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg|mp4|webm|ogg))/i);
     if (direct?.[1]) {
       return direct[1].split(/[/\\]/).pop() ?? null;
     }
     // 2) Jinja-style helper call: illustration("1.png") / image('1.png') etc
-    const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg))['"]/i);
+    const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg|mp4|webm|ogg))['"]/i);
     if (quoted?.[1]) {
       return quoted[1].split(/[/\\]/).pop() ?? null;
     }
@@ -601,18 +607,36 @@ export function renderTextWithInlineImages(
     const imageName = extractImageFileName(placeholderExpr) ?? placeholderExpr;
     const imageUrl = inlineImages[imageName];
     if (imageUrl) {
-      parts.push(
-        <span key={`img-${keyIndex++}`} className="inline-block w-full my-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt="Story illustration"
-            className="w-full object-contain rounded-xl border border-tt-border/20 dark:border-tt-border/10 bg-tt-secondary/30 dark:bg-gray-800"
-            style={{ maxHeight: 'min(160px, 30vh)' }}
-            loading="lazy"
-          />
-        </span>
-      );
+      if (isVideoFilename(imageName)) {
+        parts.push(
+          <span key={`video-${keyIndex++}`} className="inline-block w-full my-3">
+            <video
+              data-tt-story-video
+              src={imageUrl}
+              className="w-full rounded-xl border border-tt-border/20 dark:border-tt-border/10 bg-tt-secondary/30 dark:bg-gray-800"
+              style={{ maxHeight: 'min(200px, 40vh)' }}
+              preload="metadata"
+              playsInline
+              controls={false}
+              disablePictureInPicture
+              controlsList="nodownload noplaybackrate nofullscreen"
+            />
+          </span>
+        );
+      } else {
+        parts.push(
+          <span key={`img-${keyIndex++}`} className="inline-block w-full my-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt="Story illustration"
+              className="w-full object-contain rounded-xl border border-tt-border/20 dark:border-tt-border/10 bg-tt-secondary/30 dark:bg-gray-800"
+              style={{ maxHeight: 'min(160px, 30vh)' }}
+              loading="lazy"
+            />
+          </span>
+        );
+      }
     } else {
       // If we don't have a URL for this placeholder, keep it as text so it's debuggable.
       parts.push(
@@ -643,9 +667,9 @@ function getSinglePlaceholderName(text: string): string | null {
   const m = trimmed.match(/^\{\{([^{}]+)\}\}$/);
   if (!m) return null;
   const token = m[1].trim();
-  const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg))/i);
+  const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg|mp4|webm|ogg))/i);
   if (direct?.[1]) return direct[1].split(/[/\\]/).pop() ?? token;
-  const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg))['"]/i);
+  const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg|mp4|webm|ogg))['"]/i);
   if (quoted?.[1]) return quoted[1].split(/[/\\]/).pop() ?? token;
   return token;
 }
@@ -653,32 +677,239 @@ function getSinglePlaceholderName(text: string): string | null {
 function StoryPage({
   title,
   bookTitle,
+  storyTitle,
   text,
   imageSrc,
   inlineImages,
   isSpreadStart,
+  isActive,
 }: {
   title?: string;
   bookTitle?: string;
+  storyTitle?: string;
   text?: string;
   imageSrc?: string;
   inlineImages?: InlineImageMap;
   isSpreadStart?: boolean;
+  isActive?: boolean;
 }) {
   const singlePlaceholderName = useMemo(() => getSinglePlaceholderName(text ?? ''), [text]);
-  const fullPageImageUrl = singlePlaceholderName ? inlineImages?.[singlePlaceholderName] : undefined;
+  const fullPageMediaUrl = singlePlaceholderName ? inlineImages?.[singlePlaceholderName] : undefined;
+  const isVideoPlaceholder = singlePlaceholderName ? isVideoFilename(singlePlaceholderName) : false;
+  const pageRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [hasVideoEnded, setHasVideoEnded] = useState(false);
+  const keepPosterHiddenAfterEnd = storyTitle?.trim().toLowerCase() === 'ashputtel';
+  const shouldHidePoster = isVideoPlaying || (keepPosterHiddenAfterEnd && hasVideoEnded);
 
-  if (fullPageImageUrl) {
+  const handlePointerUp = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const pageEl = pageRef.current;
+      if (!pageEl) return;
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const isVideoTarget = Boolean(target.closest('video[data-tt-story-video]'));
+      if (!isVideoTarget) return;
+
+      const video = videoRef.current ?? pageEl.querySelector<HTMLVideoElement>('video[data-tt-story-video]');
+      if (!video) return;
+      if (video.paused) {
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.catch(() => {
+            // ignore autoplay rejection
+          });
+        }
+      } else {
+        video.pause();
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [isActive]
+  );
+
+  const toggleVideoPlay = React.useCallback(
+    (video: HTMLVideoElement, event: { stopPropagation: () => void }) => {
+      if (video.paused) {
+        if (video.readyState < 2) {
+          try {
+            video.load();
+          } catch {
+            // ignore
+          }
+        }
+
+        const attemptPlay = () => {
+          const playPromise = video.play();
+          if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.catch(() => {
+              // ignore autoplay rejection
+            });
+          }
+        };
+
+        if (video.readyState >= 2) {
+          attemptPlay();
+        } else {
+          video.addEventListener('canplay', attemptPlay, { once: true });
+        }
+      } else {
+        video.pause();
+      }
+      event.stopPropagation();
+    },
+    [isActive]
+  );
+
+  const handleVideoClick: React.MouseEventHandler<HTMLVideoElement> = React.useCallback(
+    (event) => {
+      event.preventDefault();
+      toggleVideoPlay(event.currentTarget, event);
+    },
+    [toggleVideoPlay]
+  );
+
+  const handleVideoPointerUp: React.PointerEventHandler<HTMLVideoElement> = React.useCallback(
+    (event) => {
+      event.preventDefault();
+      toggleVideoPlay(event.currentTarget, event);
+    },
+    [toggleVideoPlay]
+  );
+
+  const handleVideoPointerDown: React.PointerEventHandler<HTMLVideoElement> = React.useCallback(
+    (event) => {
+      event.preventDefault();
+      toggleVideoPlay(event.currentTarget, event);
+    },
+    [toggleVideoPlay]
+  );
+
+  const handlePointerDown = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const isVideoTarget = Boolean(target.closest('video[data-tt-story-video]'));
+      if (!isVideoTarget) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [isActive]
+  );
+
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const isVideoTarget = Boolean(target.closest('video[data-tt-story-video]'));
+      if (!isVideoTarget) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [isActive]
+  );
+
+  React.useEffect(() => {
+    if (isActive) return;
+    const pageEl = pageRef.current;
+    if (!pageEl) return;
+    const video = videoRef.current ?? pageEl.querySelector<HTMLVideoElement>('video[data-tt-story-video]');
+    if (video) {
+      if (!video.paused) {
+        video.pause();
+      }
+      if (!(keepPosterHiddenAfterEnd && hasVideoEnded)) {
+        try {
+          video.currentTime = 0;
+        } catch {
+          // ignore seek failures
+        }
+      }
+    }
+  }, [isActive, keepPosterHiddenAfterEnd, hasVideoEnded]);
+
+  React.useEffect(() => {
+    const pageEl = pageRef.current;
+    if (!pageEl) return;
+    const video = videoRef.current ?? pageEl.querySelector<HTMLVideoElement>('video[data-tt-story-video]');
+    if (!video) return;
+
+    const handlePlay = () => setIsVideoPlaying(true);
+    const handlePause = () => setIsVideoPlaying(false);
+    const handleEnded = () => {
+      if (keepPosterHiddenAfterEnd) {
+        setHasVideoEnded(true);
+        setIsVideoPlaying(false);
+        return;
+      }
+
+      video.currentTime = 0;
+      video.pause();
+      setIsVideoPlaying(false);
+    };
+
+    handlePause();
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
+
+    return () => {
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
+    };
+  }, [text, inlineImages, keepPosterHiddenAfterEnd]);
+
+  if (fullPageMediaUrl) {
     return (
-      <div className="h-full w-full p-6 sm:p-8 flex flex-col">
-        <div className="flex-1 flex items-center justify-center overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={fullPageImageUrl}
-            alt="Story illustration"
-            className="w-auto h-full rounded-xl "
-            loading="lazy"
-          />
+      <div
+        ref={pageRef}
+        className="h-full w-full p-6 sm:p-8 flex flex-col"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onClick={handleClick}
+      >
+        <div
+          className="flex-1 flex items-center justify-center overflow-hidden relative"
+          style={
+            isVideoPlaceholder && imageSrc && !shouldHidePoster
+              ? {
+                  backgroundImage: `url(${imageSrc})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }
+              : undefined
+          }
+        >
+          {isVideoPlaceholder ? (
+            <video
+              ref={videoRef}
+              data-tt-story-video
+              src={fullPageMediaUrl}
+              className="w-auto h-full rounded-xl border border-tt-border/20 dark:border-tt-border/10 bg-transparent"
+              preload="metadata"
+              playsInline
+              poster={shouldHidePoster ? undefined : imageSrc}
+              controls={false}
+              disablePictureInPicture
+              controlsList="nodownload noplaybackrate nofullscreen"
+              onClick={handleVideoClick}
+              onPointerDown={handleVideoPointerDown}
+              onPointerUp={handleVideoPointerUp}
+              style={{ cursor: 'pointer' }}
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={fullPageMediaUrl}
+              alt="Story illustration"
+              className="w-auto h-full rounded-xl "
+              loading="lazy"
+            />
+          )}
         </div>
       </div>
     );
@@ -688,7 +919,13 @@ function StoryPage({
   const hasHeader = Boolean(bookTitle || title || isSpreadStart);
 
   return (
-    <div className="h-full w-full p-6 sm:p-8 flex flex-col">
+    <div
+      ref={pageRef}
+      className="h-full w-full p-6 sm:p-8 flex flex-col"
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onClick={handleClick}
+    >
       {isSpreadStart ? (
         <div aria-hidden="true" className="tt-storybook-chapter-ornament" />
       ) : null}
@@ -1174,10 +1411,17 @@ export default function BookFlip({
                 <StoryPage
                   title={p.title}
                   bookTitle={idx === 0 ? storyTitle : undefined}
+                  storyTitle={storyTitle}
                   text={p.text}
                   imageSrc={p.imageSrc}
                   inlineImages={p.inlineImages}
                   isSpreadStart={isMobile || idx % 2 === 0}
+                  isActive={
+                    isMobile
+                      ? pageIndex === idx + 1 + frontBlankPageCount
+                      : pageIndex === idx + 1 + frontBlankPageCount ||
+                        pageIndex + 1 === idx + 1 + frontBlankPageCount
+                  }
                 />
                 <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-xs text-tt-primary/60 dark:text-gray-400 tabular-nums">
                   {idx + 1}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:59.075Z",
+  "book": {
+    "id": 99011,
+    "title": "The Twelve Dancing Princesses",
+    "authors": [
+      "Unknown"
+    ],
+    "characters": [
+      "Twelve Princesses",
+      "Soldier",
+      "King",
+      "Old Woman"
+    ],
+    "keywords": [
+      "Grimm",
+      "dancing",
+      "secret",
+      "underground",
+      "enchantment",
+      "mystery",
+      "shoes"
+    ],
+    "description": "A soldier uncovers the mystery of twelve princesses who wear out their shoes dancing each night.",
+    "languages": [
+      "en"
+    ],
+    "subjects": [],
+    "downloadCount": 0,
+    "updatedAt": null,
+    "links": {
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
+    },
+    "estimate": null,
+    "source": {
+      "kind": "local",
+      "externalId": null
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "The Twelve Dancing Princesses",
+    "relativeDir": ".data/texts/by-title/The Twelve Dancing Princesses",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 8519,
+        "sha256": "91edfe96a6bdbd7eb62f078ac3f8e5ecd99d50541867da4a119731782e037f3b"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 5133,
+        "sha256": "408a1af315144d8e1fc991eec52b0e7b005cc9775faca3fa90f37e1cb66c0c56"
+      },
+      {
+        "role": "image",
+        "filename": "ChatGPT Image Jan 13, 2026, 03_58_08 PM.png",
+        "bytes": 2855101,
+        "sha256": "95245d49bff2e56410a90e357193e9ace49e5624f70be129be1099a4e572fd2c"
+      }
+    ]
+  }
+}

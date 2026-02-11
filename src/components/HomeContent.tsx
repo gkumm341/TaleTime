@@ -179,7 +179,7 @@ export function HomeContent() {
       />
       {/* Responsive Sidebar Navigation */}
       <Sidebar activePage="home">
-     
+
 
         {/* Storage Info */}
         <div className="pt-4 border-t border-tt-border/10 bg-tt-surface/60 p-3 rounded-tt ring-1 ring-tt-border/10">
@@ -198,75 +198,14 @@ export function HomeContent() {
         <div className="w-full mx-auto space-y-6 px-4 md:px-8 py-6">
           <Hero />
 
-          {/* Search Bar */}
-          <div className="relative">
-            <form
-              className="flex items-center gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const form = e.currentTarget;
-                const input = form.querySelector('input[type="text"]') as HTMLInputElement | null;
-                const value = input?.value ?? searchQuery;
-                handleSearch(value);
-              }}
-            >
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      clearSearch();
-                    }
-                  }}
-                  placeholder="Search by title, author, character, keyword..."
-                  className="tt-input pl-12 pr-10 py-3"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={clearSearch}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-tt-tertiary/20 transition-colors"
-                  >
-                    <X className="w-4 h-4 text-tt-muted" />
-                  </button>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={isSearching || !searchQuery.trim()}
-                className="tt-btn-primary px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              >
-                {isSearching ? 'Searching...' : 'Search'}
-              </button>
-            </form>
-            {searchResults !== null && (
-              <div className="mt-2 text-sm text-tt-muted">
-                {searchResults.length > 0 ? (
-                  <span>Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;</span>
-                ) : (
-                  <span>No results found for &quot;{searchQuery}&quot;</span>
-                )}
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="ml-2 text-tt-accent hover:underline"
-                >
-                  Clear search
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* Active Filters */}
           <ActiveFilters filters={filters} onRemove={handleRemoveFilter} />
 
           {/* Controls Row */}
           <div className="tt-surface px-4 py-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center flex-1">
+
                 <div className="flex items-center gap-3">
                   <label className="text-sm font-medium text-tt-primary">
                     Sort by:
@@ -298,6 +237,48 @@ export function HomeContent() {
                     <option value={100}>100</option>
                   </select>
                 </div>
+                <form
+                  className="flex items-center gap-2 w-full sm:max-w-3xl mx-auto"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const input = form.querySelector('input[type="text"]') as HTMLInputElement | null;
+                    const value = input?.value ?? searchQuery;
+                    handleSearch(value);
+                  }}
+                >
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          clearSearch();
+                        }
+                      }}
+                      placeholder="Search by title, author, character, keyword..."
+                      className="tt-input pl-12 pr-10 py-3"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-tt-tertiary/20 transition-colors"
+                      >
+                        <X className="w-4 h-4 text-tt-muted" />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSearching || !searchQuery.trim()}
+                    className="tt-btn-primary px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  >
+                    {isSearching ? 'Searching...' : 'Search'}
+                  </button>
+                </form>
               </div>
               <div className="flex items-center gap-3 justify-between lg:justify-end">
                 {/* Version segmented control */}
@@ -333,77 +314,94 @@ export function HomeContent() {
             </div>
           </div>
 
-      <div className="">
-
-      
-          {/* Error State */}
-          {error && (
-            <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-tt p-6 text-center shadow-sm">
-              <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent ring-1 ring-tt-border/10">
-                <BookOpen className="h-7 w-7 text-tt-accent" />
-              </div>
-              <p className="text-rose-800 dark:text-rose-200 font-semibold">
-                {error}
-              </p>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {loading && !searchResults && <BookGridSkeleton count={itemsPerPage} />}
-
-          {/* Search Results */}
-          {searchResults !== null && searchResults.length > 0 && (
-            <>
-              <div className="">
-                <BookGrid initialBooks={searchResults} timeSelection={selectedTimeOptionId} displayMode="covers" />
-              </div>
-            </>
-          )}
-
-          {/* Book Grid (when not searching) */}
-          {!loading && !error && books.length > 0 && searchResults === null && (
-            <>
-              {/* Background image */}
-
-              <div className="">
-                <BookGrid initialBooks={books} timeSelection={selectedTimeOptionId} displayMode="covers" />
-              </div>
-
-              {/* Book Count */}
-              <div className="text-center text-sm text-tt-muted">
-                Showing {books.length} book{books.length !== 1 ? 's' : ''}
-              </div>
-            </>
-          )}
-
-          {/* Empty State */}
-          {!loading && !error && books.length === 0 && searchResults === null && (
-            <div className="tt-card p-12 text-center shadow-lg rounded-tt-xl">
-              <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent ring-1 ring-tt-border/10">
-                <BookOpen className="h-7 w-7 text-tt-accent" />
-              </div>
-              <h3 className="text-xl font-semibold text-tt-tertiary mb-2">
-                No books found
-              </h3>
-              <p className="text-tt-muted mb-4">
-                {filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly
-                  ? 'Try adjusting your filters to see more results.'
-                  : 'Try running the populate script to add books to your catalog.'}
-              </p>
-              {(filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly) && (
-                <button
-                  onClick={() => setFilters({ ageCategories: [], durations: [], languages: [], offlineOnly: false })}
-                  className="tt-btn-accent px-6 h-11 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all"
-                >
-                  Clear all filters
-                </button>
+          {searchResults !== null && (
+            <div className="mt-2 text-sm text-tt-muted">
+              {searchResults.length > 0 ? (
+                <span>Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;</span>
+              ) : (
+                <span>No results found for &quot;{searchQuery}&quot;</span>
               )}
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="ml-2 text-tt-accent hover:underline"
+              >
+                Clear search
+              </button>
             </div>
           )}
-        </div>
-        </div>
+
+          <div className="">
+
+
+            {/* Error State */}
+            {error && (
+              <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-tt p-6 text-center shadow-sm">
+                <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent ring-1 ring-tt-border/10">
+                  <BookOpen className="h-7 w-7 text-tt-accent" />
+                </div>
+                <p className="text-rose-800 dark:text-rose-200 font-semibold">
+                  {error}
+                </p>
+              </div>
+            )}
+
+            {/* Loading State */}
+            {loading && !searchResults && <BookGridSkeleton count={itemsPerPage} />}
+
+            {/* Search Results */}
+            {searchResults !== null && searchResults.length > 0 && (
+              <>
+                <div className="">
+                  <BookGrid initialBooks={searchResults} timeSelection={selectedTimeOptionId} displayMode="covers" />
+                </div>
+              </>
+            )}
+
+            {/* Book Grid (when not searching) */}
+            {!loading && !error && books.length > 0 && searchResults === null && (
+              <>
+                {/* Background image */}
+
+                <div className="">
+                  <BookGrid initialBooks={books} timeSelection={selectedTimeOptionId} displayMode="covers" />
+                </div>
+
+                {/* Book Count */}
+                <div className="text-center text-sm text-tt-muted">
+                  Showing {books.length} book{books.length !== 1 ? 's' : ''}
+                </div>
+              </>
+            )}
+
+            {/* Empty State */}
+            {!loading && !error && books.length === 0 && searchResults === null && (
+              <div className="tt-card p-12 text-center shadow-lg rounded-tt-xl">
+                <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent ring-1 ring-tt-border/10">
+                  <BookOpen className="h-7 w-7 text-tt-accent" />
+                </div>
+                <h3 className="text-xl font-semibold text-tt-tertiary mb-2">
+                  No books found
+                </h3>
+                <p className="text-tt-muted mb-4">
+                  {filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly
+                    ? 'Try adjusting your filters to see more results.'
+                    : 'Try running the populate script to add books to your catalog.'}
+                </p>
+                {(filters.ageCategories.length > 0 || filters.durations.length > 0 || filters.languages.length > 0 || filters.offlineOnly) && (
+                  <button
+                    onClick={() => setFilters({ ageCategories: [], durations: [], languages: [], offlineOnly: false })}
+                    className="tt-btn-accent px-6 h-11 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    
+    </div>
+
   );
 }

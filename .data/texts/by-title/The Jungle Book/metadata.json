@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:59.001Z",
+  "book": {
+    "id": 236,
+    "title": "The Jungle Book",
+    "authors": [
+      "Kipling, Rudyard"
+    ],
+    "characters": [
+      "Mowgli",
+      "Baloo",
+      "Bagheera",
+      "Shere Khan",
+      "Akela",
+      "Kaa",
+      "Raksha"
+    ],
+    "keywords": [
+      "India",
+      "jungle",
+      "wolves",
+      "animals",
+      "coming-of-age",
+      "law of the jungle",
+      "Kipling"
+    ],
+    "description": "A boy raised by wolves in the Indian jungle learns the ways of the wild from animal friends.",
+    "languages": [],
+    "subjects": [
+      "Adventure stories, English",
+      "Animals -- Fiction",
+      "Feral children -- Fiction",
+      "India -- Fiction",
+      "India -- History -- 19th century -- Fiction",
+      "Jungle animals -- Fiction",
+      "Jungles -- Fiction",
+      "Mowgli (Fictitious character) -- Fiction",
+      "Short stories"
+    ],
+    "downloadCount": 10442,
+    "updatedAt": 1762465432338,
+    "links": {
+      "txtUrl": "https://www.gutenberg.org/ebooks/236.txt.utf-8",
+      "epubUrl": "https://www.gutenberg.org/ebooks/236.epub3.images",
+      "coverUrl": "https://www.gutenberg.org/cache/epub/236/pg236.cover.medium.jpg"
+    },
+    "estimate": {
+      "minutes": 368,
+      "words": 58743,
+      "wpm": 160,
+      "source": "txt-head",
+      "computedAt": 1762465351745
+    },
+    "source": {
+      "kind": "gutenberg",
+      "externalId": 236
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "The Jungle Book",
+    "relativeDir": ".data/texts/by-title/The Jungle Book",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 296828,
+        "sha256": "111c29f47d4d58ddd2927df29ebd780432689adefa7c00576a0f09bdcbd87a36"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 4703,
+        "sha256": "942e83279f48b2a2b388f34ceec77bb33b099d99d81e874f62f08e731bf3d7e5"
+      },
+      {
+        "role": "audio",
+        "filename": "The_Jungle_Book.mp3",
+        "bytes": 5346470,
+        "sha256": "0a53c8f4e1b345617e9b282cc64a2a157f925278df21fe44848617a3aa888f74"
+      },
+      {
+        "role": "image",
+        "filename": "The_Jungle_Book.png",
+        "bytes": 3146343,
+        "sha256": "66d52da375aaf5589f78194772a9f8b86886b79ef6b49fd7d2db445a68c871a5"
+      }
+    ]
+  }
+}

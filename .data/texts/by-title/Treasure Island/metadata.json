@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:59.098Z",
+  "book": {
+    "id": 120,
+    "title": "Treasure Island",
+    "authors": [
+      "Stevenson, Robert Louis"
+    ],
+    "characters": [
+      "Jim Hawkins",
+      "Long John Silver",
+      "Captain Smollett",
+      "Dr. Livesey",
+      "Squire Trelawney",
+      "Ben Gunn",
+      "Billy Bones"
+    ],
+    "keywords": [
+      "pirates",
+      "treasure",
+      "map",
+      "Stevenson",
+      "sea",
+      "adventure",
+      "parrot",
+      "mutiny"
+    ],
+    "description": "A young boy finds a treasure map and sets sail on a dangerous voyage with pirates.",
+    "languages": [],
+    "subjects": [
+      "Pirates -- Fiction",
+      "Sea stories",
+      "Treasure Island (Imaginary place) -- Fiction",
+      "Treasure troves -- Fiction"
+    ],
+    "downloadCount": 17700,
+    "updatedAt": 1762465432338,
+    "links": {
+      "txtUrl": "https://www.gutenberg.org/ebooks/120.txt.utf-8",
+      "epubUrl": "https://www.gutenberg.org/ebooks/120.epub3.images",
+      "coverUrl": "https://www.gutenberg.org/cache/epub/120/pg120.cover.medium.jpg"
+    },
+    "estimate": {
+      "minutes": 486,
+      "words": 77610,
+      "wpm": 160,
+      "source": "txt-head",
+      "computedAt": 1762465349333
+    },
+    "source": {
+      "kind": "gutenberg",
+      "externalId": 120
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "Treasure Island",
+    "relativeDir": ".data/texts/by-title/Treasure Island",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 390609,
+        "sha256": "96f31e7b75bbf71da71eed46fe6436b3ced0d79612ad5f9d2d7631703ab25fbb"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 4408,
+        "sha256": "38de1ea64719a2fb202ca13f8f8f188d57398a4bcd581e06d9d77e0008019724"
+      },
+      {
+        "role": "image",
+        "filename": "Treasure_Island.png",
+        "bytes": 2928510,
+        "sha256": "704940c90ea63274121cd3c4df33de703accc7096a832729bcc353d2b6eba47b"
+      }
+    ]
+  }
+}

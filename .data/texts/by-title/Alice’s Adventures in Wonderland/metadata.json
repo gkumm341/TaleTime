@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:58.762Z",
+  "book": {
+    "id": 11,
+    "title": "Alice's Adventures in Wonderland",
+    "authors": [
+      "Carroll, Lewis"
+    ],
+    "characters": [
+      "Alice",
+      "White Rabbit",
+      "Cheshire Cat",
+      "Queen of Hearts",
+      "Mad Hatter",
+      "March Hare",
+      "Caterpillar",
+      "King of Hearts",
+      "Duchess"
+    ],
+    "keywords": [
+      "fantasy",
+      "nonsense",
+      "Victorian",
+      "dream",
+      "curiosity",
+      "absurd",
+      "playing cards",
+      "tea party",
+      "rabbit hole",
+      "wonderland"
+    ],
+    "description": "A young girl named Alice falls down a rabbit hole into a fantastical underground world populated by peculiar creatures.",
+    "languages": [],
+    "subjects": [
+      "Alice (Fictitious character from Carroll) -- Juvenile fiction",
+      "Children's stories",
+      "Fantasy fiction",
+      "Imaginary places -- Juvenile fiction"
+    ],
+    "downloadCount": 65142,
+    "updatedAt": 1762465432338,
+    "links": {
+      "txtUrl": "https://www.gutenberg.org/ebooks/11.txt.utf-8",
+      "epubUrl": "https://www.gutenberg.org/ebooks/11.epub3.images",
+      "coverUrl": "https://www.gutenberg.org/cache/epub/11/pg11.cover.medium.jpg"
+    },
+    "estimate": {
+      "minutes": 209,
+      "words": 33384,
+      "wpm": 160,
+      "source": "txt-head",
+      "computedAt": 1762465347627
+    },
+    "source": {
+      "kind": "gutenberg",
+      "externalId": 11
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "Alice’s Adventures in Wonderland",
+    "relativeDir": ".data/texts/by-title/Alice’s Adventures in Wonderland",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 149908,
+        "sha256": "cd1ce9db9c7a6853e4f4507b796375413bf4e151e2b8d76fa5b0ca9c5e740ebb"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 4578,
+        "sha256": "506e065daa0e0c47eff1207637120d471ad7e3777ad28204059f6cabb7806dd9"
+      },
+      {
+        "role": "audio",
+        "filename": "Alice's_Adventures_in_Wonderland.mp3",
+        "bytes": 4935198,
+        "sha256": "c442ec4915a6284ebe0e1809a39a44867680e8c4a55bf5c61b8011ec5e6444a0"
+      },
+      {
+        "role": "image",
+        "filename": "Alice's_Adventures_in_Wonderland.png",
+        "bytes": 3220282,
+        "sha256": "b999c740e8246075aec979cfff27f59dc004246f18229b572d7898ebf012def2"
+      }
+    ]
+  }
+}

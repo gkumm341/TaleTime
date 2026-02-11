@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createReadStream, existsSync, readdirSync } from 'fs';
+import { createReadStream, existsSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
 export const runtime = 'nodejs';
@@ -30,7 +30,17 @@ function guessContentType(filename: string) {
   if (lower.endsWith('.png')) return 'image/png';
   if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
   if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.svg')) return 'image/svg+xml';
+  if (lower.endsWith('.mp4')) return 'video/mp4';
+  if (lower.endsWith('.webm')) return 'video/webm';
+  if (lower.endsWith('.ogg')) return 'video/ogg';
   return 'application/octet-stream';
+}
+
+function isVideoFile(filename: string) {
+  const lower = filename.toLowerCase();
+  return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.ogg');
 }
 
 function findIllustrationsFolder(bookFolderPath: string): string | null {
@@ -113,6 +123,43 @@ export async function GET(req: NextRequest) {
 
   // Helper to find and serve an image file
   const serveImage = (filePath: string, fileName: string) => {
+    if (isVideoFile(fileName)) {
+      const size = statSync(filePath).size;
+      const range = req.headers.get('range');
+
+      if (range) {
+        const match = /bytes=(\d*)-(\d*)/.exec(range);
+        if (match) {
+          const start = match[1] ? Number(match[1]) : 0;
+          const end = match[2] ? Number(match[2]) : size - 1;
+          const clampedStart = Math.max(0, Math.min(start, size - 1));
+          const clampedEnd = Math.max(clampedStart, Math.min(end, size - 1));
+          const stream = createReadStream(filePath, { start: clampedStart, end: clampedEnd });
+          return new Response(stream as any, {
+            status: 206,
+            headers: {
+              'Content-Type': guessContentType(fileName),
+              'Content-Range': `bytes ${clampedStart}-${clampedEnd}/${size}`,
+              'Accept-Ranges': 'bytes',
+              'Content-Length': String(clampedEnd - clampedStart + 1),
+              'Cache-Control': 'no-store, max-age=0',
+            },
+          });
+        }
+      }
+
+      const stream = createReadStream(filePath);
+      return new Response(stream as any, {
+        status: 200,
+        headers: {
+          'Content-Type': guessContentType(fileName),
+          'Accept-Ranges': 'bytes',
+          'Content-Length': String(size),
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      });
+    }
+
     const stream = createReadStream(filePath);
     return new Response(stream as any, {
       status: 200,

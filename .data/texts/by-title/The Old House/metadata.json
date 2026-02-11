@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:59.041Z",
+  "book": {
+    "id": 99022,
+    "title": "The Old House",
+    "authors": [
+      "Unknown"
+    ],
+    "characters": [
+      "Little Boy",
+      "Old Man",
+      "Tin Soldier"
+    ],
+    "keywords": [
+      "Andersen",
+      "loneliness",
+      "friendship",
+      "memories",
+      "antiques",
+      "kindness"
+    ],
+    "description": "A boy befriends an elderly neighbor in a crumbling old house full of memories.",
+    "languages": [
+      "en"
+    ],
+    "subjects": [],
+    "downloadCount": 0,
+    "updatedAt": null,
+    "links": {
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
+    },
+    "estimate": null,
+    "source": {
+      "kind": "local",
+      "externalId": null
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "The Old House",
+    "relativeDir": ".data/texts/by-title/The Old House",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 3283,
+        "sha256": "ccfbe84753e5eb010765b0971196f073cec4381b4677707fc46e1af5290b3ee4"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 2582,
+        "sha256": "dfaf0012f8bdbf3d4562e1fe58cf2f307272e5f78cab6e36d354958d59ac8a69"
+      }
+    ]
+  }
+}

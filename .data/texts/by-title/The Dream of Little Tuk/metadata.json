@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:58.908Z",
+  "book": {
+    "id": 99013,
+    "title": "The Dream of Little Tuk",
+    "authors": [
+      "Unknown"
+    ],
+    "characters": [
+      "Little Tuk"
+    ],
+    "keywords": [
+      "Andersen",
+      "dream",
+      "geography",
+      "lessons",
+      "imagination",
+      "Denmark"
+    ],
+    "description": "A boy dreams his way through geography lessons in a magical nighttime adventure.",
+    "languages": [
+      "en"
+    ],
+    "subjects": [],
+    "downloadCount": 0,
+    "updatedAt": null,
+    "links": {
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
+    },
+    "estimate": null,
+    "source": {
+      "kind": "local",
+      "externalId": null
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "The Dream of Little Tuk",
+    "relativeDir": ".data/texts/by-title/The Dream of Little Tuk",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 10495,
+        "sha256": "05f95b4ef5b5fc5b609f1b399438556a926c1062531c57b0f59db6cb9b8dca0e"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 2015,
+        "sha256": "ca6fc5c7ebaa96af17d9fb246306bfcd9eb12f2f9091095c6c1f75f9851a58d8"
+      },
+      {
+        "role": "audio",
+        "filename": "The_Dream_of_Little_tuk.mp3",
+        "bytes": 2263603,
+        "sha256": "2e7e6fb60c67a25582d57c53e5eed82ee5bb281137b9418bdbf7533bd65aeaf9"
+      },
+      {
+        "role": "image",
+        "filename": "The_Dream_of_Little_Tuk.png",
+        "bytes": 2959222,
+        "sha256": "a6b55a6dde0f0011aca8e9820ab84183b192ac1d2cc06efa64c92e1b532dc424"
+      }
+    ]
+  }
+}

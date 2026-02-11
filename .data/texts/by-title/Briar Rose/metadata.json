@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:58.813Z",
+  "book": {
+    "id": 99005,
+    "title": "Briar Rose",
+    "authors": [
+      "Unknown"
+    ],
+    "characters": [
+      "Briar Rose",
+      "King",
+      "Queen",
+      "Wise Women",
+      "Prince",
+      "Wicked Fairy"
+    ],
+    "keywords": [
+      "Sleeping Beauty",
+      "fairy tale",
+      "curse",
+      "spindle",
+      "100 years",
+      "true love",
+      "Grimm",
+      "enchantment"
+    ],
+    "description": "A princess is cursed to sleep for a hundred years until awakened by true love's kiss.",
+    "languages": [
+      "en"
+    ],
+    "subjects": [],
+    "downloadCount": 0,
+    "updatedAt": null,
+    "links": {
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
+    },
+    "estimate": null,
+    "source": {
+      "kind": "local",
+      "externalId": null
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "Briar Rose",
+    "relativeDir": ".data/texts/by-title/Briar Rose",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 7893,
+        "sha256": "3e040e4b98f48fbf915bca50c90a797456151a98f5b64285a66c1890e5080948"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 5758,
+        "sha256": "3160233406d95d018984607e73daeb059fe97eb2ec4b35515e4b91b1a7706249"
+      },
+      {
+        "role": "audio",
+        "filename": "Briar_Rose.mp3",
+        "bytes": 5846095,
+        "sha256": "3792ba3605b9bc88d423e11bfa86f1b067e4ba5cbe4a12c8d6ca7fe1507e71f8"
+      },
+      {
+        "role": "image",
+        "filename": "Briar_Rose.png",
+        "bytes": 2214244,
+        "sha256": "b606978c21afb018a6e08599a8d5dbda51c0a34f71f802c8b17fe2e1a993f65b"
+      }
+    ]
+  }
+}

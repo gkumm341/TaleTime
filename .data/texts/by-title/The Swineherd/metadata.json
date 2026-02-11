@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:59.065Z",
+  "book": {
+    "id": 99029,
+    "title": "The Swineherd",
+    "authors": [
+      "Unknown"
+    ],
+    "characters": [
+      "Prince",
+      "Princess",
+      "Emperor"
+    ],
+    "keywords": [
+      "Andersen",
+      "disguise",
+      "pride",
+      "kisses",
+      "lesson",
+      "pig"
+    ],
+    "description": "A prince disguises himself as a swineherd to win a vain princess's affection.",
+    "languages": [
+      "en"
+    ],
+    "subjects": [],
+    "downloadCount": 0,
+    "updatedAt": null,
+    "links": {
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
+    },
+    "estimate": null,
+    "source": {
+      "kind": "local",
+      "externalId": null
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "The Swineherd",
+    "relativeDir": ".data/texts/by-title/The Swineherd",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 5752,
+        "sha256": "0e7c795a86204aae820ac16b78b88ab03b18bac7b489997f4a5d93742b3e76f3"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 4104,
+        "sha256": "0141c2a6212f7692b7558a9aff492838c06e940662e74c65573f30589196b8bf"
+      }
+    ]
+  }
+}

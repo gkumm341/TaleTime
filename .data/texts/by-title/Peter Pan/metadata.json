@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:58.845Z",
+  "book": {
+    "id": 16,
+    "title": "Peter Pan : $b [Peter and Wendy]",
+    "authors": [
+      "Barrie, J. M. (James Matthew)"
+    ],
+    "characters": [
+      "Peter Pan",
+      "Wendy Darling",
+      "John Darling",
+      "Michael Darling",
+      "Tinker Bell",
+      "Captain Hook",
+      "Tiger Lily",
+      "Lost Boys"
+    ],
+    "keywords": [
+      "Neverland",
+      "flying",
+      "pirates",
+      "fairies",
+      "eternal youth",
+      "adventure",
+      "imagination",
+      "second star"
+    ],
+    "description": "A boy who never grows up whisks the Darling children away to magical Neverland for adventure.",
+    "languages": [],
+    "subjects": [
+      "Fairies -- Fiction",
+      "Fantasy literature",
+      "Never-Never Land (Imaginary place) -- Fiction",
+      "Peter Pan (Fictitious character) -- Fiction",
+      "Pirates -- Fiction"
+    ],
+    "downloadCount": 15372,
+    "updatedAt": 1762465432338,
+    "links": {
+      "txtUrl": "https://www.gutenberg.org/ebooks/16.txt.utf-8",
+      "epubUrl": "https://www.gutenberg.org/ebooks/16.epub3.images",
+      "coverUrl": "https://www.gutenberg.org/cache/epub/16/pg16.cover.medium.jpg"
+    },
+    "estimate": {
+      "minutes": 349,
+      "words": 55827,
+      "wpm": 160,
+      "source": "txt-head",
+      "computedAt": 1762465350665
+    },
+    "source": {
+      "kind": "gutenberg",
+      "externalId": 16
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "Peter Pan",
+    "relativeDir": ".data/texts/by-title/Peter Pan",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 280175,
+        "sha256": "7f90dd6320cc6e879628c5fc987445141a17126189541b3ac77708431013cbb5"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 5192,
+        "sha256": "8e15ab433a55f1b75553c00fba6e267447a149e104572f399a4228a979fe436d"
+      },
+      {
+        "role": "audio",
+        "filename": "Peter_Pan.mp3",
+        "bytes": 5997232,
+        "sha256": "9cef001d6962fbc5c6a6cc6ca67cd051539d32042e8de2642deca75543a46e20"
+      },
+      {
+        "role": "image",
+        "filename": "Peter_Pan.png",
+        "bytes": 3004868,
+        "sha256": "cf96d20702297e66d36f89c4baa2506695ba0adb0df8f80517d9825f31a07631"
+      }
+    ]
+  }
+}

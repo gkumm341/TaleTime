@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:58.877Z",
+  "book": {
+    "id": 99010,
+    "title": "Rumpelstiltskin",
+    "authors": [
+      "Unknown"
+    ],
+    "characters": [
+      "Miller's Daughter",
+      "Rumpelstiltskin",
+      "King"
+    ],
+    "keywords": [
+      "fairy tale",
+      "spinning",
+      "gold",
+      "name",
+      "bargain",
+      "Grimm",
+      "firstborn"
+    ],
+    "description": "A mysterious imp helps a girl spin straw into gold, demanding her firstborn child in return.",
+    "languages": [
+      "en"
+    ],
+    "subjects": [],
+    "downloadCount": 0,
+    "updatedAt": null,
+    "links": {
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
+    },
+    "estimate": null,
+    "source": {
+      "kind": "local",
+      "externalId": null
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "Rumpelstiltskin",
+    "relativeDir": ".data/texts/by-title/Rumpelstiltskin",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 6075,
+        "sha256": "3d37fd10e06978c01879c3fc56dc3260d502879aab328487dbd1f33df14aa744"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 3823,
+        "sha256": "781e99bf10695ac36a33bd5c91ac8f3c4fde610c9796b8a34c963880e3e24359"
+      },
+      {
+        "role": "audio",
+        "filename": "Rumpelstiltskin.mp3",
+        "bytes": 4322470,
+        "sha256": "8584e576cea54c2096a6bc88a929df844b3a348ee41ac14712791e67982f6dca"
+      },
+      {
+        "role": "image",
+        "filename": "Rumpelstiltskin.png",
+        "bytes": 2192769,
+        "sha256": "de7a6265690e916da0a1c04636493a93e3705af87ad5b611453a84ad6de5cee2"
+      }
+    ]
+  }
+}

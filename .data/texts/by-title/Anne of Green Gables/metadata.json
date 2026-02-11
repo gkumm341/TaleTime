@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:58.780Z",
+  "book": {
+    "id": 45,
+    "title": "Anne of Green Gables",
+    "authors": [
+      "Montgomery, L. M. (Lucy Maud)"
+    ],
+    "characters": [
+      "Anne Shirley",
+      "Matthew Cuthbert",
+      "Marilla Cuthbert",
+      "Diana Barry",
+      "Gilbert Blythe",
+      "Rachel Lynde"
+    ],
+    "keywords": [
+      "orphan",
+      "adoption",
+      "friendship",
+      "imagination",
+      "Prince Edward Island",
+      "coming-of-age",
+      "red hair",
+      "kindred spirits"
+    ],
+    "description": "An imaginative orphan girl is mistakenly sent to a farm on Prince Edward Island, where she wins the hearts of her reluctant caretakers.",
+    "languages": [],
+    "subjects": [
+      "Bildungsromans",
+      "Canada -- History -- 1867-1914 -- Fiction",
+      "Country life -- Prince Edward Island -- Fiction",
+      "Friendship -- Fiction",
+      "Girls -- Fiction",
+      "Islands -- Fiction",
+      "Orphans -- Fiction",
+      "Prince Edward Island -- History -- 20th century -- Fiction",
+      "Shirley, Anne (Fictitious character) -- Fiction"
+    ],
+    "downloadCount": 24731,
+    "updatedAt": 1762465432338,
+    "links": {
+      "txtUrl": "https://www.gutenberg.org/ebooks/45.txt.utf-8",
+      "epubUrl": "https://www.gutenberg.org/ebooks/45.epub3.images",
+      "coverUrl": "https://www.gutenberg.org/cache/epub/45/pg45.cover.medium.jpg"
+    },
+    "estimate": {
+      "minutes": 739,
+      "words": 118165,
+      "wpm": 160,
+      "source": "txt-head",
+      "computedAt": 1762465349358
+    },
+    "source": {
+      "kind": "gutenberg",
+      "externalId": 45
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "Anne of Green Gables",
+    "relativeDir": ".data/texts/by-title/Anne of Green Gables",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 592008,
+        "sha256": "3646c9daedcca24b5555d951ba24071a6e2514613bf0cb31e182e7818ee31597"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 3685,
+        "sha256": "881437638f944d230dc25f211e9cc44fe3d4d3d66f05e8e569d52cb828f87c6d"
+      },
+      {
+        "role": "audio",
+        "filename": "Anne_of_Green_Gables.mp3",
+        "bytes": 4002731,
+        "sha256": "50904dd68611a8e2419a2f0621e7a6e75a0cea5bda1fbc9044ee974d830024be"
+      },
+      {
+        "role": "image",
+        "filename": "Anne_of_Green_Gables.png",
+        "bytes": 2984373,
+        "sha256": "79ace401fec5837c338ad78b000ef799c41670fce05a1d63c491dac95753154a"
+      }
+    ]
+  }
+}

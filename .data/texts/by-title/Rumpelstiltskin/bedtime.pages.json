@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "title": "Rumpelstiltskin",
+  "author": "Brothers Grimm",
+  "pages": [
+    {
+      "id": "p1",
+      "paragraphs": [
+        "Long ago, beside a quiet stream and near a whispering wood, there stood an old mill.",
+        "And in the miller’s house lived his daughter, a young woman known for her gentle ways and bright mind.",
+        "Her father loved her dearly… but he loved boasting even more.",
+        "One day, while speaking with the King, the miller said proudly,",
+        "“My daughter can spin straw into gold.”",
+        "The King’s eyes sparkled.",
+        "For the King loved gold more than anything else in the world.",
+        "That very evening, the miller’s daughter was brought to the palace.",
+        "She was led into a tall chamber filled with straw.",
+        "A spinning wheel stood in the corner.",
+        "The King spoke coldly,",
+        "“Spin this straw into gold before morning… or you shall lose your life.”"
+      ]
+    },
+    {
+      "id": "p2",
+      "text": "{{image1.png}}"
+    },
+    {
+      "id": "p3",
+      "paragraphs": [
+        "The door was locked.",
+        "The poor girl sat alone and wept.",
+        "She had no magic. No way to save herself.",
+        "Suddenly, the door opened.",
+        "In stepped a strange little man with bright eyes and a crooked smile.",
+        "“Why are you crying?” he asked kindly.",
+        "“I must spin straw into gold,” she said softly, “and I cannot.”",
+        "The little man smiled.",
+        "“I can help you… if you will give me something in return.”",
+        "She gave him her necklace.",
+        "The little man sat at the wheel and sang softly,",
+        "“Turn, turn, little wheel… Straw to gold before the dawn.”",
+        "And by morning…",
+        "The straw was gone."
+      ]
+    },
+    {
+      "id": "p4",
+      "text": "{{image2.png}}"
+    },
+    
+    {
+      "id": "p5",
+      "paragraphs": [
+        "And in its place…",
+        "Shone bright gold.",
+        "When the King returned, he was amazed.",
+        "But amazement turned into greed.",
+        "He led her into another room… filled with even more straw.",
+        "“This too must be gold by morning,” he said.",
+        "Again she wept.",
+        "Again the little man appeared.",
+        "This time she gave him her ring.",
+        "And again…",
+        "The straw became gold.",
+        "On the third night, the King led her into the largest chamber of all.",
+        "“If you succeed this time,” he said, “you shall be my queen.”",
+        "But when the little man came again, she had nothing left to give.",
+        "He leaned close and whispered,"
+      ]
+    },
+    {
+      "id": "p6",
+      "text": "{{image3.png}}"
+    },
+    {
+      "id": "p7",
+      "paragraphs": [
+        "“Then promise me your first child, when you are queen.”",
+        "Her heart trembled.",
+        "But she saw no other way.",
+        "And she agreed.",
+        "Soon, she became Queen.",
+        "And in time, she had a beautiful baby.",
+        "For a while, she forgot her promise.",
+        "But one quiet evening…",
+        "The little man returned.",
+        "“You promised,” he said softly.",
+        "The Queen fell to her knees.",
+        "She offered gold. She offered jewels.",
+        "But he shook his head.",
+        "At last, he said,",
+        "“I will give you three days. If you can tell me my name… You may keep your child.”"
+      ]
+    },
+    {
+      "id": "p8",
+      "text": "{{image4.png}}"
+    },
+    {
+      "id": "p9",
+      "paragraphs": [
+        "The Queen searched everywhere.",
+        "She sent messengers across the land.",
+        "She stayed awake through long nights, whispering every name she could remember.",
+        "The first day, she guessed many names.",
+        "But each time, the little man said,",
+        "“That is not my name.”",
+        "The second day, she guessed strange and silly names.",
+        "But still…",
+        "“That is not my name.”",
+        "On the third day, a messenger returned from the forest.",
+        "He said,",
+        "“I saw a strange little man dancing by a fire, singing,",
+        "‘Tomorrow I bake, today I brew, Little does my lady know… Rumpelstiltskin is my name.’”"
+      ]
+    },
+    {
+      "id": "p10",
+      "text": "{{image5.png}}"
+    },
+    {
+      "id": "p11",
+      "paragraphs": [
+        "The Queen’s heart leapt with joy.",
+        "That night, the little man came again.",
+        "He smiled proudly.",
+        "“Now, what is my name?”",
+        "She guessed once.",
+        "“No.”",
+        "She guessed again.",
+        "“No.”",
+        "Then she looked at him gently and said,",
+        "“Is your name… Rumpelstiltskin?”",
+        "The little man cried out in anger.",
+        "He stamped his foot.",
+        "He shouted in rage.",
+        "And then…",
+        "He vanished forever."
+      ]
+    },
+    {
+      "id": "p12",
+      "text": "{{image6.png}}"
+    },
+    {
+      "id": "p13",
+      "paragraphs": [
+        "The Queen held her child close.",
+        "And never again was she afraid.",
+        "And so the girl who once wept in a locked room…",
+        "Became a wise Queen.",
+        "And the strange little man…",
+        "Was never seen again."
+      ]
+    },
+    {
+      "id": "p14",
+      "text": "{{video.mp4}}",
+      "imageSrc": "image7.png"
+    },
+    {
+      "id": "p15",
+      "text": "{{image8.png}}"
+      
+    }
+  ]
+}

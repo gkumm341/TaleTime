@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:58.897Z",
+  "book": {
+    "id": 99004,
+    "title": "The Blue Fairy Book",
+    "authors": [
+      "Unknown"
+    ],
+    "characters": [
+      "Various fairy tale characters"
+    ],
+    "keywords": [
+      "anthology",
+      "fairy tales",
+      "Andrew Lang",
+      "collection",
+      "classic",
+      "magic"
+    ],
+    "description": "A beloved collection of classic fairy tales gathered from around the world.",
+    "languages": [
+      "en"
+    ],
+    "subjects": [],
+    "downloadCount": 0,
+    "updatedAt": null,
+    "links": {
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
+    },
+    "estimate": null,
+    "source": {
+      "kind": "local",
+      "externalId": null
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "The Blue Fairy Book",
+    "relativeDir": ".data/texts/by-title/The Blue Fairy Book",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 745069,
+        "sha256": "112b896a680b919e320237fea79c8db525e75423522153278052c10db0f48a8c"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "role": "image",
+        "filename": "The_Blue_fairy_book.png",
+        "bytes": 3055065,
+        "sha256": "5f621440524530b58c063b5f1e29a6295709234ea1a1dc314c50d34a072f44cc"
+      }
+    ]
+  }
+}

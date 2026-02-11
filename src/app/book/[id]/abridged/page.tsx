@@ -158,9 +158,9 @@ export default function AbridgedBookPage() {
 
     const extractImageFileName = (rawToken: string): string | null => {
       const token = rawToken.trim();
-      const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg))/i);
+      const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg|mp4|webm|ogg))/i);
       if (direct?.[1]) return direct[1].split(/[/\\]/).pop() ?? null;
-      const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg))['"]/i);
+      const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg|mp4|webm|ogg))['"]/i);
       if (quoted?.[1]) return quoted[1].split(/[/\\]/).pop() ?? null;
       return null;
     };
@@ -1286,9 +1286,9 @@ export default function AbridgedBookPage() {
 
     const extractImageFileName = (rawToken: string): string | null => {
       const token = rawToken.trim();
-      const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg))/i);
+      const direct = token.match(/([A-Za-z0-9 _.-]+\.(?:png|jpe?g|webp|gif|svg|mp4|webm|ogg))/i);
       if (direct?.[1]) return direct[1].split(/[/\\]/).pop() ?? null;
-      const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg))['"]/i);
+      const quoted = token.match(/['"]([^'"]+\.(?:png|jpe?g|webp|gif|svg|mp4|webm|ogg))['"]/i);
       if (quoted?.[1]) return quoted[1].split(/[/\\]/).pop() ?? null;
       return null;
     };

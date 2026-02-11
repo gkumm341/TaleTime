@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-01-18T20:35:58.972Z",
+  "book": {
+    "id": 99008,
+    "title": "The Fisherman & His Wife",
+    "authors": [
+      "Unknown"
+    ],
+    "characters": [
+      "Fisherman",
+      "Wife",
+      "Enchanted Flounder"
+    ],
+    "keywords": [
+      "Grimm",
+      "greed",
+      "wishes",
+      "magic fish",
+      "contentment",
+      "sea"
+    ],
+    "description": "A fisherman's wife demands ever greater wishes from an enchanted fish until her greed goes too far.",
+    "languages": [
+      "en"
+    ],
+    "subjects": [],
+    "downloadCount": 0,
+    "updatedAt": null,
+    "links": {
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
+    },
+    "estimate": null,
+    "source": {
+      "kind": "local",
+      "externalId": null
+    }
+  },
+  "local": {
+    "layout": "by-title",
+    "folderName": "The Fisherman & His Wife",
+    "relativeDir": ".data/texts/by-title/The Fisherman & His Wife",
+    "files": [
+      {
+        "role": "full",
+        "filename": "full.txt",
+        "bytes": 11293,
+        "sha256": "aad752346698601bf13b53eb1ad7b12d69e435b47639023587fcb1c679a971fa"
+      },
+      {
+        "role": "bedtime",
+        "filename": "bedtime.txt",
+        "bytes": 4304,
+        "sha256": "bafd69049bd26def5a7e4a5d29bd1c177f5ac4972ad24ccb610cda5278932cac"
+      },
+      {
+        "role": "audio",
+        "filename": "The_Fisherman_&_His_Wife.mp3",
+        "bytes": 4694036,
+        "sha256": "501ea6869483b897fa6ad0dff03b28b82d0b1c4020f5bace3fb6ff8b6dcbed48"
+      },
+      {
+        "role": "image",
+        "filename": "The_Fisherman_and_His_Wife.png",
+        "bytes": 2037001,
+        "sha256": "ee5e8899adc8ffa2507ad01b283b10684d02430775f0598c1beaf311d30570d7"
+      }
+    ]
+  }
+}
