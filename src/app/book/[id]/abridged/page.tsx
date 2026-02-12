@@ -237,6 +237,12 @@ export default function AbridgedBookPage() {
     pageIndex: 0,
     pageCount: 0,
   });
+  const flipNavRef = useRef<typeof flipNav>(null);
+  const flipMetaRef = useRef(flipMeta);
+  const startOverTimerRef = useRef<number | null>(null);
+  const startOverRunningRef = useRef(false);
+  const [isStartingOver, setIsStartingOver] = useState(false);
+  const rewindFlippingTime = isStartingOver ? 100 : 700;
 
   const [bookmark, setBookmark] = useState<AbridgedBookmark | null>(null);
   const [bookmarkHydrated, setBookmarkHydrated] = useState(false);
@@ -435,6 +441,59 @@ export default function AbridgedBookPage() {
     [resetBookmarkDragTransform]
   );
 
+  useEffect(() => {
+    flipNavRef.current = flipNav;
+  }, [flipNav]);
+
+  useEffect(() => {
+    flipMetaRef.current = flipMeta;
+  }, [flipMeta]);
+
+  const stopStartOver = useCallback(() => {
+    startOverRunningRef.current = false;
+    setIsStartingOver(false);
+    if (startOverTimerRef.current !== null) {
+      window.clearTimeout(startOverTimerRef.current);
+      startOverTimerRef.current = null;
+    }
+  }, []);
+
+  const queueStartOverStep = useCallback(
+    (delayMs: number) => {
+      if (!startOverRunningRef.current) return;
+      if (startOverTimerRef.current !== null) {
+        window.clearTimeout(startOverTimerRef.current);
+      }
+
+      startOverTimerRef.current = window.setTimeout(() => {
+        startOverTimerRef.current = null;
+        if (!startOverRunningRef.current) return;
+
+        const nav = flipNavRef.current;
+        const current = flipMetaRef.current.pageIndex;
+
+        if (!nav || current <= 0) {
+          stopStartOver();
+          return;
+        }
+
+        nav.prev();
+      }, delayMs);
+    },
+    [stopStartOver]
+  );
+
+  const handleStartOver = useCallback(() => {
+    if (startOverRunningRef.current) return;
+    const nav = flipNavRef.current;
+    const current = flipMetaRef.current.pageIndex;
+    if (!nav || current <= 0) return;
+
+    startOverRunningRef.current = true;
+    setIsStartingOver(true);
+    queueStartOverStep(0);
+  }, [queueStartOverStep]);
+
   const handleFlipNavReady = useCallback(
     (nav: { next: () => void; prev: () => void; goTo: (pageIndex: number) => void; getPageIndex: () => number; getPageCount: () => number }) => {
       setFlipNav(nav);
@@ -444,9 +503,27 @@ export default function AbridgedBookPage() {
 
   const handleFlipPageChange = useCallback((pageIndex: number, pageCount: number) => {
     setFlipMeta({ pageIndex, pageCount });
+
+    if (!startOverRunningRef.current) return;
+
+    if (pageIndex <= 0) {
+      stopStartOver();
+      return;
+    }
+
+    queueStartOverStep(0);
+  }, [queueStartOverStep, stopStartOver]);
+
+  useEffect(() => {
+    return () => {
+      if (startOverTimerRef.current !== null) {
+        window.clearTimeout(startOverTimerRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
+    stopStartOver();
     let cancelled = false;
     didRestoreBookmarkRef.current = false;
     setBookmarkHydrated(false);
@@ -465,7 +542,7 @@ export default function AbridgedBookPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, variant]);
+  }, [id, variant, stopStartOver]);
 
   useEffect(() => {
     if (!bookmarkHydrated) return;
@@ -1384,7 +1461,7 @@ export default function AbridgedBookPage() {
                     onClick={() => flipNav?.prev()}
                     variant="outline"
                     size="sm"
-                    disabled={!flipNav || flipMeta.pageIndex <= 0}
+                    disabled={!flipNav || flipMeta.pageIndex <= 0 || isStartingOver}
                     type="button"
                   >
                     Prev
@@ -1392,7 +1469,7 @@ export default function AbridgedBookPage() {
                   <Button
                     onClick={() => flipNav?.next()}
                     size="sm"
-                    disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1}
+                    disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1 || isStartingOver}
                     type="button"
                   >
                     Next
@@ -1402,7 +1479,7 @@ export default function AbridgedBookPage() {
                     variant={bookmark ? 'outline' : 'default'}
                     size="sm"
                     className="gap-2"
-                    disabled={!flipNav || !bookmarkHydrated}
+                    disabled={!flipNav || !bookmarkHydrated || isStartingOver}
                     title={
                       bookmark
                         ? (bookmark.pageIndex === flipMeta.pageIndex ? 'Remove bookmark' : 'Update bookmark to this page')
@@ -1434,6 +1511,20 @@ export default function AbridgedBookPage() {
                   >
                     <BookmarkPng alt="Bookmark" className="h-7 w-7 object-contain " />
                     {bookmark ? 'Bookmarked' : 'Bookmark'}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    disabled={!flipNav || flipMeta.pageIndex <= 0 || isStartingOver}
+                    onClick={handleStartOver}
+                    title="Flip quickly back to the cover"
+                    aria-label="Start over from the cover"
+                    type="button"
+                  >
+                    <RotateCcw className={isStartingOver ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} aria-hidden="true" />
+                    {isStartingOver ? 'Starting over…' : 'Start over'}
                   </Button>
 
                   {shouldShowTaleTimeAudio && (
@@ -1701,6 +1792,7 @@ export default function AbridgedBookPage() {
                     author={data.author}
                     coverImageSrc={coverImageSrc}
                     pages={pages}
+                    flippingTime={rewindFlippingTime}
                     showHeader={false}
                     showTip={false}
                     onNavigationReady={handleFlipNavReady}
@@ -1743,7 +1835,7 @@ export default function AbridgedBookPage() {
                         onClick={() => flipNav?.prev()}
                         variant="outline"
                         size="sm"
-                        disabled={!flipNav || flipMeta.pageIndex <= 0}
+                        disabled={!flipNav || flipMeta.pageIndex <= 0 || isStartingOver}
                         type="button"
                         className="flex-1 shadow-lg"
                       >
@@ -1752,7 +1844,7 @@ export default function AbridgedBookPage() {
                       <Button
                         onClick={() => flipNav?.next()}
                         size="sm"
-                        disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1}
+                        disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1 || isStartingOver}
                         type="button"
                         className="flex-1 shadow-lg"
                       >
@@ -1764,7 +1856,7 @@ export default function AbridgedBookPage() {
                       variant={bookmark ? 'outline' : 'default'}
                       size="sm"
                       className="gap-2 justify-center shadow-lg"
-                      disabled={!flipNav || !bookmarkHydrated}
+                      disabled={!flipNav || !bookmarkHydrated || isStartingOver}
                       title={
                         bookmark
                           ? (bookmark.pageIndex === flipMeta.pageIndex ? 'Remove bookmark' : 'Update bookmark to this page')
@@ -1796,6 +1888,20 @@ export default function AbridgedBookPage() {
                     >
                       <BookmarkPng alt="Bookmark" className="h-7 w-7 object-contain" />
                       {bookmark ? 'Bookmarked' : 'Bookmark'}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 justify-center shadow-lg"
+                      disabled={!flipNav || flipMeta.pageIndex <= 0 || isStartingOver}
+                      onClick={handleStartOver}
+                      title="Flip quickly back to the cover"
+                      aria-label="Start over from the cover"
+                      type="button"
+                    >
+                      <RotateCcw className={isStartingOver ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} aria-hidden="true" />
+                      {isStartingOver ? 'Starting over…' : 'Start over'}
                     </Button>
 
                     {shouldShowTaleTimeAudio && (

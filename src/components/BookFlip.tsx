@@ -28,6 +28,7 @@ export type BookFlipProps = {
   author?: string;
   coverImageSrc?: string;
   pages: PageData[];
+  flippingTime?: number;
   showHeader?: boolean;
   showTip?: boolean;
   onPageChange?: (pageIndex: number, pageCount: number) => void;
@@ -970,6 +971,7 @@ export default function BookFlip({
   author,
   coverImageSrc,
   pages,
+  flippingTime = 700,
   showHeader = true,
   showTip = true,
   onPageChange,
@@ -1373,7 +1375,7 @@ export default function BookFlip({
           minHeight={dims.minHeight}
           maxHeight={dims.maxHeight}
           drawShadow={true}
-          flippingTime={700}
+          flippingTime={flippingTime}
           usePortrait={isMobile}
           startZIndex={0}
           autoSize={true}
