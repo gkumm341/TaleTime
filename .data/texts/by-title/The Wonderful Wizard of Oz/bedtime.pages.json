@@ -3,7 +3,6 @@
   "title": "The Wonderful Wizard of Oz",
   "author": "Baum, L. Frank (Lyman Frank)",
   "pages": [
- 
     {
       "id": "p1",
       "paragraphs": [
@@ -57,7 +56,8 @@
         "Not long after, a mighty Lion leapt onto the path.",
         "He roared terribly… but when Dorothy bravely scolded him for frightening Toto, the great beast lowered his head in shame.",
         "“I am a coward,” he confessed.",
-        "“I want nothing more than courage.”"
+        "“I want nothing more than courage.”",
+        "Dorothy held out her hand, and the Lion walked beside them from that moment on."
       ]
     },
     {
@@ -67,7 +67,6 @@
     {
       "id": "p8",
       "paragraphs": [
-        "Dorothy held out her hand, and the Lion walked beside them from that moment on.",
         "So now there were four friends on the Yellow Brick Road.",
         "Dorothy, the Scarecrow, the Tin Woodman, and the Cowardly Lion.",
         "Each with a wish.",
@@ -78,7 +77,8 @@
         "They walked through fields of beautiful but deadly poppies, where Dorothy and the Lion fell asleep until tiny field mice came to the rescue.",
         "At last, shining in the distance, they saw it.",
         "The Emerald City.",
-        "In the great green city, they were welcomed with wonder."
+        "In the great green city, they were welcomed with wonder.",
+        "But the Wizard of Oz, powerful and mysterious, gave them a task before granting their wishes."
       ]
     },
     {
@@ -88,7 +88,6 @@
     {
       "id": "p10",
       "paragraphs": [
-        "But the Wizard of Oz, powerful and mysterious, gave them a task before granting their wishes.",
         "“You must defeat the Wicked Witch of the West,” he commanded.",
         "Though afraid, the friends set out once more.",
         "The Wicked Witch watched them closely.",
@@ -99,7 +98,9 @@
         "The Scarecrow was torn apart.",
         "The Tin Woodman was bent and broken.",
         "The Lion was chained.",
-        "And Dorothy was forced to work."
+        "And Dorothy was forced to work.",
+        "But even in that gloomy place, Dorothy kept her courage.",
+        "One day, when the Witch tried to steal Dorothy’s silver shoes, the girl acted without thinking."
       ]
     },
     {
@@ -109,8 +110,6 @@
     {
       "id": "p12",
       "paragraphs": [
-        "But even in that gloomy place, Dorothy kept her courage.",
-        "One day, when the Witch tried to steal Dorothy’s silver shoes, the girl acted without thinking.",
         "She threw a bucket of water.",
         "And with a quiet cry, the Wicked Witch melted away.",
         "The Winkies, who had long lived in fear, were finally free.",
@@ -118,7 +117,11 @@
         "Soon, the friends returned to the Emerald City.",
         "The Wizard greeted them at last.",
         "He gave the Scarecrow a diploma, teaching him that he had been wise all along.",
-        "He gave the Tin Woodman a ticking heart, showing him he had always been kind."
+        "He gave the Tin Woodman a ticking heart, showing him he had always been kind.",
+        "He gave the Lion a medal, and with it came true courage.",
+        "But when Dorothy asked to go home… the Wizard’s balloon lifted without her.",
+        "Dorothy felt her hope fade… until Glinda appeared once more.",
+        "“My dear,” the Good Witch said softly, “you had the power to go home all along. The silver shoes will take you there.”"
       ]
     },
     {
@@ -128,11 +131,6 @@
     {
       "id": "p14",
       "paragraphs": [
-        "He gave the Lion a medal, and with it came true courage.",
-        "But when Dorothy asked to go home… the Wizard’s balloon lifted without her.",
-        "She was left behind.",
-        "Dorothy felt her hope fade… until Glinda appeared once more.",
-        "“My dear,” the Good Witch said softly, “you had the power to go home all along. The silver shoes will take you there.”",
         "With tears in her eyes, Dorothy hugged her friends.",
         "She tapped her heels together and whispered her wish.",
         "“There is no place like home.”",
@@ -141,17 +139,7 @@
         "She was back in Kansas.",
         "Aunt Em held her close.",
         "Uncle Henry smiled.",
-        "And Toto barked with joy."
-      ]
-    },
-    {
-      "id": "p15",
-      "text": "{{video.mp4}}",
-      "imagesrc": "image7.png"
-    },
-    {
-      "id": "p16",
-      "paragraphs": [
+        "And Toto barked with joy.",
         "And so, the girl who traveled beyond the rainbow learned something precious.",
         "That courage can live in the shyest heart.",
         "That kindness can beat in the quietest chest.",
@@ -161,7 +149,12 @@
       ]
     },
     {
-      "id": "p17",
+      "id": "p15",
+      "text": "{{video.mp4}}",
+      "imagesrc": "image7.png"
+    },
+    {
+      "id": "p16",
       "text": "{{image8.png}}"
     }
   ]

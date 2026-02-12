@@ -53,7 +53,7 @@ export default function PremiumPage() {
           </div>
 
           <div className="rounded-tt border border-tt-border/30 dark:border-tt-border/20 bg-white/90 dark:bg-gray-900/60 p-6 shadow-xl">
-            <div className="flex items-baseline justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2 sm:gap-4">
               <div>
                 <div className="text-lg font-bold text-gray-900 dark:text-white">Premium</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Monthly subscription</div>
@@ -70,16 +70,16 @@ export default function PremiumPage() {
             </ul>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end">
-              <Button variant="outline" onClick={() => router.back()}>
+              <Button variant="outline" onClick={() => router.back()} className="w-full sm:w-auto">
                 Not now
               </Button>
 
               {checkoutUrl ? (
-                <a href={checkoutUrl}>
-                  <Button>Continue to payment</Button>
+                <a href={checkoutUrl} className="w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto">Continue to payment</Button>
                 </a>
               ) : (
-                <Button onClick={simulatePurchase} disabled={loading || !canSimulate}>
+                <Button onClick={simulatePurchase} disabled={loading || !canSimulate} className="w-full sm:w-auto">
                   {loading ? 'Working…' : canSimulate ? 'Continue to payment (dev)' : 'Payment not configured'}
                 </Button>
               )}

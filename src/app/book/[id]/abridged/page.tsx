@@ -71,6 +71,20 @@ function useIsMobile(breakpointPx = 768) {
   return isMobile;
 }
 
+function useIsTouchDevice() {
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsTouchDevice(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  return isTouchDevice;
+}
+
 function useFlipDimensions(isMobile: boolean) {
   const [dims, setDims] = useState(() => ({
     width: isMobile ? 360 : 520,
@@ -119,8 +133,12 @@ export default function AbridgedBookPage() {
   const { preferences } = usePreferences();
 
   const isMobile = useIsMobile(768);
+  const isCompactReaderLayout = useIsMobile(1180);
+  const isTouchDevice = useIsTouchDevice();
   const dims = useFlipDimensions(isMobile);
-  const useSideControls = !isMobile;
+  const useSideControls = !isCompactReaderLayout;
+  const [canUseFullscreen, setCanUseFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const id = useMemo(() => Number(params.id), [params.id]);
   const minutes = useMemo(() => Number(searchParams.get('minutes') || '0'), [searchParams]);
@@ -581,6 +599,70 @@ export default function AbridgedBookPage() {
     const titleForLookup = data?.title || '';
     return `/api/local-audio?title=${encodeURIComponent(titleForLookup)}`;
   }, [data?.title]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void> | void;
+    };
+
+    const root = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+    };
+
+    const supported =
+      typeof root.requestFullscreen === 'function' ||
+      typeof root.webkitRequestFullscreen === 'function';
+
+    setCanUseFullscreen(supported);
+
+    const sync = () => {
+      setIsFullscreen(Boolean(doc.fullscreenElement || doc.webkitFullscreenElement));
+    };
+
+    sync();
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync as EventListener);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', sync);
+      document.removeEventListener('webkitfullscreenchange', sync as EventListener);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    if (typeof document === 'undefined') return;
+
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void> | void;
+    };
+
+    const root = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+    };
+
+    try {
+      if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+        if (typeof doc.exitFullscreen === 'function') {
+          await doc.exitFullscreen();
+        } else if (typeof doc.webkitExitFullscreen === 'function') {
+          await doc.webkitExitFullscreen();
+        }
+        return;
+      }
+
+      if (typeof root.requestFullscreen === 'function') {
+        await root.requestFullscreen();
+      } else if (typeof root.webkitRequestFullscreen === 'function') {
+        await root.webkitRequestFullscreen();
+      }
+    } catch {
+      // ignore fullscreen rejection/errors
+    }
+  }, []);
 
   const readStoredResumeTime = useCallback(() => {
     try {
@@ -1389,7 +1471,9 @@ export default function AbridgedBookPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-cover bg-center bg-fixed relative overflow-x-hidden overflow-y-hidden"
+      className={`min-h-screen flex flex-col bg-cover bg-center relative overflow-x-hidden ${
+        isCompactReaderLayout ? 'bg-scroll overflow-y-visible' : 'bg-fixed overflow-y-hidden'
+      }`}
       style={{ backgroundImage: "url('/abridgeBacground.png')" }}
     >
       {/* Offscreen measuring box used to paginate text precisely (no clipped/missing content). */}
@@ -1432,13 +1516,36 @@ export default function AbridgedBookPage() {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="flex items-center justify-start min-w-0">
-              <button onClick={() => router.push('/')}>
+              <button
+                type="button"
+                onClick={async () => {
+                  const doc = document as Document & {
+                    webkitFullscreenElement?: Element | null;
+                    webkitExitFullscreen?: () => Promise<void> | void;
+                  };
+
+                  try {
+                    if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+                      if (typeof doc.exitFullscreen === 'function') {
+                        await doc.exitFullscreen();
+                      } else if (typeof doc.webkitExitFullscreen === 'function') {
+                        await doc.webkitExitFullscreen();
+                      }
+                    }
+                  } catch {
+                    // Ignore fullscreen exit failures and continue home navigation.
+                  }
+
+                  router.push('/');
+                }}
+              >
                 <div className="relative flex items-center">
                   <Image src="/owlFace2.png" alt="TaleTime Logo" width={64} height={64} />
                   <h2 className="tt-logo font-heading text-3xl">TaleTime</h2>
                 </div>
               </button>
             </div>
+
 
             <div className="min-w-0 flex flex-col items-center justify-center">
               <div className="min-w-0 text-2xl font-semibold text-tt-tertiary dark:text-white truncate">
@@ -1621,6 +1728,18 @@ export default function AbridgedBookPage() {
                             <FaStopCircle className="h-6 w-6" aria-hidden="true" />
                           </Button>
                         </div>
+
+                        {isTouchDevice && canUseFullscreen ? (
+                          <Button 
+                            onClick={toggleFullscreen}
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            type="button"
+                          > 
+                            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                          </Button>
+                        ) : null}
                       </div>
                     </>
                   )}
@@ -1731,7 +1850,7 @@ export default function AbridgedBookPage() {
                 </div>
               </div>
             )} */}
-            <div className="flex items-start justify-center gap-12">
+            <div className="flex items-start justify-center gap-6 mr-36 xl:gap-12">
               {useSideControls && <div className="w-40 shrink-0" aria-hidden="true" />}
               <div className="relative overflow-visible">
                 {/* Draggable bookmark: drop ON the book to activate/update; drop OFF to deactivate. */}
@@ -2000,7 +2119,20 @@ export default function AbridgedBookPage() {
                                 <FaStop className="h-5 w-5 shadow-lg" aria-hidden="true" />
                               </Button>
                             </div>
+                            
                           </div>
+                                                      {isTouchDevice && canUseFullscreen ? (
+                              <Button
+                                onClick={toggleFullscreen}
+                                variant="outline"
+                                size="sm"
+                                className="w-full mt-3"
+                                type="button"
+                              >
+                                {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                              </Button>
+                            ) : null}
+
                         </div>
                       </>
                     )}

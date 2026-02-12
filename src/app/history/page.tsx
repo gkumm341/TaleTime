@@ -306,7 +306,7 @@ export default function HistoryPage() {
           <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom duration-700">
             <div className="flex items-center gap-3">
               <span className="text-4xl animate-pulse"></span>
-              <h1 className="text-4xl font-bold text-tt-tertiary">
+              <h1 className="text-2xl sm:text-4xl font-bold text-tt-tertiary">
                 Reading History
               </h1>
             </div>
@@ -319,7 +319,7 @@ export default function HistoryPage() {
                   {Math.round(totalMinutesRead)} min total
                 </div>
                 <button
-                  className="ml-4 px-4 py-2 rounded-lg bg-red-500 text-white font-semibold shadow-md hover:bg-red-600 transition-all"
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white font-semibold shadow-md hover:bg-red-600 transition-all"
                   onClick={clearAllHistory}
                   title="Clear all history"
                 >
@@ -356,7 +356,7 @@ export default function HistoryPage() {
                     <span className="text-2xl"></span>
                     Today
                   </h2>
-                  <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     {unifiedByGroups.today.map((item, index) => (
                       <HistoryCard 
                         key={item.key} 
@@ -378,7 +378,7 @@ export default function HistoryPage() {
                     <span className="text-2xl"></span>
                     Last 7 Days
                   </h2>
-                  <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     {unifiedByGroups.lastWeek.map((item, index) => (
                       <HistoryCard 
                         key={item.key} 
@@ -400,7 +400,7 @@ export default function HistoryPage() {
                     <span className="text-2xl"></span>
                     Earlier
                   </h2>
-                  <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     {unifiedByGroups.earlier.map((item, index) => (
                       <HistoryCard 
                         key={item.key} 

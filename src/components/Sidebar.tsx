@@ -192,7 +192,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
           >
             <span className="flex items-center gap-2">
               <Search className="h-4 w-4 text-tt-accent" strokeWidth={navIconStrokeWidth} />
-              <span className="text-sm">Find Your Story</span>
+              <span className="text-sm">Build Your Story</span>
             </span>
             <span className="text-sm">›</span>
           </button>

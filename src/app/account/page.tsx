@@ -66,7 +66,7 @@ export default function AccountPage() {
   return (
     <>
       <main className="min-h-screen bg-gradient-to-br from-tt-secondary via-white to-tt-secondary p-4">
-        <div className="max-w-2xl mx-auto pt-10">
+        <div className="max-w-2xl mx-auto pt-4 sm:pt-10">
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur rounded-tt border border-white/50 shadow-xl p-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Account</h1>
 
@@ -75,7 +75,7 @@ export default function AccountPage() {
             ) : !user ? (
               <div className="mt-6">
                 <div className="text-sm text-gray-700 dark:text-gray-300">You&apos;re not signed in.</div>
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex flex-col sm:flex-row gap-2">
                   <Button asChild variant="default">
                     <Link href={`/signin?next=${encodeURIComponent(next)}`}>Sign in</Link>
                   </Button>

@@ -16,11 +16,7 @@
         "She followed him.",
         "The Rabbit darted into a hole beneath a hedge.",
         "And in another moment…",
-        "Down went Alice after him.",
-        "She fell and fell… past shelves and cupboards… past jars and pictures…",
-        "So slowly that she had time to wonder if she would ever reach the bottom.",
-        "At last, she landed softly in a quiet hall filled with many locked doors.",
-        "On a little glass table lay a tiny golden key."
+        "Down went Alice after him."
       ]
     },
     {
@@ -30,6 +26,10 @@
     {
       "id": "p3",
       "paragraphs": [
+        "She fell and fell… past shelves and cupboards… past jars and pictures…",
+        "So slowly that she had time to wonder if she would ever reach the bottom.",
+        "At last, she landed softly in a quiet hall filled with many locked doors.",
+        "On a little glass table lay a tiny golden key.",
         "Behind a small curtain, she found a tiny door that led to the loveliest garden she had ever seen.",
         "But she was too big to go through.",
         "Soon she noticed a bottle that said, “Drink me.”",
@@ -38,10 +38,7 @@
         "She grew smaller.",
         "Small enough to fit through the door.",
         "But she had forgotten the key.",
-        "Then she found a little cake that said, “Eat me.”",
-        "And this time…",
-        "She grew taller than before.",
-        "And so began Alice’s curious day of growing and shrinking… and wondering who she truly was."
+        "Then she found a little cake that said, “Eat me.”"
       ]
     },
     {
@@ -51,6 +48,9 @@
     {
       "id": "p5",
       "paragraphs": [
+        "And this time…",
+        "She grew taller than before.",
+        "And so began Alice’s curious day of growing and shrinking… and wondering who she truly was.",
         "Soon Alice found herself in a pool of her own tears.",
         "There she met a Mouse, a Duck, a Dodo, and many other strange creatures.",
         "Together, they tried to dry off by running a very silly race where everyone won… and everyone received a prize.",

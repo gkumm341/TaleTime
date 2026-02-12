@@ -182,7 +182,7 @@ export default function ContinueBookmarked() {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between gap-4 mb-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent/40 ring-1 ring-tt-border/10 shadow-sm">
             <Bookmark className="h-6 w-6 text-tt-accent" />
@@ -195,7 +195,7 @@ export default function ContinueBookmarked() {
         
         <Link
           href="/"
-          className="text-sm font-semibold text-tt-accent hover:text-tt-tertiary transition-all flex items-center gap-1.5 group"
+          className="text-sm font-semibold text-tt-accent hover:text-tt-tertiary transition-all inline-flex items-center gap-1.5 group"
         >
           Home
           <span className="group-hover:translate-x-1 transition-transform"><Home className="h-4 w-4" /></span>

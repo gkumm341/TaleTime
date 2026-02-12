@@ -111,9 +111,9 @@ export default function FavoritesPage() {
           </div>
         
           {/* Header */}
-          <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom duration-700">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between animate-in fade-in slide-in-from-bottom duration-700">
             <div className="flex items-center gap-3">
-              <h1 className="text-4xl font-bold text-tt-tertiary">
+              <h1 className="text-2xl sm:text-4xl font-bold text-tt-tertiary">
                 Your Favorite Books
               </h1>
             </div>
@@ -151,7 +151,7 @@ export default function FavoritesPage() {
               </div>
             </div>
           ) : (
-            <div className="grid gap-2 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {favorites.map((favorite, index) => (
                 <div
                   key={favorite.favoriteId}
@@ -159,7 +159,7 @@ export default function FavoritesPage() {
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <Link href={`/book/${favorite.id}/abridged?variant=full`}>
-                    <div className="relative w-full h-96 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
+                    <div className="relative w-full aspect-[2/3] bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
                       <Image
                         src={`/api/local-image?title=${encodeURIComponent(favorite.title)}`}
                         alt={favorite.title}

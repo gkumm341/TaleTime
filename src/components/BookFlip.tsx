@@ -352,6 +352,33 @@ function useIsMobile(breakpointPx = 768) {
   return isMobile;
 }
 
+function useIsTouchDevice() {
+  const [isTouchDevice, setIsTouchDevice] = React.useState(false);
+
+  React.useEffect(() => {
+    const media = window.matchMedia("(pointer: coarse)");
+    const update = () => setIsTouchDevice(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return isTouchDevice;
+}
+
+type FullscreenDoc = Document & {
+  webkitFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void> | void;
+};
+
+type FullscreenElement = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+};
+
+function getFullscreenElement(doc: FullscreenDoc): Element | null {
+  return doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+}
+
 function useFlipDimensions(isMobile: boolean) {
   const [dims, setDims] = React.useState(() => ({
     width: isMobile ? 360 : 520,
@@ -360,6 +387,7 @@ function useFlipDimensions(isMobile: boolean) {
     maxWidth: isMobile ? 420 : 720,
     minHeight: isMobile ? 560 : 640,
     maxHeight: isMobile ? 720 : 900,
+    usePortrait: isMobile,
   }));
 
   React.useEffect(() => {
@@ -369,18 +397,21 @@ function useFlipDimensions(isMobile: boolean) {
 
       // react-pageflip's `width` is the width of a *single page*.
       // In landscape mode the book is a 2-page spread, so total width is ~2x.
-      const spreadPages = isMobile ? 1 : 2;
+      // On many tablets, forcing spread causes downscaling that breaks text pagination.
+      const canFitDesktopSpread = vw - 96 >= 440 * 2;
+      const usePortrait = isMobile || !canFitDesktopSpread;
+      const spreadPages = usePortrait ? 1 : 2;
 
       // Keep a consistent page shape so typography/layout stays predictable.
       // (Matches the old 620x880-ish page size.)
       const PAGE_ASPECT = 880 / 620; // height / width
 
       // Leave space for headers/controls around the book.
-      const availableH = Math.max(520, vh - (isMobile ? 150 : 190));
-      const availableW = Math.max(320, vw - (isMobile ? 32 : 96));
+      const availableH = Math.max(520, vh - (usePortrait ? 150 : 190));
+      const availableW = Math.max(320, vw - (usePortrait ? 32 : 96));
 
-      const minPageW = isMobile ? 320 : 440;
-      const minPageH = isMobile ? 560 : 680;
+      const minPageW = usePortrait ? 320 : 440;
+      const minPageH = usePortrait ? 560 : 680;
 
       const maxPageW = Math.max(minPageW, Math.floor(availableW / spreadPages));
       const maxPageH = Math.max(minPageH, availableH);
@@ -390,7 +421,7 @@ function useFlipDimensions(isMobile: boolean) {
       const targetH = clamp(
         maxPageH,
         minPageH,
-        isMobile ? 920 : 1200
+        usePortrait ? 920 : 1200
       );
       const targetWFromH = targetH / PAGE_ASPECT;
       const width = clamp(targetWFromH, minPageW, maxPageW);
@@ -403,6 +434,7 @@ function useFlipDimensions(isMobile: boolean) {
         maxWidth: maxPageW,
         minHeight: minPageH,
         maxHeight: maxPageH,
+        usePortrait,
       });
     };
 
@@ -684,6 +716,7 @@ function StoryPage({
   inlineImages,
   isSpreadStart,
   isActive,
+  compactTopSpacing,
 }: {
   title?: string;
   bookTitle?: string;
@@ -693,6 +726,7 @@ function StoryPage({
   inlineImages?: InlineImageMap;
   isSpreadStart?: boolean;
   isActive?: boolean;
+  compactTopSpacing?: boolean;
 }) {
   const singlePlaceholderName = useMemo(() => getSinglePlaceholderName(text ?? ''), [text]);
   const fullPageMediaUrl = singlePlaceholderName ? inlineImages?.[singlePlaceholderName] : undefined;
@@ -921,7 +955,7 @@ function StoryPage({
   return (
     <div
       ref={pageRef}
-      className="h-full w-full p-6 sm:p-8 flex flex-col"
+      className="h-full w-full px-6 pt-1 pb-6 lg:p-8 flex flex-col"
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onClick={handleClick}
@@ -931,16 +965,24 @@ function StoryPage({
       ) : null}
 
       {bookTitle ? (
-        <h1 className="text-tt-tertiary w-full text-center text-3xl font-extrabold tracking-tight mt-6">
+        <h1
+          className="text-tt-tertiary w-full text-center font-extrabold tracking-tight m-0 mt-2 lg:mt-6"
+          style={{ fontSize: "clamp(0.72rem, 1.75vw, 2rem)", lineHeight: 1.15 }}
+        >
           {bookTitle}
-          <div className="border-b-4 border-tt-accent mt-4 dark:border-tt-border/10" />
+          <div className="border-b-4 border-tt-accent mt-1 lg:mt-4 dark:border-tt-border/10" />
 
         </h1>
       ) : null}
       {title ? (
-        <h2 className="tt-storybook-title text-xl font-bold mt-2">{title}</h2>
+        <h2
+          className="tt-storybook-title font-bold m-0 mt-1 lg:mt-2"
+          style={{ fontSize: "clamp(0.65rem, 1.2vw, 1.25rem)", lineHeight: 1.2 }}
+        >
+          {title}
+        </h2>
       ) : hasHeader ? (
-        <div className="h-6" />
+        <div className="h-0 lg:h-6" />
       ) : null}
 
       {imageSrc ? (
@@ -954,8 +996,11 @@ function StoryPage({
         </div>
       ) : null}
 
-      <div className="mt-4 flex-1 overflow-hidden">
-        <div className="h-full overflow-hidden pr-4 pb-6 box-border">
+      <div
+        className="flex-1 overflow-hidden"
+        style={{ marginTop: compactTopSpacing ? "-20px" : "16px" }}
+      >
+        <div className="h-full overflow-y-auto pr-4 pb-6 box-border">
           <div className="tt-storybook-prose tt-storybook-prose-book leading-snug" lang="en">
             {renderTextWithInlineImages(text ?? "", inlineImages)}
           </div>
@@ -979,8 +1024,13 @@ export default function BookFlip({
 }: BookFlipProps) {
   const bookRef = useRef<unknown>(null);
   const isMobile = useIsMobile(768);
+  const isTouchDevice = useIsTouchDevice();
+  const [canUseFullscreen, setCanUseFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenHint, setShowFullscreenHint] = useState(true);
   const [pageIndex, setPageIndex] = useState(0);
   const dims = useFlipDimensions(isMobile);
+  const usePortrait = dims.usePortrait;
 
   const [paginatedPages, setPaginatedPages] = React.useState<PageData[] | null>(
     null
@@ -994,7 +1044,7 @@ export default function BookFlip({
     // line-count), making pages much more consistently filled.
     const measureShell = document.createElement("div");
     measureShell.setAttribute("data-tt-measure-shell", "storybook");
-    measureShell.className = "h-full w-full p-6 sm:p-8 flex flex-col";
+    measureShell.className = "h-full w-full px-6 pt-1 pb-6 lg:p-8 flex flex-col";
     Object.assign(measureShell.style, {
       position: "fixed",
       left: "-99999px",
@@ -1013,24 +1063,35 @@ export default function BookFlip({
 
     const bookTitleEl = document.createElement("h1");
     bookTitleEl.className =
-      "text-tt-tertiary w-full text-center text-3xl font-extrabold tracking-tight";
+      "text-tt-tertiary w-full text-center font-extrabold tracking-tight m-0 mt-2 lg:mt-6";
+    Object.assign(bookTitleEl.style, {
+      fontSize: "clamp(0.72rem, 1.75vw, 2rem)",
+      lineHeight: "1.15",
+    } as Partial<CSSStyleDeclaration>);
     const bookTitleDivider = document.createElement("div");
     bookTitleDivider.className =
-      "border-b-4 border-tt-accent mt-4 dark:border-tt-border/10";
+      "border-b-4 border-tt-accent mt-1 lg:mt-4 dark:border-tt-border/10";
     bookTitleEl.appendChild(bookTitleDivider);
     measureShell.appendChild(bookTitleEl);
 
     const titleEl = document.createElement("h2");
-    titleEl.className = "tt-storybook-title text-xl font-bold mt-2";
+    titleEl.className = "tt-storybook-title font-bold m-0 mt-1 lg:mt-2";
+    Object.assign(titleEl.style, {
+      fontSize: "clamp(0.65rem, 1.2vw, 1.25rem)",
+      lineHeight: "1.2",
+    } as Partial<CSSStyleDeclaration>);
     measureShell.appendChild(titleEl);
 
     // StoryPage renders <div className="h-6" /> when there is no title.
     const titleSpacer = document.createElement("div");
-    titleSpacer.className = "h-6";
+    titleSpacer.className = "h-0 lg:h-6";
     measureShell.appendChild(titleSpacer);
 
     const measureOuter = document.createElement("div");
-    measureOuter.className = "mt-4 flex-1 overflow-hidden";
+    measureOuter.className = "flex-1 overflow-hidden";
+    Object.assign(measureOuter.style, {
+      marginTop: isTouchDevice ? "-20px" : "16px",
+    } as Partial<CSSStyleDeclaration>);
     const measureInner = document.createElement("div");
     measureInner.className = "h-full overflow-hidden pr-4 pb-6 box-border";
     const measureEl = document.createElement("div");
@@ -1226,7 +1287,7 @@ export default function BookFlip({
         const isFirstChunk = chunkIndex === 0;
         configureMeasureHeader({
           // Mirror StoryPage usage: ornament on spread starts.
-          showOrnament: isFirstChunk && (isMobile || pageIdx % 2 === 0),
+          showOrnament: isFirstChunk && (usePortrait || pageIdx % 2 === 0),
           bookTitle: isFirstChunk && pageIdx === 0 ? storyTitle : undefined,
           title: isFirstChunk ? p.title : undefined,
         });
@@ -1262,7 +1323,7 @@ export default function BookFlip({
     } finally {
       measureShell.remove();
     }
-  }, [pages, dims.width, dims.height]);
+  }, [pages, dims.width, dims.height, isTouchDevice]);
 
   const storyPages = paginatedPages ?? pages;
 
@@ -1328,42 +1389,139 @@ export default function BookFlip({
     if (pageIndex > pageCount - 1) setPageIndex(Math.max(0, pageCount - 1));
   }, [pageCount, pageIndex]);
 
+  React.useEffect(() => {
+    if (typeof document === "undefined") return;
+    const doc = document as FullscreenDoc;
+    const root = document.documentElement as FullscreenElement;
+    const supported = typeof root.requestFullscreen === "function" || typeof root.webkitRequestFullscreen === "function";
+    setCanUseFullscreen(supported);
+
+    const sync = () => setIsFullscreen(Boolean(getFullscreenElement(doc)));
+    sync();
+
+    document.addEventListener("fullscreenchange", sync);
+    document.addEventListener("webkitfullscreenchange", sync as EventListener);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", sync);
+      document.removeEventListener("webkitfullscreenchange", sync as EventListener);
+    };
+  }, []);
+
+  const toggleFullscreen = React.useCallback(async () => {
+    if (typeof document === "undefined") return;
+
+    const doc = document as FullscreenDoc;
+    const root = document.documentElement as FullscreenElement;
+
+    try {
+      if (getFullscreenElement(doc)) {
+        if (typeof doc.exitFullscreen === "function") {
+          await doc.exitFullscreen();
+          return;
+        }
+        if (typeof doc.webkitExitFullscreen === "function") {
+          await doc.webkitExitFullscreen();
+        }
+        return;
+      }
+
+      if (typeof root.requestFullscreen === "function") {
+        await root.requestFullscreen();
+        return;
+      }
+
+      if (typeof root.webkitRequestFullscreen === "function") {
+        await root.webkitRequestFullscreen();
+      }
+    } catch {
+      // Ignore browser rejection (requires explicit user gesture and support)
+    }
+  }, []);
+
+  const dismissFullscreenHint = React.useCallback(() => {
+    setShowFullscreenHint(false);
+  }, []);
+
+  const shouldShowFullscreenHint = isTouchDevice && canUseFullscreen && !isFullscreen && showFullscreenHint;
+
   return (
     <div className="py-4">
       {showHeader ? (
-        <div className="w-full max-w-5xl flex items-center justify-between px-4">
-          <div className="flex flex-col">
-            <div className="text-sm font-semibold text-tt-primary dark:text-white">
-              {storyTitle}
+        <>
+          <div className="w-full max-w-5xl flex items-center justify-between px-4">
+            <div className="flex flex-col">
+              <div className="text-sm font-semibold text-tt-primary dark:text-white">
+                {storyTitle}
+              </div>
+              <div className="text-xs text-tt-primary/60 dark:text-gray-400">
+                Page {Math.min(pageIndex + 1, pageCount)} of {pageCount}
+              </div>
             </div>
-            <div className="text-xs text-tt-primary/60 dark:text-gray-400">
-              Page {Math.min(pageIndex + 1, pageCount)} of {pageCount}
+
+            <div className="flex gap-2">
+              {isTouchDevice && canUseFullscreen ? (
+                <Button
+                  onClick={toggleFullscreen}
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                >
+                  {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                </Button>
+              ) : null}
+              <Button
+                onClick={goPrev}
+                variant="outline"
+                size="sm"
+                disabled={pageIndex <= 0}
+                type="button"
+              >
+                Prev
+              </Button>
+              <Button
+                onClick={goNext}
+                size="sm"
+                disabled={pageIndex >= pageCount - 1}
+                type="button"
+              >
+                Next
+              </Button>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              onClick={goPrev}
-              variant="outline"
-              size="sm"
-              disabled={pageIndex <= 0}
-              type="button"
-            >
-              Prev
-            </Button>
-            <Button
-              onClick={goNext}
-              size="sm"
-              disabled={pageIndex >= pageCount - 1}
-              type="button"
-            >
-              Next
-            </Button>
+        </>
+      ) : null}
+      {shouldShowFullscreenHint ? (
+        <div className="max-w-xl ml-64 -mt-6 mb-10 mx-auto ">
+          <div className="rounded-tt border border-tt-border/25 bg-tt-surface/80 dark:bg-tt-ink/60 dark:border-tt-border/20 px-3 py-2 flex items-center justify-between gap-3">
+            <p className="text-xs text-tt-primary/80 dark:text-gray-200">
+              Tip: tap Fullscreen for a better reading view on your device.
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={toggleFullscreen}
+                variant="outline"
+                size="sm"
+                type="button"
+              >
+                Fullscreen
+              </Button>
+              <Button
+                onClick={dismissFullscreenHint}
+                variant="ghost"
+                size="sm"
+                type="button"
+              >
+                Dismiss
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}
+      
 
-      <div className="w-full flex items-center justify-center">
+      <div className="w-full flex items-center -mt-6 justify-center">
         <HTMLFlipBook
           style={{}}
           width={width}
@@ -1376,7 +1534,7 @@ export default function BookFlip({
           maxHeight={dims.maxHeight}
           drawShadow={true}
           flippingTime={flippingTime}
-          usePortrait={isMobile}
+          usePortrait={usePortrait}
           startZIndex={0}
           autoSize={true}
           maxShadowOpacity={0.25}
@@ -1386,7 +1544,7 @@ export default function BookFlip({
           useMouseEvents={true}
           swipeDistance={30}
           showPageCorners={true}
-          disableFlipByClick={false}
+          disableFlipByClick={true}
           className="rounded-2xl"
           ref={bookRef as unknown as React.RefObject<unknown>}
           onFlip={(e: unknown) => setPageIndex(isFlipEvent(e) ? e.data : 0)}
@@ -1416,9 +1574,10 @@ export default function BookFlip({
                   text={p.text}
                   imageSrc={p.imageSrc}
                   inlineImages={p.inlineImages}
-                  isSpreadStart={isMobile || idx % 2 === 0}
+                  isSpreadStart={usePortrait || idx % 2 === 0}
+                  compactTopSpacing={isTouchDevice}
                   isActive={
-                    isMobile
+                    usePortrait
                       ? pageIndex === idx + 1 + frontBlankPageCount
                       : pageIndex === idx + 1 + frontBlankPageCount ||
                         pageIndex + 1 === idx + 1 + frontBlankPageCount

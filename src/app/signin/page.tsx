@@ -44,7 +44,7 @@ export default function SignInPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-tt-gradient-soft flex items-center justify-center p-4">
+      <main className="min-h-screen bg-tt-gradient-soft flex items-start sm:items-center justify-center p-4 py-8 sm:py-4">
         <div className="w-full max-w-md bg-tt-surface/90 dark:bg-gray-900/90 backdrop-blur rounded-tt border border-white/50 shadow-xl p-6">
           <h1 className="text-2xl font-bold text-tt-primary dark:text-white">Sign in</h1>
           <p className="text-sm text-tt-muted dark:text-gray-400 mt-1">

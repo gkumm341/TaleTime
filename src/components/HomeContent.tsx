@@ -170,7 +170,7 @@ export function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen relative tt-gradient-soft dark:bg-tt-primary overflow-hidden">
+    <div className="min-h-screen relative tt-gradient-soft dark:bg-tt-primary overflow-x-hidden">
 
       {/* Soft overlay to keep text readable */}
       <div
@@ -204,16 +204,16 @@ export function HomeContent() {
           {/* Controls Row */}
           <div className="tt-surface px-4 py-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center flex-1">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center flex-1">
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <label className="text-sm font-medium text-tt-primary">
                     Sort by:
                   </label>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="tt-input px-4 py-2 w-auto"
+                    className="tt-input px-4 py-2 w-full sm:w-auto"
                   >
                     <option value="popularity">Most Popular</option>
                     <option value="title">Title (A-Z)</option>
@@ -222,14 +222,14 @@ export function HomeContent() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <label className="text-sm font-medium text-tt-primary">
-                    Books per page:
+                    Books to display:
                   </label>
                   <select
                     value={itemsPerPage}
                     onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                    className="tt-input px-4 py-2 w-auto"
+                    className="tt-input px-4 py-2 w-full sm:w-auto"
                   >
                     <option value={25}>25</option>
                     <option value={50}>50</option>
@@ -237,54 +237,13 @@ export function HomeContent() {
                     <option value={100}>100</option>
                   </select>
                 </div>
-                <form
-                  className="flex items-center gap-2 w-full sm:max-w-3xl mx-auto"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const form = e.currentTarget;
-                    const input = form.querySelector('input[type="text"]') as HTMLInputElement | null;
-                    const value = input?.value ?? searchQuery;
-                    handleSearch(value);
-                  }}
-                >
-                  <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') {
-                          clearSearch();
-                        }
-                      }}
-                      placeholder="Search by title, author, character, keyword..."
-                      className="tt-input pl-12 pr-10 py-3"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={clearSearch}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-tt-tertiary/20 transition-colors"
-                      >
-                        <X className="w-4 h-4 text-tt-muted" />
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isSearching || !searchQuery.trim()}
-                    className="tt-btn-primary px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                  >
-                    {isSearching ? 'Searching...' : 'Search'}
-                  </button>
-                </form>
               </div>
+
               <div className="flex items-center gap-3 justify-between lg:justify-end">
                 {/* Version segmented control */}
                 <div className="flex items-center gap-2">
                   <div className="text-sm text-tt-primary"> </div>
-                  <div className="inline-flex rounded-tt border border-tt-border/20 bg-tt-surface/70 dark:bg-tt-primary/40 p-1 shadow-sm">
+                  <div className="inline-flex max-w-full overflow-x-auto rounded-tt border border-tt-border/20 bg-tt-surface/70 dark:bg-tt-primary/40 p-1 shadow-sm">
                     {TIME_OPTIONS.map((opt) => {
                       const isSelected = selectedTimeOptionId === opt.id;
                       const label = opt.id === 'full' ? 'Full story' : 'Bedtime adaptation';
@@ -300,8 +259,8 @@ export function HomeContent() {
                           }}
                           className={
                             isSelected
-                              ? 'px-4 py-2 rounded-lg bg-tt-primary text-tt-secondary text-sm font-semibold shadow'
-                              : 'px-4 py-2 rounded-lg text-sm font-semibold text-tt-primary hover:bg-tt-tertiary/30'
+                              ? 'px-3 sm:px-4 py-2 rounded-lg bg-tt-primary text-tt-secondary text-xs sm:text-sm font-semibold shadow whitespace-nowrap'
+                              : 'px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-tt-primary hover:bg-tt-tertiary/30 whitespace-nowrap'
                           }
                         >
                           {label}
@@ -311,6 +270,7 @@ export function HomeContent() {
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
 
@@ -330,10 +290,49 @@ export function HomeContent() {
               </button>
             </div>
           )}
-
+          <form
+            className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:max-w-3xl"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const input = form.querySelector('input[type="text"]') as HTMLInputElement | null;
+              const value = input?.value ?? searchQuery;
+              handleSearch(value);
+            }}
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    clearSearch();
+                  }
+                }}
+                placeholder="Search by title, author, character, keyword..."
+                className="tt-input pl-12 pr-10 py-3"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-tt-tertiary/20 transition-colors"
+                >
+                  <X className="w-4 h-4 text-tt-muted" />
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={isSearching || !searchQuery.trim()}
+              className="tt-btn-primary w-full sm:w-auto px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            >
+              {isSearching ? 'Searching...' : 'Search'}
+            </button>
+          </form>
           <div className="">
-
-
             {/* Error State */}
             {error && (
               <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-tt p-6 text-center shadow-sm">
@@ -398,7 +397,9 @@ export function HomeContent() {
                 )}
               </div>
             )}
+
           </div>
+
         </div>
       </div>
     </div>

@@ -95,8 +95,8 @@ function SearchContent() {
       <Sidebar activePage="browse" />
       <main className="relative z-10 ml-0 md:ml-72 min-h-screen p-4 sm:p-6 lg:p-8 pt-20 md:pt-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <Button
               onClick={() => router.back()}
               variant="outline"
@@ -106,7 +106,7 @@ function SearchContent() {
               <ArrowLeft size={16} />
               Back
             </Button>
-            <h1 className="text-3xl sm:text-4xl font-bold text-tt-tertiary">
+            <h1 className="text-2xl sm:text-4xl font-bold text-tt-tertiary">
               Story Search
             </h1>
           </div>
