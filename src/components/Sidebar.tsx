@@ -19,7 +19,7 @@ import { AuthButtons } from '@/components/AuthButtons';
 import { StorageInfo } from './StorageInfo';
 
 interface SidebarProps {
-  activePage?: 'home' | 'continue' | 'favorites' | 'history' | 'settings' | 'browse';
+  activePage?: 'home' | 'continue' | 'favorites' | 'history' | 'settings' | 'browse' | 'bedtime';
   children?: ReactNode;
 }
 
