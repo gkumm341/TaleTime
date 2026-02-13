@@ -181,13 +181,10 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
             </Link>
           </div>
 
-          {/* Find Your Story shortcut (scrolls to filters) */}
-          <button
-            type="button"
-            onClick={() => {
-              const el = document.getElementById('sidebar-filters');
-              el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
+          {/* Build Your Story shortcut */}
+          <Link
+            href="/build-story"
+            onClick={closeSidebar}
             className="w-full mt-2 flex items-center justify-between gap-3 px-4 py-3 rounded-tt border border-tt-border/10 bg-tt-surface/70 hover:bg-tt-surface/90 text-tt-primary font-semibold shadow-sm hover:shadow-tt transition-all"
           >
             <span className="flex items-center gap-2">
@@ -195,7 +192,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
               <span className="text-sm">Build Your Story</span>
             </span>
             <span className="text-sm">›</span>
-          </button>
+          </Link>
 
           {/* Additional content (filters, storage info, etc.) */}
           <div className="space-y-4">

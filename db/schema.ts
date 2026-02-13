@@ -119,3 +119,11 @@ export const premiumPurchaseEvents = sqliteTable('premium_purchase_events', {
   rawReceipt: text('raw_receipt'),
   createdAt: integer('created_at').notNull(),
 });
+
+export const userGeneratedStories = sqliteTable('user_generated_stories', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  cacheKey: text('cache_key').notNull().unique(),
+  metadataJson: text('metadata_json').notNull(),
+  storyJson: text('story_json').notNull(),
+  createdAt: integer('created_at').notNull(),
+});

@@ -1470,23 +1470,6 @@ export default function BookFlip({
                   {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 </Button>
               ) : null}
-              <Button
-                onClick={goPrev}
-                variant="outline"
-                size="sm"
-                disabled={pageIndex <= 0}
-                type="button"
-              >
-                Prev
-              </Button>
-              <Button
-                onClick={goNext}
-                size="sm"
-                disabled={pageIndex >= pageCount - 1}
-                type="button"
-              >
-                Next
-              </Button>
             </div>
           </div>
 

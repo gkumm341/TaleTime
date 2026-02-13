@@ -238,7 +238,48 @@ export function HomeContent() {
                   </select>
                 </div>
               </div>
-
+          <form
+            className="hidden xl:flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:max-w-3xl"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const input = form.querySelector('input[type="text"]') as HTMLInputElement | null;
+              const value = input?.value ?? searchQuery;
+              handleSearch(value);
+            }}
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    clearSearch();
+                  }
+                }}
+                placeholder="Search by title, author, character, keyword..."
+                className="tt-input pl-12 pr-10 py-3"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-tt-tertiary/20 transition-colors"
+                >
+                  <X className="w-4 h-4 text-tt-muted" />
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={isSearching || !searchQuery.trim()}
+              className="tt-btn-primary w-full sm:w-auto px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            >
+              {isSearching ? 'Searching...' : 'Search'}
+            </button>
+          </form>
               <div className="flex items-center gap-3 justify-between lg:justify-end">
                 {/* Version segmented control */}
                 <div className="flex items-center gap-2">
@@ -291,7 +332,7 @@ export function HomeContent() {
             </div>
           )}
           <form
-            className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:max-w-3xl"
+            className="flex xl:hidden flex-col sm:flex-row sm:items-center gap-2 w-full lg:max-w-3xl"
             onSubmit={(e) => {
               e.preventDefault();
               const form = e.currentTarget;

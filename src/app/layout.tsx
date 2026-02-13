@@ -25,11 +25,11 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: siteUrl,
 
-  title: "TaleTime - Find Your Perfect Story",
+  title: "TaleTime - Find Your Story",
   description:
     "Discover captivating stories tailored to your available time. From quick 5-minute reads to longer adventures, find your perfect tale.",
   keywords: "stories, reading, short stories, fiction, tales, literature, PWA, offline reading",
-  authors: [{ name: "TaleTime Team" }],
+  authors: [{ name: "CloverTree Technologies" }],
   manifest: "/manifest.json",
 
   appleWebApp: {
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 
   openGraph: {
-    title: "TaleTime - Find Your Perfect Story",
+    title: "TaleTime - Find Your Story",
     description: "Discover captivating stories tailored to your available time.",
     // Make this relative so it automatically matches dev/prod base:
     url: "/",
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/screenshot-desktop.png",
+        url: "/owlFace2.png",
         width: 1280,
         height: 720,
         alt: "TaleTime Desktop View",
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "TaleTime - Find Your Perfect Story",
+    title: "TaleTime - Find Your Story",
     description: "Discover captivating stories tailored to your available time.",
     // Optional but recommended so Twitter has an explicit image too:
     images: ["/screenshot-desktop.png"],
@@ -67,11 +67,15 @@ export const metadata: Metadata = {
 
   icons: {
     icon: [
+      { url: "/owlFace2.png", sizes: "any", type: "image/png" },
       { url: "/icon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icon-180x180.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      { url: "/owlFace2.png", sizes: "180x180", type: "image/png" },
+      { url: "/icon-180x180.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 }
 
@@ -88,7 +92,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={`${baloo.variable} ${inter.variable}`}>
       <head>
-        <link rel="apple-touch-icon" href="/icon-180x180.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/owlFace2.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/owlFace2.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/owlFace2.png" />
+        <link rel="shortcut icon" href="/owlFace2.png" />
+        <link rel="apple-touch-icon" href="/owlFace2.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="TaleTime" />
