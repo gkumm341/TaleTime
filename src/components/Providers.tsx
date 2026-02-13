@@ -5,16 +5,19 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { CacheManager } from '@/components/CacheManager';
 import { PWAInstallPrompt, OfflineBanner } from '@/components/PWAComponents';
+import { LanguageProvider } from '@/components/LanguageProvider';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <PreferencesProvider>
-      <ThemeProvider>
-        <CacheManager />
-        <OfflineBanner />
-        <PWAInstallPrompt />
-        {children}
-      </ThemeProvider>
-    </PreferencesProvider>
+    <LanguageProvider>
+      <PreferencesProvider>
+        <ThemeProvider>
+          <CacheManager />
+          <OfflineBanner />
+          <PWAInstallPrompt />
+          {children}
+        </ThemeProvider>
+      </PreferencesProvider>
+    </LanguageProvider>
   );
 }

@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { AuthButtons } from '@/components/AuthButtons';
 import { StorageInfo } from './StorageInfo';
+import { useI18n } from '@/components/LanguageProvider';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 interface SidebarProps {
   activePage?: 'home' | 'continue' | 'favorites' | 'history' | 'settings' | 'browse' | 'bedtime';
@@ -25,6 +27,7 @@ interface SidebarProps {
 
 export function Sidebar({ activePage = 'home', children }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useI18n();
 
   const navIconStrokeWidth = 2.25;
 
@@ -85,7 +88,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
     />
 
     <h2 className="tt-logo font-heading text-3xl mt-9">TaleTime</h2>
-    <p className="text-xs font-medium text-tt-muted mt-1">Your storytelling companion</p>
+    <p className="text-xs font-medium text-tt-muted mt-1">{t('sidebar.tagline')}</p>
   </div>
 </div>
 
@@ -107,7 +110,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
                 fill="currentColor"
                 fillOpacity={0.18}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'home' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>Home</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'home' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>{t('nav.home')}</span>
             </Link>
 
     
@@ -127,7 +130,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
                 fill="currentColor"
                 fillOpacity={0.14}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'continue' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>Continue</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'continue' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>{t('nav.continue')}</span>
             </Link>
             
             <Link 
@@ -145,7 +148,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
                 fill="currentColor"
                 fillOpacity={0.16}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'favorites' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>Favorites</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'favorites' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>{t('nav.favorites')}</span>
             </Link>
             
             <Link 
@@ -161,7 +164,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
                 className="h-5 w-5 drop-shadow-sm text-tt-tertiary"
                 strokeWidth={navIconStrokeWidth}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'history' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>History</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'history' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>{t('nav.history')}</span>
             </Link>
 
             <Link 
@@ -177,7 +180,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
                 className="h-5 w-5 drop-shadow-sm text-tt-tertiary"
                 strokeWidth={navIconStrokeWidth}
               />
-              <span className={`text-sm font-semibold transition-all ${activePage === 'settings' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>Settings</span>
+              <span className={`text-sm font-semibold transition-all ${activePage === 'settings' ? 'text-tt-primary' : 'text-tt-muted group-hover:text-tt-primary'}`}>{t('nav.settings')}</span>
             </Link>
           </div>
 
@@ -189,10 +192,14 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
           >
             <span className="flex items-center gap-2">
               <Search className="h-4 w-4 text-tt-accent" strokeWidth={navIconStrokeWidth} />
-              <span className="text-sm">Build Your Story</span>
+              <span className="text-sm">{t('nav.buildStory')}</span>
             </span>
             <span className="text-sm">›</span>
           </Link>
+
+          <div className="mt-2 rounded-tt border border-tt-border/10 bg-tt-surface/70 p-3">
+            <LanguageSelector />
+          </div>
 
           {/* Additional content (filters, storage info, etc.) */}
           <div className="space-y-4">

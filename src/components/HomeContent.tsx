@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Library, SlidersHorizontal, Target, Search, X } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
+import { useI18n } from '@/components/LanguageProvider';
 
 const TIME_OPTIONS = [
   { id: 'bedtime', label: 'Bedtime' },
@@ -35,6 +36,7 @@ interface Book {
 }
 
 export function HomeContent() {
+  const { t } = useI18n();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -208,23 +210,23 @@ export function HomeContent() {
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <label className="text-sm font-medium text-tt-primary">
-                    Sort by:
+                    {t('sort.label')}
                   </label>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="tt-input px-4 py-2 w-full sm:w-auto"
                   >
-                    <option value="popularity">Most Popular</option>
-                    <option value="title">Title (A-Z)</option>
-                    <option value="author">Author (A-Z)</option>
-                    <option value="length">Shortest First</option>
+                    <option value="popularity">{t('sort.popularity')}</option>
+                    <option value="title">{t('sort.title')}</option>
+                    <option value="author">{t('sort.author')}</option>
+                    <option value="length">{t('sort.length')}</option>
                   </select>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <label className="text-sm font-medium text-tt-primary">
-                    Books to display:
+                    {t('display.label')}
                   </label>
                   <select
                     value={itemsPerPage}
@@ -259,7 +261,7 @@ export function HomeContent() {
                     clearSearch();
                   }
                 }}
-                placeholder="Search by title, author, character, keyword..."
+                placeholder={t('search.placeholder')}
                 className="tt-input pl-12 pr-10 py-3"
               />
               {searchQuery && (
@@ -277,7 +279,7 @@ export function HomeContent() {
               disabled={isSearching || !searchQuery.trim()}
               className="tt-btn-primary w-full sm:w-auto px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
-              {isSearching ? 'Searching...' : 'Search'}
+              {isSearching ? t('search.searching') : t('search.button')}
             </button>
           </form>
               <div className="flex items-center gap-3 justify-between lg:justify-end">
@@ -287,7 +289,7 @@ export function HomeContent() {
                   <div className="inline-flex max-w-full overflow-x-auto rounded-tt border border-tt-border/20 bg-tt-surface/70 dark:bg-tt-primary/40 p-1 shadow-sm">
                     {TIME_OPTIONS.map((opt) => {
                       const isSelected = selectedTimeOptionId === opt.id;
-                      const label = opt.id === 'full' ? 'Full story' : 'Bedtime adaptation';
+                      const label = opt.id === 'full' ? t('time.full') : t('time.bedtime');
                       return (
                         <button
                           key={opt.id}
@@ -318,16 +320,22 @@ export function HomeContent() {
           {searchResults !== null && (
             <div className="mt-2 text-sm text-tt-muted">
               {searchResults.length > 0 ? (
-                <span>Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;</span>
+                <span>
+                  {t('result.found', {
+                    count: searchResults.length,
+                    plural: searchResults.length !== 1 ? 's' : '',
+                    query: searchQuery,
+                  })}
+                </span>
               ) : (
-                <span>No results found for &quot;{searchQuery}&quot;</span>
+                <span>{t('result.none', { query: searchQuery })}</span>
               )}
               <button
                 type="button"
                 onClick={clearSearch}
                 className="ml-2 text-tt-accent hover:underline"
               >
-                Clear search
+                {t('result.clear')}
               </button>
             </div>
           )}
@@ -352,7 +360,7 @@ export function HomeContent() {
                     clearSearch();
                   }
                 }}
-                placeholder="Search by title, author, character, keyword..."
+                placeholder={t('search.placeholder')}
                 className="tt-input pl-12 pr-10 py-3"
               />
               {searchQuery && (
@@ -370,7 +378,7 @@ export function HomeContent() {
               disabled={isSearching || !searchQuery.trim()}
               className="tt-btn-primary w-full sm:w-auto px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
-              {isSearching ? 'Searching...' : 'Search'}
+              {isSearching ? t('search.searching') : t('search.button')}
             </button>
           </form>
           <div className="">

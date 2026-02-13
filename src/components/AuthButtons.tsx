@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/components/LanguageProvider';
 
 type AuthUser = {
   id: string;
@@ -24,6 +25,7 @@ export function AuthButtons({
   className?: string;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function AuthButtons({
   if (loading) {
     return (
       <div className={className}>
-        <div className="text-xs text-gray-500 dark:text-gray-400">Loading…</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">{t('auth.loading')}</div>
       </div>
     );
   }
@@ -71,10 +73,10 @@ export function AuthButtons({
         )}
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size={compact ? 'sm' : 'default'}>
-            <Link href="/signin">Sign in</Link>
+            <Link href="/signin">{t('auth.signIn')}</Link>
           </Button>
           <Button asChild variant="default" size={compact ? 'sm' : 'default'}>
-            <Link href="/register">Register</Link>
+            <Link href="/register">{t('auth.register')}</Link>
           </Button>
         </div>
       </div>
@@ -88,17 +90,17 @@ export function AuthButtons({
           <div className="text-xs text-gray-600 dark:text-gray-300 max-w-[14rem] truncate">
             {user.email}
             {user.isPaid ? (
-              <span className="ml-2 text-[11px] font-semibold text-tt-tertiary">Paid</span>
+              <span className="ml-2 text-[11px] font-semibold text-tt-tertiary">{t('auth.paid')}</span>
             ) : (
-              <span className="ml-2 text-[11px] font-semibold text-tt-accent">Free</span>
+              <span className="ml-2 text-[11px] font-semibold text-tt-accent">{t('auth.free')}</span>
             )}
           </div>
         )}
         <Button asChild variant="outline" size={compact ? 'sm' : 'default'}>
-          <Link href="/account">Account</Link>
+          <Link href="/account">{t('auth.account')}</Link>
         </Button>
         <Button variant="ghost" size={compact ? 'sm' : 'default'} onClick={signOut}>
-          Sign out
+          {t('auth.signOut')}
         </Button>
       </div>
     </div>
