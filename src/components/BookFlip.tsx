@@ -1504,7 +1504,7 @@ export default function BookFlip({
       ) : null}
       
 
-      <div className="w-full flex items-center -mt-6 justify-center">
+      <div className="w-full flex items-center justify-center">
         <HTMLFlipBook
           style={{}}
           width={width}
