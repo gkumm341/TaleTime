@@ -16,8 +16,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import type { StoryGenerationResponse, WizardInput } from '../../../types/story-builder';
+import type { WizardInput } from '../../../types/story-builder';
 import { Sidebar } from '@/components/Sidebar';
+import { buildLocalStory } from '@/lib/story-builder-local';
 
 const OWL_MESSAGES = [
   'Hoo-hoo… welcome, little storyteller. Let’s make something cozy.',
@@ -307,37 +308,16 @@ export default function BuildStoryPage() {
     setLoading(true);
     setError(null);
 
-    try {
-      const response = await fetch('/api/generate-story', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      });
-
-      const raw = await response.text();
-      let data: StoryGenerationResponse | null = null;
-      try {
-        data = JSON.parse(raw) as StoryGenerationResponse;
-      } catch {
-        data = null;
-      }
-
-      if (!response.ok || !data || !data.ok) {
-        const fallback = raw.trim().slice(0, 240);
-        const message =
-          data && !data.ok ? data.error : fallback || `Request failed with status ${response.status}`;
-        setError(message);
-        setLoading(false);
-        return;
-      }
-
-      const storageKey = `taletime-generated-story:${data.cacheKey}`;
-      sessionStorage.setItem(storageKey, JSON.stringify(data.story));
-      router.push(`/build-story/read?generated=${encodeURIComponent(data.cacheKey)}`);
-    } catch {
-      setError('Network issue. Please try again.');
+    const result = buildLocalStory(input);
+    if (!result.ok) {
+      setError(result.error);
       setLoading(false);
+      return;
     }
+
+    const storageKey = `taletime-generated-story:${result.cacheKey}`;
+    sessionStorage.setItem(storageKey, JSON.stringify(result.story));
+    router.push(`/build-story/read?generated=${encodeURIComponent(result.cacheKey)}`);
   }, [canContinue, input, loading, router]);
 
   return (

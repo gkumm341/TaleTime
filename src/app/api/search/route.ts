@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { parseStoryJson, parseStoryPagesJson, storyBlocksToLegacyText, storyPagesToLegacyText } from '@/lib/story-blocks';
+import {
+  maybeTranslateManyTexts,
+  maybeTranslateText,
+  resolveRequestLocale,
+  shouldTranslate,
+} from '@/lib/server/translation';
 
 export const runtime = 'nodejs';
 
@@ -255,6 +261,7 @@ async function searchTextContent(folderName: string, query: string): Promise<boo
 }
 
 export async function GET(req: NextRequest) {
+  const locale = resolveRequestLocale(req);
   const query = req.nextUrl.searchParams.get('q')?.trim();
   const includeContent = req.nextUrl.searchParams.get('content') === 'true';
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get('limit') || '50'), 100);
@@ -304,10 +311,45 @@ export async function GET(req: NextRequest) {
     // Sort by score descending
     results.sort((a, b) => b.score - a.score);
 
+    const sliced = results.slice(0, limit);
+
+    if (shouldTranslate(locale) && sliced.length > 0) {
+      const titles = await maybeTranslateManyTexts(
+        sliced.map((r) => r.title),
+        locale,
+        'search-title'
+      );
+
+      const authors = await maybeTranslateManyTexts(
+        sliced.map((r) => r.authors),
+        locale,
+        'search-authors'
+      );
+
+      const translated = await Promise.all(
+        sliced.map(async (r, idx): Promise<SearchResult> => ({
+          ...r,
+          title: titles[idx] ?? r.title,
+          authors: authors[idx] ?? r.authors,
+          description:
+            typeof r.description === 'string'
+              ? await maybeTranslateText(r.description, locale, `search-description:${idx}`)
+              : r.description,
+          subjects: await maybeTranslateManyTexts(r.subjects, locale, `search-subjects:${idx}`),
+        }))
+      );
+
+      return NextResponse.json({
+        query,
+        count: results.length,
+        results: translated,
+      });
+    }
+
     return NextResponse.json({
       query,
       count: results.length,
-      results: results.slice(0, limit),
+      results: sliced,
     });
   } catch (error) {
     console.error('Search API error:', error);

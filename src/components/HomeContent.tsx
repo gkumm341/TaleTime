@@ -36,7 +36,7 @@ interface Book {
 }
 
 export function HomeContent() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +74,9 @@ export function HomeContent() {
 
     setIsSearching(true);
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}&content=true`);
+      const response = await fetch(
+        `/api/search?q=${encodeURIComponent(query.trim())}&content=true&lang=${encodeURIComponent(locale)}`
+      );
       if (response.ok) {
         const data = await response.json();
         // Transform search results to Book format
@@ -102,7 +104,7 @@ export function HomeContent() {
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [locale]);
 
   const clearSearch = () => {
     setSearchQuery('');
@@ -120,6 +122,7 @@ export function HomeContent() {
           page: '1',
           limit: itemsPerPage.toString(),
           sortBy: sortBy,
+          lang: locale,
         });
 
         if (filters.ageCategories.length > 0) {
@@ -154,7 +157,7 @@ export function HomeContent() {
     };
 
     fetchBooks();
-  }, [itemsPerPage, sortBy, filters]);
+  }, [itemsPerPage, sortBy, filters, locale]);
 
   const handleRemoveFilter = (type: 'age' | 'duration' | 'language' | 'offline', value: string) => {
     setFilters(prev => {

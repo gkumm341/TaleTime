@@ -62,8 +62,12 @@ Create a `.env.local` file:
 SQLITE_PATH=.data/app.db
 READ_ALOUD_WPM=160
 ALLOW_HOSTS=gutenberg.org,standardebooks.org
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4.1-mini
+TRANSLATION_PROVIDER=libretranslate
+LIBRETRANSLATE_URL=http://localhost:5000
+# LIBRETRANSLATE_API_KEY=optional_if_your_server_requires_it
+# Optional OpenAI fallback if provider is set to openai or auto-detected:
+# OPENAI_API_KEY=your_openai_api_key_here
+# OPENAI_MODEL=gpt-4.1-mini
 ```
 
 ### Development-only

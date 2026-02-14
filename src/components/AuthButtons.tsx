@@ -25,7 +25,7 @@ export function AuthButtons({
   className?: string;
   compact?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, localizePath } = useI18n();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,10 +73,10 @@ export function AuthButtons({
         )}
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size={compact ? 'sm' : 'default'}>
-            <Link href="/signin">{t('auth.signIn')}</Link>
+            <Link href={localizePath('/signin')}>{t('auth.signIn')}</Link>
           </Button>
           <Button asChild variant="default" size={compact ? 'sm' : 'default'}>
-            <Link href="/register">{t('auth.register')}</Link>
+            <Link href={localizePath('/register')}>{t('auth.register')}</Link>
           </Button>
         </div>
       </div>
@@ -97,7 +97,7 @@ export function AuthButtons({
           </div>
         )}
         <Button asChild variant="outline" size={compact ? 'sm' : 'default'}>
-          <Link href="/account">{t('auth.account')}</Link>
+          <Link href={localizePath('/account')}>{t('auth.account')}</Link>
         </Button>
         <Button variant="ghost" size={compact ? 'sm' : 'default'} onClick={signOut}>
           {t('auth.signOut')}

@@ -27,7 +27,7 @@ interface SidebarProps {
 
 export function Sidebar({ activePage = 'home', children }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { t } = useI18n();
+  const { t, localizePath } = useI18n();
 
   const navIconStrokeWidth = 2.25;
 
@@ -96,7 +96,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
           {/* Navigation Links */}
           <div className="space-y-2">
             <Link 
-              href="/"
+              href={localizePath('/')}
               onClick={closeSidebar}
               className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'home'
@@ -116,7 +116,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
     
      
             <Link 
-              href="/continue"
+              href={localizePath('/continue')}
               onClick={closeSidebar}
               className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'continue'
@@ -134,7 +134,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
             </Link>
             
             <Link 
-              href="/favorites"
+              href={localizePath('/favorites')}
               onClick={closeSidebar}
               className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'favorites'
@@ -152,7 +152,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
             </Link>
             
             <Link 
-              href="/history"
+              href={localizePath('/history')}
               onClick={closeSidebar}
               className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'history'
@@ -168,7 +168,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
             </Link>
 
             <Link 
-              href="/settings"
+              href={localizePath('/settings')}
               onClick={closeSidebar}
               className={`flex items-center gap-3 px-4 py-3 rounded-tt transition-all group ring-1 ring-tt-border/10 hover:shadow-tt hover:-translate-y-0.5 ${
                 activePage === 'settings'
@@ -186,7 +186,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
 
           {/* Build Your Story shortcut */}
           <Link
-            href="/build-story"
+            href={localizePath('/build-story')}
             onClick={closeSidebar}
             className="w-full mt-2 flex items-center justify-between gap-3 px-4 py-3 rounded-tt border border-tt-border/10 bg-tt-surface/70 hover:bg-tt-surface/90 text-tt-primary font-semibold shadow-sm hover:shadow-tt transition-all"
           >

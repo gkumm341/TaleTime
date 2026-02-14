@@ -15,6 +15,14 @@ import {
   type StoryBlock,
   type StoryPageInput,
 } from '@/lib/story-blocks';
+import {
+  maybeTranslateBlocks,
+  maybeTranslatePages,
+  maybeTranslateText,
+  resolveRequestLocale,
+  shouldTranslate,
+} from '@/lib/server/translation';
+import type { Locale } from '@/i18n/routing';
 
 export const runtime = 'nodejs';
 
@@ -31,6 +39,7 @@ interface AbridgeRequest {
   bookId: number;
   minutes?: number;
   wpm?: number;
+  lang?: string;
   variant?: 'full' | 'bedtime' | 'timed';
 }
 
@@ -420,6 +429,51 @@ function extractiveAbridge(text: string, targetWords: number): string {
   return final.join('\n\n');
 }
 
+type AbridgeResponsePayload = {
+  bookId: number;
+  minutes: number;
+  wpm: number;
+  title: string;
+  author: string;
+  content?: string;
+  blocks?: StoryBlock[] | null;
+  pages?: StoryPageInput[] | null;
+  sourceFormat?: 'txt' | 'story-json' | 'story-pages';
+  mode: Mode;
+};
+
+async function localizeAbridgePayload(
+  payload: AbridgeResponsePayload,
+  locale: Locale
+): Promise<AbridgeResponsePayload> {
+  if (!shouldTranslate(locale)) return payload;
+
+  const title = await maybeTranslateText(payload.title, locale, `abridge-title:${payload.bookId}`);
+  const author = await maybeTranslateText(payload.author, locale, `abridge-author:${payload.bookId}`);
+
+  const content =
+    typeof payload.content === 'string' && payload.content.trim().length > 0
+      ? await maybeTranslateText(payload.content, locale, `abridge-content:${payload.bookId}`)
+      : payload.content;
+
+  const pages = Array.isArray(payload.pages)
+    ? await maybeTranslatePages(payload.pages, locale, `abridge-pages:${payload.bookId}`)
+    : payload.pages;
+
+  const blocks = Array.isArray(payload.blocks)
+    ? await maybeTranslateBlocks(payload.blocks, locale, `abridge-blocks:${payload.bookId}`)
+    : payload.blocks;
+
+  return {
+    ...payload,
+    title,
+    author,
+    content,
+    pages,
+    blocks,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     let body: Partial<AbridgeRequest> = {};
@@ -435,6 +489,7 @@ export async function POST(req: NextRequest) {
     }
 
     const bookId = Number(body.bookId);
+    const locale = resolveRequestLocale(req, typeof body.lang === 'string' ? body.lang : null);
     const variant = normalizeVariant(body.variant);
     const minutesRaw = body.minutes == null ? undefined : Number(body.minutes);
     const minutes = minutesRaw == null || Number.isNaN(minutesRaw) ? undefined : clampInt(minutesRaw, 1, 240);
@@ -548,7 +603,7 @@ export async function POST(req: NextRequest) {
 
       if (loaded.pages && loaded.pages.length > 0) {
         if (variant === 'full') {
-          return NextResponse.json({
+          return NextResponse.json(await localizeAbridgePayload({
             bookId,
             minutes: 0,
             wpm,
@@ -559,12 +614,12 @@ export async function POST(req: NextRequest) {
             blocks: null,
             sourceFormat: loaded.sourceFormat,
             mode: 'local' as Mode,
-          });
+          }, locale));
         }
 
         if (variant === 'bedtime') {
           const bedtimeMinutes = 10;
-          return NextResponse.json({
+          return NextResponse.json(await localizeAbridgePayload({
             bookId,
             minutes: bedtimeMinutes,
             wpm,
@@ -575,11 +630,11 @@ export async function POST(req: NextRequest) {
             blocks: null,
             sourceFormat: loaded.sourceFormat,
             mode: 'local' as Mode,
-          });
+          }, locale));
         }
 
         const effectiveMinutes = minutes ?? 10;
-        return NextResponse.json({
+        return NextResponse.json(await localizeAbridgePayload({
           bookId,
           minutes: effectiveMinutes,
           wpm,
@@ -590,14 +645,14 @@ export async function POST(req: NextRequest) {
           blocks: null,
           sourceFormat: loaded.sourceFormat,
           mode: 'local' as Mode,
-        });
+        }, locale));
       }
 
       const raw = loaded.text.trim();
       const cleaned = stripEndBoilerplate(stripFrontMatter(stripGutenbergBoilerplate(raw)));
 
       if (variant === 'full') {
-        return NextResponse.json({
+        return NextResponse.json(await localizeAbridgePayload({
           bookId,
           minutes: 0,
           wpm,
@@ -607,7 +662,7 @@ export async function POST(req: NextRequest) {
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
           mode: 'local' as Mode,
-        });
+        }, locale));
       }
 
       if (variant === 'bedtime') {
@@ -618,7 +673,7 @@ export async function POST(req: NextRequest) {
           ? cleaned
           : extractiveAbridge(cleaned, bedtimeTargetWords);
 
-        return NextResponse.json({
+        return NextResponse.json(await localizeAbridgePayload({
           bookId,
           minutes: bedtimeMinutes,
           wpm,
@@ -628,14 +683,14 @@ export async function POST(req: NextRequest) {
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
           mode: ((loaded.filePath.toLowerCase().endsWith('bedtime.txt') || loaded.filePath.toLowerCase().endsWith('bedtime.story.json')) ? 'local' : 'extractive') as Mode,
-        });
+        }, locale));
       }
 
       // timed
       const effectiveMinutes = minutes ?? 10;
       const targetWords = effectiveMinutes * wpm;
       const content = extractiveAbridge(cleaned, targetWords);
-      return NextResponse.json({
+      return NextResponse.json(await localizeAbridgePayload({
         bookId,
         minutes: effectiveMinutes,
         wpm,
@@ -643,7 +698,7 @@ export async function POST(req: NextRequest) {
         author: book.authors || 'Unknown',
         content,
         mode: 'extractive' as Mode,
-      });
+      }, locale));
     }
 
     return NextResponse.json(

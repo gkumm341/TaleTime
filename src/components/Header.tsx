@@ -5,12 +5,15 @@ import { Sparkles } from 'lucide-react';
 import { AuthButtons } from '@/components/AuthButtons';
 import { PremiumBenefits } from '@/components/PremiumBenefits';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { useI18n } from '@/components/LanguageProvider';
 
 export function Header() {
+  const { localizePath } = useI18n();
+
   return (
     <header className="sticky top-0 z-20 border-b border-tt-border/10 bg-tt-surface/70 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={localizePath('/')} className="flex items-center gap-2">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent shadow-sm ring-1 ring-tt-border/10">
             <Sparkles className="h-5 w-5 text-tt-accent" />
           </span>

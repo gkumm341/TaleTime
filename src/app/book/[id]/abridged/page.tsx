@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/components/LanguageProvider';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import BookFlip, { type PageData, type InlineImageMap } from '@/components/BookFlip';
 import { storyBlocksToLegacyText, type StoryBlock } from '@/lib/story-blocks';
@@ -56,6 +57,31 @@ interface AbridgedResponse {
   pages?: PageData[] | null;
   sourceFormat?: 'txt' | 'story-json' | 'story-pages';
   mode: 'llm' | 'extractive' | 'local';
+}
+
+function isAbortLikeError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const maybe = error as {
+    name?: unknown;
+    message?: unknown;
+    code?: unknown;
+    cause?: unknown;
+  };
+
+  if (maybe.name === 'AbortError') return true;
+  if (maybe.code === 'ECONNRESET') return true;
+  if (typeof maybe.message === 'string' && /\baborted\b|\bECONNRESET\b/i.test(maybe.message)) return true;
+
+  const cause = maybe.cause;
+  if (cause && typeof cause === 'object') {
+    const causeObj = cause as { code?: unknown; message?: unknown; name?: unknown };
+    if (causeObj.name === 'AbortError') return true;
+    if (causeObj.code === 'ECONNRESET') return true;
+    if (typeof causeObj.message === 'string' && /\baborted\b|\bECONNRESET\b/i.test(causeObj.message)) return true;
+  }
+
+  return false;
 }
 
 function useIsMobile(breakpointPx = 768) {
@@ -127,6 +153,7 @@ function useFlipDimensions(isMobile: boolean) {
 }
 
 export default function AbridgedBookPage() {
+  const { locale } = useI18n();
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -733,25 +760,26 @@ export default function AbridgedBookPage() {
     }
 
     const safeTitle: string = title;
+    let cancelled = false;
 
-    const controller = new AbortController();
     const check = async () => {
       try {
         setAudioStatus('checking');
         const res = await fetch(`/api/local-audio?title=${encodeURIComponent(safeTitle)}`, {
           method: 'HEAD',
-          signal: controller.signal,
         });
+        if (cancelled) return;
         setAudioStatus(res.ok ? 'available' : 'unavailable');
       } catch (e: unknown) {
-        const name = e && typeof e === 'object' && 'name' in e ? (e as { name?: unknown }).name : undefined;
-        if (name === 'AbortError') return;
+        if (cancelled || isAbortLikeError(e)) return;
         setAudioStatus('unavailable');
       }
     };
 
     check();
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [variant, data?.title]);
 
   const handleAudioPlay = useCallback(async () => {
@@ -810,22 +838,22 @@ export default function AbridgedBookPage() {
       return;
     }
 
-    const controller = new AbortController();
+    let cancelled = false;
 
     const run = async () => {
       setLoading(true);
       setError(null);
-      try {
+
+      const requestAbridge = async (): Promise<AbridgedResponse> => {
         const wpm = preferences?.defaultWpm ?? 160;
         const res = await fetch('/api/abridge', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(
             variant === 'full'
-              ? { bookId: id, variant: 'full', wpm }
-              : { bookId: id, variant: 'bedtime', wpm }
+              ? { bookId: id, variant: 'full', wpm, lang: locale }
+              : { bookId: id, variant: 'bedtime', wpm, lang: locale }
           ),
-          signal: controller.signal,
         });
 
         if (res.status === 401 || res.status === 402) {
@@ -853,21 +881,38 @@ export default function AbridgedBookPage() {
           throw new Error(text || `Failed to abridge: ${res.status}`);
         }
 
-        const json = (await res.json()) as AbridgedResponse;
+        return (await res.json()) as AbridgedResponse;
+      };
+
+      try {
+        let json: AbridgedResponse;
+        try {
+          json = await requestAbridge();
+        } catch (firstError) {
+          if (!cancelled && isAbortLikeError(firstError)) {
+            json = await requestAbridge();
+          } else {
+            throw firstError;
+          }
+        }
+
+        if (cancelled) return;
         setData(json);
       } catch (e: unknown) {
-        const name = e && typeof e === 'object' && 'name' in e ? (e as { name?: unknown }).name : undefined;
-        if (name === 'AbortError') return;
+        if (cancelled || isAbortLikeError(e)) return;
         setError(e instanceof Error ? e.message : 'Failed to abridge');
       } finally {
+        if (cancelled) return;
         setLoading(false);
       }
     };
 
     run();
 
-    return () => controller.abort();
-  }, [id, minutes, variant, preferences?.defaultWpm]);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, locale, minutes, variant, preferences?.defaultWpm]);
 
   useLayoutEffect(() => {
     if (pagedPages && pagedPages.length > 0) {

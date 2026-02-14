@@ -1,6 +1,4 @@
-export type Locale = 'en' | 'es' | 'el' | 'pt-BR' | 'de';
-
-export const DEFAULT_LOCALE: Locale = 'en';
+import { DEFAULT_LOCALE, Locale } from '@/i18n/routing';
 
 export const messages: Record<Locale, Record<string, string>> = {
   en: {

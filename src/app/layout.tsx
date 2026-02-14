@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next"
 import { Baloo_2, Inter } from "next/font/google"
+import { headers } from "next/headers"
 import "./globals.css"
 import { Providers } from "@/components/Providers"
+import { DEFAULT_LOCALE, normalizeLocale } from "@/i18n/routing"
 
 const baloo = Baloo_2({
   subsets: ["latin"],
@@ -88,9 +90,12 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const headerList = await headers()
+  const locale = normalizeLocale(headerList.get('x-locale')) ?? DEFAULT_LOCALE
+
   return (
-    <html lang="en" suppressHydrationWarning className={`${baloo.variable} ${inter.variable}`}>
+    <html lang={locale} suppressHydrationWarning className={`${baloo.variable} ${inter.variable}`}>
       <head>
         <link rel="icon" type="image/png" sizes="32x32" href="/owlFace2.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="/owlFace2.png" />

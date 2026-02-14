@@ -5,6 +5,7 @@ import { eq, sql, like, and, or, inArray } from 'drizzle-orm';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { syncLocalByTitleToDb } from '@/lib/local-book-sync';
+import { maybeTranslateManyTexts, resolveRequestLocale, shouldTranslate } from '@/lib/server/translation';
 
 export const runtime = 'nodejs'; // Required for SQLite
 
@@ -214,9 +215,53 @@ async function maybeSyncLocalByTitle(): Promise<void> {
   await localSyncInFlight;
 }
 
+type CatalogBookResult = {
+  id: number;
+  title: string;
+  authors: string;
+  subjects: string[];
+  coverUrl: string | null;
+  txtUrl: string | null;
+  epubUrl: string | null;
+  downloadCount: number | null;
+  minutes: number | null;
+  words: number | null;
+  isCached: boolean;
+};
+
+async function localizeCatalogResults(results: CatalogBookResult[], locale: ReturnType<typeof resolveRequestLocale>) {
+  if (!shouldTranslate(locale) || results.length === 0) return results;
+
+  const titles = await maybeTranslateManyTexts(
+    results.map((r) => r.title),
+    locale,
+    'catalog-title'
+  );
+
+  const authors = await maybeTranslateManyTexts(
+    results.map((r) => r.authors),
+    locale,
+    'catalog-authors'
+  );
+
+  const translatedSubjects = await Promise.all(
+    results.map(async (r, idx) =>
+      maybeTranslateManyTexts(r.subjects, locale, `catalog-subjects:${idx}`)
+    )
+  );
+
+  return results.map((r, idx) => ({
+    ...r,
+    title: titles[idx] ?? r.title,
+    authors: authors[idx] ?? r.authors,
+    subjects: translatedSubjects[idx] ?? r.subjects,
+  }));
+}
+
 // inside your GET handler, near the top:
 export async function GET(req: NextRequest) {
   await maybeSyncLocalByTitle();
+  const locale = resolveRequestLocale(req);
   const searchParams = req.nextUrl.searchParams;
   const page = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || '';
@@ -293,13 +338,15 @@ export async function GET(req: NextRequest) {
           minutes: result!.minutes,
           words: result!.words,
           isCached: Boolean(result!.isCached),
-        }));
+        })) as CatalogBookResult[];
+
+      const localized = await localizeCatalogResults(ordered, locale);
 
       return NextResponse.json({
-        count: ordered.length,
+        count: localized.length,
         next: null,
         previous: null,
-        results: ordered,
+        results: localized,
       });
     }
 
@@ -341,11 +388,8 @@ export async function GET(req: NextRequest) {
       }
 
       const result = book[0];
-      return NextResponse.json({
-        count: 1,
-        next: null,
-        previous: null,
-        results: [{
+      const localizedSingle = await localizeCatalogResults(
+        [{
           id: result.id,
           title: result.title,
           authors: result.authors,
@@ -358,6 +402,14 @@ export async function GET(req: NextRequest) {
           words: result.words,
           isCached: !!result.isCached,
         }],
+        locale
+      );
+
+      return NextResponse.json({
+        count: 1,
+        next: null,
+        previous: null,
+        results: localizedSingle,
       });
     }
 
@@ -503,13 +555,15 @@ export async function GET(req: NextRequest) {
       minutes: book.minutes,
       words: book.words,
       isCached: !!book.isCached,
-    }));
+    })) as CatalogBookResult[];
+
+    const localizedResults = await localizeCatalogResults(results, locale);
 
     return NextResponse.json({
       count: total,
       next: page < totalPages ? `?page=${page + 1}` : null,
       previous: page > 1 ? `?page=${page - 1}` : null,
-      results,
+      results: localizedResults,
     });
   } catch (error) {
     console.error('Catalog API error:', error);

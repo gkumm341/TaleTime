@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/components/LanguageProvider';
-import { Locale } from '@/i18n/messages';
+import { Locale } from '@/i18n/routing';
 
 export function LanguageSelector() {
   const { locale, setLocale, t } = useI18n();

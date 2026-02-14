@@ -1,21 +1,26 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_LOCALE, Locale, messages } from '@/i18n/messages';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { messages } from '@/i18n/messages';
+import {
+  DEFAULT_LOCALE,
+  Locale,
+  getLocaleFromPath,
+  normalizeLocale,
+  withLocalePath,
+} from '@/i18n/routing';
 
 type LanguageContextType = {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   t: (key: string, vars?: Record<string, string | number>) => string;
+  localizePath: (path: string) => string;
 };
 
 const LanguageContext = createContext<LanguageContextType | null>(null);
 
 const STORAGE_KEY = 'taletime-language';
-
-function isLocale(value: string): value is Locale {
-  return value === 'en' || value === 'es' || value === 'el' || value === 'pt-BR' || value === 'de';
-}
 
 function interpolate(template: string, vars?: Record<string, string | number>) {
   if (!vars) return template;
@@ -26,31 +31,48 @@ function interpolate(template: string, vars?: Record<string, string | number>) {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
+    const localeFromPath = pathname ? getLocaleFromPath(pathname) : null;
+    if (localeFromPath) {
+      setLocaleState(localeFromPath);
+      localStorage.setItem(STORAGE_KEY, localeFromPath);
+      return;
+    }
+
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && isLocale(stored)) {
-      setLocaleState(stored);
+    const normalizedStored = normalizeLocale(stored);
+    if (normalizedStored) {
+      setLocaleState(normalizedStored);
       return;
     }
 
     const nav = navigator.language;
-    if (isLocale(nav)) {
-      setLocaleState(nav);
+    const normalizedNav = normalizeLocale(nav);
+    if (normalizedNav) {
+      setLocaleState(normalizedNav);
       return;
     }
 
-    if (nav.startsWith('pt')) setLocaleState('pt-BR');
-    else if (nav.startsWith('es')) setLocaleState('es');
-    else if (nav.startsWith('de')) setLocaleState('de');
-    else if (nav.startsWith('el')) setLocaleState('el');
-  }, []);
+    setLocaleState(DEFAULT_LOCALE);
+  }, [pathname]);
 
   const setLocale = (next: Locale) => {
     setLocaleState(next);
     localStorage.setItem(STORAGE_KEY, next);
+
+    const currentPath = pathname || '/';
+    const localizedPath = withLocalePath(currentPath, next);
+    const queryString = searchParams.toString();
+    const target = queryString ? `${localizedPath}?${queryString}` : localizedPath;
+    router.replace(target);
   };
+
+  const localizePath = (path: string) => withLocalePath(path, locale);
 
   const t = (key: string, vars?: Record<string, string | number>) => {
     const value = messages[locale][key] ?? messages[DEFAULT_LOCALE][key] ?? key;
@@ -62,6 +84,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       locale,
       setLocale,
       t,
+      localizePath,
     }),
     [locale]
   );

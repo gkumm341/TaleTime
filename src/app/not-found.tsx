@@ -2,8 +2,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BookOpen, Home, Search } from 'lucide-react'
 import Link from 'next/link'
+import { headers } from 'next/headers'
+import { DEFAULT_LOCALE, normalizeLocale, withLocalePath } from '@/i18n/routing'
 
-export default function NotFound() {
+export default async function NotFound() {
+  const headerList = await headers()
+  const locale = normalizeLocale(headerList.get('x-locale')) ?? DEFAULT_LOCALE
+
   return (
     <>
       <div className="min-h-screen bg-tt-gradient-soft flex items-center justify-center p-4">
@@ -18,14 +23,14 @@ export default function NotFound() {
             </p>
             
             <div className="space-y-3">
-              <Link href="/" className="block">
+              <Link href={withLocalePath('/', locale)} className="block">
                 <Button className="w-full bg-gradient-to-r from-tt-tertiary to-tt-accent hover:from-tt-tertiary/90 hover:to-tt-accent/90 text-white py-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                   <Home className="mr-2" size={18} />
                   Go Home
                 </Button>
               </Link>
               
-              <Link href="/search" className="block">
+              <Link href={withLocalePath('/search', locale)} className="block">
                 <Button variant="outline" className="w-full py-3 font-semibold hover:bg-gray-50">
                   <Search className="mr-2" size={18} />
                   Browse Stories
