@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Library, SlidersHorizontal, Target, Search, X } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
+import { HomeFooterLinks } from '@/components/HomeFooterLinks';
 import { useI18n } from '@/components/LanguageProvider';
 
 const TIME_OPTIONS = [
@@ -451,6 +452,8 @@ export function HomeContent() {
             )}
 
           </div>
+
+          <HomeFooterLinks />
 
         </div>
       </div>
