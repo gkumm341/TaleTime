@@ -11,6 +11,119 @@ export const runtime = 'nodejs'; // Required for SQLite
 
 const DEFAULT_ITEMS_PER_PAGE = 100;
 const MAX_ITEMS_PER_PAGE = 100;
+const BOOTSTRAP_MAX_PAGES = 4;
+
+type GutendexAuthor = { name?: string | null };
+type GutendexFormats = Record<string, string | undefined>;
+type GutendexBook = {
+  id: number;
+  title?: string | null;
+  authors?: GutendexAuthor[];
+  subjects?: string[];
+  languages?: string[];
+  formats?: GutendexFormats;
+  download_count?: number | null;
+};
+type GutendexResponse = {
+  next?: string | null;
+  results?: GutendexBook[];
+};
+
+let bootstrapInFlight: Promise<void> | null = null;
+
+function pickTextUrl(formats: GutendexFormats | undefined): string | null {
+  if (!formats) return null;
+
+  const direct =
+    formats['text/plain; charset=utf-8'] ||
+    formats['text/plain; charset=us-ascii'] ||
+    formats['text/plain'];
+
+  if (direct && !direct.endsWith('.zip')) return direct;
+
+  const fallback = Object.entries(formats).find(([key, value]) => {
+    if (!value) return false;
+    const lowerKey = key.toLowerCase();
+    const lowerValue = value.toLowerCase();
+    return lowerKey.startsWith('text/plain') && !lowerValue.endsWith('.zip');
+  });
+
+  return fallback?.[1] ?? null;
+}
+
+async function maybeBootstrapCatalogFromGutendex(contentMode: string): Promise<void> {
+  if (contentMode !== 'cloud') return;
+
+  const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(books);
+  if ((count || 0) > 0) return;
+
+  if (!bootstrapInFlight) {
+    bootstrapInFlight = (async () => {
+      const collected: GutendexBook[] = [];
+      let nextUrl: string | null = 'https://gutendex.com/books?topic=children&languages=en';
+
+      for (let page = 0; page < BOOTSTRAP_MAX_PAGES && nextUrl; page++) {
+        const response = await fetch(nextUrl, { cache: 'no-store' });
+        if (!response.ok) break;
+
+        const payload = (await response.json()) as GutendexResponse;
+        const pageResults = Array.isArray(payload.results) ? payload.results : [];
+        collected.push(...pageResults);
+        nextUrl = payload.next ?? null;
+      }
+
+      if (collected.length === 0) return;
+
+      const now = Date.now();
+      const rows = collected
+        .filter((book) => Number.isFinite(book.id))
+        .map((book) => {
+          const formats = book.formats || {};
+          const authors = (book.authors || [])
+            .map((author) => (author.name || '').trim())
+            .filter(Boolean)
+            .join('; ');
+
+          return {
+            id: book.id,
+            title: (book.title || `Book ${book.id}`).trim(),
+            authors: authors || 'Unknown',
+            languages: JSON.stringify(book.languages || []),
+            subjects: JSON.stringify(book.subjects || []),
+            coverUrl: formats['image/jpeg'] || null,
+            txtUrl: pickTextUrl(formats),
+            epubUrl: formats['application/epub+zip'] || null,
+            downloadCount: typeof book.download_count === 'number' ? book.download_count : 0,
+            updatedAt: now,
+          };
+        });
+
+      if (rows.length === 0) return;
+
+      await db
+        .insert(books)
+        .values(rows)
+        .onConflictDoUpdate({
+          target: books.id,
+          set: {
+            title: sql`excluded.title`,
+            authors: sql`excluded.authors`,
+            languages: sql`excluded.languages`,
+            subjects: sql`excluded.subjects`,
+            coverUrl: sql`excluded.cover_url`,
+            txtUrl: sql`excluded.txt_url`,
+            epubUrl: sql`excluded.epub_url`,
+            downloadCount: sql`excluded.download_count`,
+            updatedAt: sql`excluded.updated_at`,
+          },
+        });
+    })().finally(() => {
+      bootstrapInFlight = null;
+    });
+  }
+
+  await bootstrapInFlight;
+}
 
 function normalizeTitleKey(input: string): string {
   return input
@@ -279,6 +392,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
+    await maybeBootstrapCatalogFromGutendex(contentMode);
     const localIds = contentMode === 'local' ? await getLocalBookIdsWithText() : null;
 
     // If ids are provided, return those books (batch fetch) in the same order.
