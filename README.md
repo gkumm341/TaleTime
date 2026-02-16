@@ -62,6 +62,11 @@ Create a `.env.local` file:
 SQLITE_PATH=.data/app.db
 READ_ALOUD_WPM=160
 ALLOW_HOSTS=gutenberg.org,standardebooks.org
+CONTENT_MODE=local
+# Required when CONTENT_MODE=cloud:
+# CLOUDFRONT_BASE_URL=https://dxxxxxxxxxxxx.cloudfront.net
+# Optional prefix if your S3 objects are under a subfolder (example: .data):
+# CLOUDFRONT_DATA_PREFIX=.data
 TRANSLATION_PROVIDER=libretranslate
 LIBRETRANSLATE_URL=http://localhost:5000
 # LIBRETRANSLATE_API_KEY=optional_if_your_server_requires_it
@@ -74,6 +79,19 @@ LIBRETRANSLATE_URL=http://localhost:5000
 
 - `ENFORCE_PREMIUM_IN_DEV` - Set to `1` to keep premium paywalls enabled in dev.
 - `BYPASS_PREMIUM` - Set to `1` to bypass premium checks (useful for local testing). In `NODE_ENV=development`, the abridged bedtime/timed paywall is bypassed by default unless `ENFORCE_PREMIUM_IN_DEV` is set.
+
+### Local vs Cloud content
+
+- `CONTENT_MODE=local` (default): reads story/image/audio assets from local `.data/texts`.
+- `CONTENT_MODE=cloud`: reads those assets from CloudFront (`CLOUDFRONT_BASE_URL`) and keeps API paths unchanged (`/api/local-image`, `/api/local-audio`, `/api/illustration`, `/api/story-pages`, `/api/abridge`).
+- Use `CLOUDFRONT_DATA_PREFIX` if your bucket keeps files under a folder (for example `.data`), otherwise leave it unset.
+
+### Vercel deployment notes
+
+- For Vercel, set `SQLITE_PATH=/tmp/app.db` (ephemeral per deployment/cold start).
+- Keep `CONTENT_MODE=cloud` and set `CLOUDFRONT_BASE_URL` to your distribution domain.
+- If CloudFront origin path is already `/.data`, leave `CLOUDFRONT_DATA_PREFIX` unset.
+- Set `NEXT_PUBLIC_BASE_URL` to your deployed URL (for custom domain, `https://www.spectra-usa.com`).
 ```
 
 ## Getting Started

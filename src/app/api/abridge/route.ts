@@ -23,6 +23,7 @@ import {
   shouldTranslate,
 } from '@/lib/server/translation';
 import type { Locale } from '@/i18n/routing';
+import { buildCloudTextUrl, getContentMode, getLocalTextDir } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs';
 
@@ -104,6 +105,50 @@ async function loadFirstExistingStoryFile(paths: string[]): Promise<
       // ignore
     }
   }
+  return null;
+}
+
+async function loadFirstExistingStoryFileFromCloud(paths: string[]): Promise<
+  | {
+      filePath: string;
+      text: string;
+      blocks?: StoryBlock[];
+      pages?: StoryPageInput[];
+      sourceFormat: 'txt' | 'story-json' | 'story-pages';
+    }
+  | null
+> {
+  for (const p of paths) {
+    const url = buildCloudTextUrl(p);
+    if (!url) return null;
+
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) continue;
+
+      const raw = await response.text();
+      const lower = p.toLowerCase();
+
+      if (lower.endsWith('.pages.json')) {
+        const parsed = parseStoryPagesJson(raw);
+        const pages = parsed.doc.pages;
+        const text = storyPagesToLegacyText(pages);
+        return { filePath: p, text, pages, sourceFormat: 'story-pages' };
+      }
+
+      if (lower.endsWith('.story.json')) {
+        const parsed = parseStoryJson(raw);
+        const blocks = parsed.doc.blocks;
+        const text = storyBlocksToLegacyText(blocks);
+        return { filePath: p, text, blocks, sourceFormat: 'story-json' };
+      }
+
+      return { filePath: p, text: raw, sourceFormat: 'txt' };
+    } catch {
+      // ignore
+    }
+  }
+
   return null;
 }
 
@@ -526,11 +571,11 @@ export async function POST(req: NextRequest) {
     if (!book) {
       return NextResponse.json({ error: 'Book not found' }, { status: 404 });
     }
-    const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
+    const contentMode = getContentMode();
 
     // Local mode: read provided .txt files from disk (no network requests).
     if (contentMode === 'local') {
-      const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
+      const baseDir = getLocalTextDir();
       const rootDir = path.resolve(process.cwd(), baseDir);
       const bookDir = path.join(rootDir, String(bookId));
 
@@ -701,9 +746,167 @@ export async function POST(req: NextRequest) {
       }, locale));
     }
 
+    if (contentMode === 'cloud') {
+      const rawTitle = book.title;
+      const titleCandidates = uniqueStrings([
+        rawTitle,
+        rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+        rawTitle.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+        rawTitle.split(':')[0]?.trim() || rawTitle,
+        rawTitle.replace(/\s*:\s*\$[a-z]\b\s*/gi, ' ').trim(),
+        rawTitle.replace(/\$[a-z]\b/gi, ' ').trim(),
+      ])
+        .map((t) => t.replace(/\s*\[[^\]]*\]\s*$/, '').trim())
+        .map(toSafeFilenameBase)
+        .filter(Boolean);
+
+      const candidates: string[] = [];
+
+      for (const titleCandidate of titleCandidates) {
+        if (variant === 'full') {
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.pages.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.story.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.txt'));
+        } else {
+          candidates.push(path.posix.join('by-title', titleCandidate, 'bedtime.pages.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'bedtime.story.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'bedtime.txt'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.pages.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.story.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.txt'));
+        }
+      }
+
+      if (variant === 'full' || variant === 'timed') {
+        candidates.push(path.posix.join(String(bookId), 'full.pages.json'));
+        candidates.push(path.posix.join(String(bookId), 'full.story.json'));
+        candidates.push(path.posix.join(String(bookId), 'full.txt'));
+      } else {
+        candidates.push(path.posix.join(String(bookId), 'bedtime.pages.json'));
+        candidates.push(path.posix.join(String(bookId), 'bedtime.story.json'));
+        candidates.push(path.posix.join(String(bookId), 'bedtime.txt'));
+        candidates.push(path.posix.join(String(bookId), 'full.pages.json'));
+        candidates.push(path.posix.join(String(bookId), 'full.story.json'));
+        candidates.push(path.posix.join(String(bookId), 'full.txt'));
+
+        for (const t of titleCandidates) {
+          candidates.push(path.posix.join('bookBedtime', `${t} (Bedtime).txt`));
+          candidates.push(path.posix.join('bookBedtime', `${t}.txt`));
+        }
+      }
+
+      const loaded = await loadFirstExistingStoryFileFromCloud(candidates);
+      if (!loaded) {
+        return NextResponse.json(
+          {
+            error: 'Missing cloud text file for this book',
+            expectedPaths: candidates,
+          },
+          { status: 400 }
+        );
+      }
+
+      if (loaded.pages && loaded.pages.length > 0) {
+        if (variant === 'full') {
+          return NextResponse.json(await localizeAbridgePayload({
+            bookId,
+            minutes: 0,
+            wpm,
+            title: book.title,
+            author: book.authors || 'Unknown',
+            pages: loaded.pages,
+            content: '',
+            blocks: null,
+            sourceFormat: loaded.sourceFormat,
+            mode: 'local' as Mode,
+          }, locale));
+        }
+
+        if (variant === 'bedtime') {
+          const bedtimeMinutes = 10;
+          return NextResponse.json(await localizeAbridgePayload({
+            bookId,
+            minutes: bedtimeMinutes,
+            wpm,
+            title: book.title,
+            author: book.authors || 'Unknown',
+            pages: loaded.pages,
+            content: '',
+            blocks: null,
+            sourceFormat: loaded.sourceFormat,
+            mode: 'local' as Mode,
+          }, locale));
+        }
+
+        const effectiveMinutes = minutes ?? 10;
+        return NextResponse.json(await localizeAbridgePayload({
+          bookId,
+          minutes: effectiveMinutes,
+          wpm,
+          title: book.title,
+          author: book.authors || 'Unknown',
+          pages: loaded.pages,
+          content: '',
+          blocks: null,
+          sourceFormat: loaded.sourceFormat,
+          mode: 'local' as Mode,
+        }, locale));
+      }
+
+      const raw = loaded.text.trim();
+      const cleaned = stripEndBoilerplate(stripFrontMatter(stripGutenbergBoilerplate(raw)));
+
+      if (variant === 'full') {
+        return NextResponse.json(await localizeAbridgePayload({
+          bookId,
+          minutes: 0,
+          wpm,
+          title: book.title,
+          author: book.authors || 'Unknown',
+          content: cleaned,
+          blocks: loaded.blocks ?? null,
+          sourceFormat: loaded.sourceFormat,
+          mode: 'local' as Mode,
+        }, locale));
+      }
+
+      if (variant === 'bedtime') {
+        const bedtimeMinutes = 10;
+        const bedtimeTargetWords = bedtimeMinutes * wpm;
+        const bedtimeContent = loaded.filePath.toLowerCase().endsWith('bedtime.txt') || loaded.filePath.toLowerCase().endsWith('bedtime.story.json')
+          ? cleaned
+          : extractiveAbridge(cleaned, bedtimeTargetWords);
+
+        return NextResponse.json(await localizeAbridgePayload({
+          bookId,
+          minutes: bedtimeMinutes,
+          wpm,
+          title: book.title,
+          author: book.authors || 'Unknown',
+          content: bedtimeContent,
+          blocks: loaded.blocks ?? null,
+          sourceFormat: loaded.sourceFormat,
+          mode: ((loaded.filePath.toLowerCase().endsWith('bedtime.txt') || loaded.filePath.toLowerCase().endsWith('bedtime.story.json')) ? 'local' : 'extractive') as Mode,
+        }, locale));
+      }
+
+      const effectiveMinutes = minutes ?? 10;
+      const targetWords = effectiveMinutes * wpm;
+      const content = extractiveAbridge(cleaned, targetWords);
+      return NextResponse.json(await localizeAbridgePayload({
+        bookId,
+        minutes: effectiveMinutes,
+        wpm,
+        title: book.title,
+        author: book.authors || 'Unknown',
+        content,
+        mode: 'extractive' as Mode,
+      }, locale));
+    }
+
     return NextResponse.json(
       {
-        error: `Unsupported CONTENT_MODE: ${contentMode}. This app is configured for local-only content.`,
+        error: `Unsupported CONTENT_MODE: ${contentMode}. Supported values: local, cloud.`,
       },
       { status: 400 }
     );

@@ -329,7 +329,7 @@ export async function GET(req: NextRequest) {
         .map((result) => ({
           id: result!.id,
           title: result!.title,
-          authors: result!.authors,
+          authors: result!.authors ?? 'Unknown',
           subjects: result!.subjects ? JSON.parse(result!.subjects) : [],
           coverUrl: result!.coverUrl,
           txtUrl: result!.txtUrl,
@@ -392,7 +392,7 @@ export async function GET(req: NextRequest) {
         [{
           id: result.id,
           title: result.title,
-          authors: result.authors,
+          authors: result.authors ?? 'Unknown',
           subjects: result.subjects ? JSON.parse(result.subjects) : [],
           coverUrl: result.coverUrl,
           txtUrl: result.txtUrl,
@@ -546,7 +546,7 @@ export async function GET(req: NextRequest) {
     const results = filteredBooks.map((book) => ({
       id: book.id,
       title: book.title,
-      authors: book.authors,
+      authors: book.authors ?? 'Unknown',
       subjects: book.subjects ? JSON.parse(book.subjects) : [],
       coverUrl: book.coverUrl,
       txtUrl: book.txtUrl,

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createReadStream, readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs';
 
@@ -65,10 +66,92 @@ function resolveAudioPath(title: string): { absPath: string; filename: string } 
   return { absPath, filename: audioName };
 }
 
+function buildTitleCandidates(rawTitle: string): string[] {
+  const candidates = [
+    rawTitle,
+    rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+    rawTitle.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+    rawTitle.split(':')[0]?.trim() || rawTitle,
+  ].filter(Boolean);
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const key = normalizeKey(candidate);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(candidate);
+  }
+  return out;
+}
+
+function buildFileStemCandidates(folderName: string): string[] {
+  const stems = [
+    folderName,
+    folderName.replace(/\s+/g, '_'),
+    folderName.replace(/\s+/g, '-'),
+    folderName.replace(/[^\p{L}\p{N}\s_-]+/gu, '').replace(/\s+/g, '_'),
+    folderName.replace(/[^\p{L}\p{N}\s_-]+/gu, '').replace(/\s+/g, '-'),
+  ];
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const stem of stems) {
+    const normalized = stem.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
+}
+
+async function findCloudAudioUrl(title: string): Promise<{ url: string; filename: string } | null> {
+  const titleCandidates = buildTitleCandidates(title);
+
+  for (const folderName of titleCandidates) {
+    const stemCandidates = buildFileStemCandidates(folderName);
+    const fileCandidates = [
+      ...stemCandidates.map((stem) => `${stem}.mp3`),
+      'audio.mp3',
+      'narration.mp3',
+    ];
+    for (const fileName of fileCandidates) {
+      const url = buildCloudTextUrl(['by-title', folderName, fileName]);
+      if (!url) continue;
+      try {
+        const head = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) return { url, filename: fileName };
+      } catch {
+        // continue
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function HEAD(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
   if (!title) {
     return new Response('Missing title', { status: 400 });
+  }
+
+  if (getContentMode() === 'cloud') {
+    const cloud = await findCloudAudioUrl(title);
+    if (!cloud) return new Response('Audio not found', { status: 404 });
+
+    const upstream = await fetch(cloud.url, { method: 'HEAD', cache: 'no-store' });
+    if (!upstream.ok) return new Response('Audio not found', { status: 404 });
+
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Content-Type': upstream.headers.get('content-type') || 'audio/mpeg',
+        'Content-Length': upstream.headers.get('content-length') || '',
+        'Accept-Ranges': upstream.headers.get('accept-ranges') || 'bytes',
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   }
 
   const resolved = resolveAudioPath(title);
@@ -90,6 +173,36 @@ export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
   if (!title) {
     return new Response('Missing title', { status: 400 });
+  }
+
+  if (getContentMode() === 'cloud') {
+    const cloud = await findCloudAudioUrl(title);
+    if (!cloud) return new Response('Audio not found', { status: 404 });
+
+    const headers: HeadersInit = {};
+    const range = req.headers.get('range');
+    if (range) headers.Range = range;
+
+    const upstream = await fetch(cloud.url, {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
+    });
+
+    if (!upstream.ok || !upstream.body) {
+      return new Response('Audio not found', { status: 404 });
+    }
+
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        'Content-Type': upstream.headers.get('content-type') || 'audio/mpeg',
+        'Content-Length': upstream.headers.get('content-length') || '',
+        'Content-Range': upstream.headers.get('content-range') || '',
+        'Accept-Ranges': upstream.headers.get('accept-ranges') || 'bytes',
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   }
 
   const resolved = resolveAudioPath(title);

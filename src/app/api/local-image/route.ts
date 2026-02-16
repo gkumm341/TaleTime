@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { createReadStream } from 'fs';
 import { readdirSync } from 'fs';
 import { join } from 'path';
+import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs';
 
@@ -44,10 +45,102 @@ function isSupportedImage(filename: string) {
   );
 }
 
+function buildTitleCandidates(rawTitle: string): string[] {
+  const candidates = [
+    rawTitle,
+    rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+    rawTitle.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+    rawTitle.split(':')[0]?.trim() || rawTitle,
+  ].filter(Boolean);
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const key = normalizeKey(candidate);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(candidate);
+  }
+  return out;
+}
+
+function buildFileStemCandidates(folderName: string): string[] {
+  const stems = [
+    folderName,
+    folderName.replace(/\s+/g, '_'),
+    folderName.replace(/\s+/g, '-'),
+    folderName.replace(/[^\p{L}\p{N}\s_-]+/gu, '').replace(/\s+/g, '_'),
+    folderName.replace(/[^\p{L}\p{N}\s_-]+/gu, '').replace(/\s+/g, '-'),
+  ];
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const stem of stems) {
+    const normalized = stem.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
+}
+
+async function fetchCloudImageByTitle(title: string): Promise<Response | null> {
+  const titleCandidates = buildTitleCandidates(title);
+
+  for (const folderName of titleCandidates) {
+    const stems = buildFileStemCandidates(folderName);
+    const imageCandidates = [
+      ...stems.map((stem) => `${stem}.png`),
+      ...stems.map((stem) => `${stem}.webp`),
+      ...stems.map((stem) => `${stem}.jpg`),
+      ...stems.map((stem) => `${stem}.jpeg`),
+      'cover.png',
+      'cover.webp',
+      'cover.jpg',
+      'cover.jpeg',
+    ];
+
+    for (const imageName of imageCandidates) {
+      const url = buildCloudTextUrl(['by-title', folderName, imageName]);
+      if (!url) continue;
+
+      try {
+        const upstream = await fetch(url, { cache: 'no-store' });
+        if (!upstream.ok || !upstream.body) continue;
+
+        return new Response(upstream.body, {
+          status: 200,
+          headers: {
+            'Content-Type': upstream.headers.get('content-type') || guessContentType(imageName),
+            'Cache-Control': 'no-store, max-age=0',
+          },
+        });
+      } catch {
+        // try next candidate
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
   if (!title) {
     return new Response('Missing title', { status: 400 });
+  }
+
+  if (getContentMode() === 'cloud') {
+    const cloudResponse = await fetchCloudImageByTitle(title);
+    if (cloudResponse) return cloudResponse;
+
+    return new Response(TRANSPARENT_PNG, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   }
 
   const requestedKey = normalizeKey(title);

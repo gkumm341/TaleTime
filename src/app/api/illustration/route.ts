@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createReadStream, existsSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs';
 
@@ -64,6 +65,66 @@ function devLogMissingImage(message: string, details: Record<string, string | un
   console.log(`[illustration] ${message}`, details);
 }
 
+function buildTitleCandidates(rawTitle: string): string[] {
+  const candidates = [
+    rawTitle,
+    rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+    rawTitle.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+    rawTitle.split(':')[0]?.trim() || rawTitle,
+  ].filter(Boolean);
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const key = normalizeKey(candidate);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(candidate);
+  }
+  return out;
+}
+
+async function fetchCloudIllustration(title: string, image: string, req: NextRequest): Promise<Response | null> {
+  const titleCandidates = buildTitleCandidates(title);
+  const illustrationDirs = ['Illustrations', 'illustrations', 'images', 'imgs'];
+
+  for (const folderName of titleCandidates) {
+    for (const illustrationDir of illustrationDirs) {
+      const url = buildCloudTextUrl(['by-title', folderName, illustrationDir, image]);
+      if (!url) continue;
+
+      try {
+        const headers: HeadersInit = {};
+        const range = req.headers.get('range');
+        if (range) headers.Range = range;
+
+        const upstream = await fetch(url, {
+          method: 'GET',
+          headers,
+          cache: 'no-store',
+        });
+
+        if (!upstream.ok || !upstream.body) continue;
+
+        return new Response(upstream.body, {
+          status: upstream.status,
+          headers: {
+            'Content-Type': upstream.headers.get('content-type') || guessContentType(image),
+            'Content-Length': upstream.headers.get('content-length') || '',
+            'Content-Range': upstream.headers.get('content-range') || '',
+            'Accept-Ranges': upstream.headers.get('accept-ranges') || 'bytes',
+            'Cache-Control': 'no-store, max-age=0',
+          },
+        });
+      } catch {
+        // try next candidate
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * GET /api/illustration?title=BookTitle&image=1.png
  * Serves an illustration from the book's Illustrations folder.
@@ -80,6 +141,20 @@ export async function GET(req: NextRequest) {
   const safeImage = image.replace(/[/\\]/g, '').replace(/\.\./g, '');
   if (!safeImage) {
     return new Response('Invalid image parameter', { status: 400 });
+  }
+
+  if (getContentMode() === 'cloud') {
+    const cloudResponse = await fetchCloudIllustration(title, safeImage, req);
+    if (cloudResponse) return cloudResponse;
+
+    devLogMissingImage('Cloud illustration not found', { title, image: safeImage });
+    return new Response(TRANSPARENT_PNG, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   }
 
   const requestedKey = normalizeKey(title);
