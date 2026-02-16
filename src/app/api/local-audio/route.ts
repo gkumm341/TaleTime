@@ -1,26 +1,11 @@
 import { NextRequest } from 'next/server';
 import { createReadStream, readdirSync, statSync } from 'fs';
 import { join } from 'path';
-import { Readable } from 'stream';
 import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
-import { getCloudBookId, loadCloudCatalogMetadata } from '@/lib/server/cloud-catalog';
 
 export const runtime = 'nodejs';
 
 const BY_TITLE_DIR = join(process.cwd(), '.data', 'texts', 'by-title');
-
-type CloudMetadata = {
-  book?: {
-    title?: string;
-  };
-  local?: {
-    folderName?: string;
-    files?: Array<{
-      role?: string;
-      filename?: string;
-    }>;
-  };
-};
 
 function normalizeKey(input: string) {
   return input
@@ -35,26 +20,16 @@ function normalizeKey(input: string) {
     .trim();
 }
 
-function resolveAudioPath(title: string, folder?: string | null): { absPath: string; filename: string } | null {
+function resolveAudioPath(title: string): { absPath: string; filename: string } | null {
   const requestedKey = normalizeKey(title);
-  const requestedFolder = folder?.trim();
 
   let matchedFolderName: string | null = null;
   try {
     const entries = readdirSync(BY_TITLE_DIR, { withFileTypes: true });
     const folders = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
-    if (requestedFolder) {
-      const directFolder = folders.find((f) => f === requestedFolder);
-      if (directFolder) {
-        matchedFolderName = directFolder;
-      }
-    }
-
-    if (!matchedFolderName) {
-      const exact = folders.find((f) => normalizeKey(f) === requestedKey);
-      matchedFolderName = exact ?? null;
-    }
+    const exact = folders.find((f) => normalizeKey(f) === requestedKey);
+    matchedFolderName = exact ?? null;
 
     // Fallback: pick best partial match
     if (!matchedFolderName) {
@@ -91,100 +66,65 @@ function resolveAudioPath(title: string, folder?: string | null): { absPath: str
   return { absPath, filename: audioName };
 }
 
-function buildCloudAudioHeaders(source: Headers): Headers {
-  const headers = new Headers();
-  const passThrough = [
-    'content-type',
-    'content-length',
-    'content-range',
-    'accept-ranges',
-    'etag',
-    'last-modified',
-  ];
+function buildTitleCandidates(rawTitle: string): string[] {
+  const candidates = [
+    rawTitle,
+    rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+    rawTitle.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+    rawTitle.split(':')[0]?.trim() || rawTitle,
+  ].filter(Boolean);
 
-  for (const key of passThrough) {
-    const value = source.get(key);
-    if (value) headers.set(key, value);
-  }
-
-  if (!headers.has('content-type')) {
-    headers.set('Content-Type', 'audio/mpeg');
-  }
-
-  headers.set('Cache-Control', 'no-store, max-age=0');
-  return headers;
-}
-
-function uniqueStrings(values: string[]): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const v of values) {
-    const trimmed = v.trim();
-    if (!trimmed || seen.has(trimmed)) continue;
-    seen.add(trimmed);
-    out.push(trimmed);
+  for (const candidate of candidates) {
+    const key = normalizeKey(candidate);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(candidate);
   }
   return out;
 }
 
-function resolveFolderCandidates(title: string, folder?: string | null): string[] {
-  return uniqueStrings([
-    folder || '',
-    title,
-    title.replace(/\s*\([^)]*\)\s*$/, '').trim(),
-    title.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
-    title.split(':')[0]?.trim() || title,
-  ]);
-}
+function buildFileStemCandidates(folderName: string): string[] {
+  const stems = [
+    folderName,
+    folderName.replace(/\s+/g, '_'),
+    folderName.replace(/\s+/g, '-'),
+    folderName.replace(/[^\p{L}\p{N}\s_-]+/gu, '').replace(/\s+/g, '_'),
+    folderName.replace(/[^\p{L}\p{N}\s_-]+/gu, '').replace(/\s+/g, '-'),
+  ];
 
-async function fetchCloudMetadataForFolder(folderName: string): Promise<CloudMetadata | null> {
-  const url = buildCloudTextUrl(['by-title', folderName, 'metadata.json']);
-  if (!url) return null;
-
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return (await res.json()) as CloudMetadata;
-  } catch {
-    return null;
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const stem of stems) {
+    const normalized = stem.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
   }
+  return out;
 }
 
-function getAudioUrlFromCloudMetadata(metadata: CloudMetadata, fallbackFolder: string): string | null {
-  const folder = metadata.local?.folderName?.trim() || fallbackFolder;
-  const audioFilename = (metadata.local?.files || []).find((f) => {
-    const filename = f.filename || '';
-    return f.role === 'audio' && filename.toLowerCase().endsWith('.mp3');
-  })?.filename;
+async function findCloudAudioUrl(title: string): Promise<{ url: string; filename: string } | null> {
+  const titleCandidates = buildTitleCandidates(title);
 
-  if (!audioFilename) return null;
-
-  const audioUrl = buildCloudTextUrl(['by-title', folder, audioFilename]);
-  return audioUrl || null;
-}
-
-async function resolveCloudAudioUrl(title: string, folder?: string | null, bookId?: number | null): Promise<string | null> {
-  if (bookId != null) {
-    try {
-      const catalog = await loadCloudCatalogMetadata();
-      const matched = catalog.find((item) => getCloudBookId(item) === bookId) as CloudMetadata | undefined;
-      if (matched) {
-        const fallbackFolder = folder?.trim() || matched.book?.title?.trim() || title;
-        const byIdUrl = getAudioUrlFromCloudMetadata(matched, fallbackFolder);
-        if (byIdUrl) return byIdUrl;
+  for (const folderName of titleCandidates) {
+    const stemCandidates = buildFileStemCandidates(folderName);
+    const fileCandidates = [
+      ...stemCandidates.map((stem) => `${stem}.mp3`),
+      'audio.mp3',
+      'narration.mp3',
+    ];
+    for (const fileName of fileCandidates) {
+      const url = buildCloudTextUrl(['by-title', folderName, fileName]);
+      if (!url) continue;
+      try {
+        const head = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) return { url, filename: fileName };
+      } catch {
+        // continue
       }
-    } catch {
-      // ignore and continue with title/folder candidates
     }
-  }
-
-  const candidates = resolveFolderCandidates(title, folder);
-  for (const candidate of candidates) {
-    const metadata = await fetchCloudMetadataForFolder(candidate);
-    if (!metadata) continue;
-
-    const byTitleUrl = getAudioUrlFromCloudMetadata(metadata, candidate);
-    if (byTitleUrl) return byTitleUrl;
   }
 
   return null;
@@ -192,38 +132,29 @@ async function resolveCloudAudioUrl(title: string, folder?: string | null, bookI
 
 export async function HEAD(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
-  const folder = req.nextUrl.searchParams.get('folder');
-  const bookIdRaw = Number(req.nextUrl.searchParams.get('bookId'));
-  const bookId = Number.isFinite(bookIdRaw) && bookIdRaw > 0 ? bookIdRaw : null;
   if (!title) {
     return new Response('Missing title', { status: 400 });
   }
 
   if (getContentMode() === 'cloud') {
-    const audioUrl = await resolveCloudAudioUrl(title, folder, bookId);
-    if (!audioUrl) return new Response('Audio not found', { status: 404 });
+    const cloud = await findCloudAudioUrl(title);
+    if (!cloud) return new Response('Audio not found', { status: 404 });
 
-    const range = req.headers.get('range');
-    const requestHeaders = new Headers();
-    if (range) requestHeaders.set('range', range);
+    const upstream = await fetch(cloud.url, { method: 'HEAD', cache: 'no-store' });
+    if (!upstream.ok) return new Response('Audio not found', { status: 404 });
 
-    try {
-      const upstream = await fetch(audioUrl, {
-        method: 'HEAD',
-        headers: requestHeaders,
-        cache: 'no-store',
-      });
-
-      return new Response(null, {
-        status: upstream.status,
-        headers: buildCloudAudioHeaders(upstream.headers),
-      });
-    } catch {
-      return new Response('Audio upstream unavailable', { status: 502 });
-    }
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Content-Type': upstream.headers.get('content-type') || 'audio/mpeg',
+        'Content-Length': upstream.headers.get('content-length') || '',
+        'Accept-Ranges': upstream.headers.get('accept-ranges') || 'bytes',
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   }
 
-  const resolved = resolveAudioPath(title, folder);
+  const resolved = resolveAudioPath(title);
   if (!resolved) return new Response('Audio not found', { status: 404 });
 
   const stat = statSync(resolved.absPath);
@@ -240,39 +171,41 @@ export async function HEAD(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
-  const folder = req.nextUrl.searchParams.get('folder');
-  const bookIdRaw = Number(req.nextUrl.searchParams.get('bookId'));
-  const bookId = Number.isFinite(bookIdRaw) && bookIdRaw > 0 ? bookIdRaw : null;
   if (!title) {
     return new Response('Missing title', { status: 400 });
   }
 
   if (getContentMode() === 'cloud') {
-    const audioUrl = await resolveCloudAudioUrl(title, folder, bookId);
-    if (!audioUrl) return new Response('Audio not found', { status: 404 });
+    const cloud = await findCloudAudioUrl(title);
+    if (!cloud) return new Response('Audio not found', { status: 404 });
 
+    const headers: HeadersInit = {};
     const range = req.headers.get('range');
-    const requestHeaders = new Headers();
-    if (range) requestHeaders.set('range', range);
+    if (range) headers.Range = range;
 
-    try {
-      const upstream = await fetch(audioUrl, {
-        method: 'GET',
-        headers: requestHeaders,
-        cache: 'no-store',
-      });
+    const upstream = await fetch(cloud.url, {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
+    });
 
-      const headers = buildCloudAudioHeaders(upstream.headers);
-      return new Response(upstream.body, {
-        status: upstream.status,
-        headers,
-      });
-    } catch {
-      return new Response('Audio upstream unavailable', { status: 502 });
+    if (!upstream.ok || !upstream.body) {
+      return new Response('Audio not found', { status: 404 });
     }
+
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        'Content-Type': upstream.headers.get('content-type') || 'audio/mpeg',
+        'Content-Length': upstream.headers.get('content-length') || '',
+        'Content-Range': upstream.headers.get('content-range') || '',
+        'Accept-Ranges': upstream.headers.get('accept-ranges') || 'bytes',
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   }
 
-  const resolved = resolveAudioPath(title, folder);
+  const resolved = resolveAudioPath(title);
   if (!resolved) return new Response('Audio not found', { status: 404 });
 
   const range = req.headers.get('range');
@@ -301,8 +234,7 @@ export async function GET(req: NextRequest) {
 
     const chunkSize = end - start + 1;
     const stream = createReadStream(resolved.absPath, { start, end });
-    const body = Readable.toWeb(stream) as ReadableStream;
-    return new Response(body, {
+    return new Response(stream as any, {
       status: 206,
       headers: {
         'Content-Type': 'audio/mpeg',
@@ -315,8 +247,7 @@ export async function GET(req: NextRequest) {
   }
 
   const stream = createReadStream(resolved.absPath);
-  const body = Readable.toWeb(stream) as ReadableStream;
-  return new Response(body, {
+  return new Response(stream as any, {
     status: 200,
     headers: {
       'Content-Type': 'audio/mpeg',

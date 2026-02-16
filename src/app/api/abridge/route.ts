@@ -22,9 +22,8 @@ import {
   resolveRequestLocale,
   shouldTranslate,
 } from '@/lib/server/translation';
-import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
-import { getCloudBookId, loadCloudCatalogMetadata } from '@/lib/server/cloud-catalog';
 import type { Locale } from '@/i18n/routing';
+import { buildCloudTextUrl, getContentMode, getLocalTextDir } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs';
 
@@ -109,7 +108,7 @@ async function loadFirstExistingStoryFile(paths: string[]): Promise<
   return null;
 }
 
-async function loadFirstExistingStoryUrl(urls: string[]): Promise<
+async function loadFirstExistingStoryFileFromCloud(paths: string[]): Promise<
   | {
       filePath: string;
       text: string;
@@ -119,33 +118,37 @@ async function loadFirstExistingStoryUrl(urls: string[]): Promise<
     }
   | null
 > {
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) continue;
-      const raw = await res.text();
+  for (const p of paths) {
+    const url = buildCloudTextUrl(p);
+    if (!url) return null;
 
-      const lower = url.toLowerCase();
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) continue;
+
+      const raw = await response.text();
+      const lower = p.toLowerCase();
 
       if (lower.endsWith('.pages.json')) {
         const parsed = parseStoryPagesJson(raw);
         const pages = parsed.doc.pages;
         const text = storyPagesToLegacyText(pages);
-        return { filePath: url, text, pages, sourceFormat: 'story-pages' };
+        return { filePath: p, text, pages, sourceFormat: 'story-pages' };
       }
 
       if (lower.endsWith('.story.json')) {
         const parsed = parseStoryJson(raw);
         const blocks = parsed.doc.blocks;
         const text = storyBlocksToLegacyText(blocks);
-        return { filePath: url, text, blocks, sourceFormat: 'story-json' };
+        return { filePath: p, text, blocks, sourceFormat: 'story-json' };
       }
 
-      return { filePath: url, text: raw, sourceFormat: 'txt' };
+      return { filePath: p, text: raw, sourceFormat: 'txt' };
     } catch {
       // ignore
     }
   }
+
   return null;
 }
 
@@ -564,36 +567,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const book = await db.query.books.findFirst({ where: eq(books.id, bookId) });
+    if (!book) {
+      return NextResponse.json({ error: 'Book not found' }, { status: 404 });
+    }
     const contentMode = getContentMode();
 
-    let bookTitle = '';
-    let bookAuthor = 'Unknown';
-    let cloudFolderHint: string | null = null;
-
-    if (contentMode === 'cloud') {
-      const cloudMeta = await loadCloudCatalogMetadata();
-      const cloudBook = cloudMeta.find((meta) => getCloudBookId(meta) === bookId);
-      if (!cloudBook) {
-        return NextResponse.json({ error: 'Book not found in cloud catalog' }, { status: 404 });
-      }
-      bookTitle = cloudBook.book.title;
-      bookAuthor = (cloudBook.book.authors || []).join(', ') || 'Unknown';
-      cloudFolderHint = cloudBook.local?.folderName?.trim() || null;
-    } else {
-      const book = await db.query.books.findFirst({ where: eq(books.id, bookId) });
-      if (!book) {
-        return NextResponse.json({ error: 'Book not found' }, { status: 404 });
-      }
-      bookTitle = book.title;
-      bookAuthor = book.authors || 'Unknown';
-    }
-
-    if (contentMode === 'local' || contentMode === 'cloud') {
-      const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
+    // Local mode: read provided .txt files from disk (no network requests).
+    if (contentMode === 'local') {
+      const baseDir = getLocalTextDir();
       const rootDir = path.resolve(process.cwd(), baseDir);
       const bookDir = path.join(rootDir, String(bookId));
 
-      const rawTitle = bookTitle;
+      const rawTitle = book.title;
       const titleCandidates = uniqueStrings([
         rawTitle,
         // Common case: DB title includes a parenthetical subtitle, but the file doesn't.
@@ -609,111 +595,52 @@ export async function POST(req: NextRequest) {
         .map(toSafeFilenameBase)
         .filter(Boolean);
 
-      let expectedSources: string[] = [];
-      let loaded:
-        | {
-            filePath: string;
-            text: string;
-            blocks?: StoryBlock[];
-            pages?: StoryPageInput[];
-            sourceFormat: 'txt' | 'story-json' | 'story-pages';
-          }
-        | null = null;
+      const candidates: string[] = [];
 
-      if (contentMode === 'local') {
-        const candidates: string[] = [];
-
-        // Preferred layout: ${LOCAL_TEXT_DIR}/by-title/<Title>/bedtime.txt|full.txt
-        const byTitleRoot = path.join(rootDir, 'by-title');
-        const byTitleFolder = await findMatchingSubdir({ parentDir: byTitleRoot, titleCandidates });
-        if (byTitleFolder) {
-          const byTitleDir = path.join(byTitleRoot, byTitleFolder);
-          if (variant === 'full') {
-            candidates.push(path.join(byTitleDir, 'full.pages.json'));
-            candidates.push(path.join(byTitleDir, 'full.story.json'));
-            candidates.push(path.join(byTitleDir, 'full.txt'));
-          } else {
-            candidates.push(path.join(byTitleDir, 'bedtime.pages.json'));
-            candidates.push(path.join(byTitleDir, 'bedtime.story.json'));
-            candidates.push(path.join(byTitleDir, 'bedtime.txt'));
-            candidates.push(path.join(byTitleDir, 'full.pages.json'));
-            candidates.push(path.join(byTitleDir, 'full.story.json'));
-            candidates.push(path.join(byTitleDir, 'full.txt'));
-          }
-        }
-
-        if (variant === 'full' || variant === 'timed') {
-          candidates.push(path.join(bookDir, 'full.pages.json'));
-          candidates.push(path.join(bookDir, 'full.story.json'));
-          candidates.push(path.join(bookDir, 'full.txt'));
+      // Preferred layout: ${LOCAL_TEXT_DIR}/by-title/<Title>/bedtime.txt|full.txt
+      const byTitleRoot = path.join(rootDir, 'by-title');
+      const byTitleFolder = await findMatchingSubdir({ parentDir: byTitleRoot, titleCandidates });
+      if (byTitleFolder) {
+        const byTitleDir = path.join(byTitleRoot, byTitleFolder);
+        if (variant === 'full') {
+          candidates.push(path.join(byTitleDir, 'full.pages.json'));
+          candidates.push(path.join(byTitleDir, 'full.story.json'));
+          candidates.push(path.join(byTitleDir, 'full.txt'));
         } else {
-          candidates.push(path.join(bookDir, 'bedtime.pages.json'));
-          candidates.push(path.join(bookDir, 'bedtime.story.json'));
-          candidates.push(path.join(bookDir, 'bedtime.txt'));
-          candidates.push(path.join(bookDir, 'full.pages.json'));
-          candidates.push(path.join(bookDir, 'full.story.json'));
-          candidates.push(path.join(bookDir, 'full.txt'));
-
-          // Alternative layout: ${LOCAL_TEXT_DIR}/bookBedtime/<Title> (Bedtime).txt
-          for (const t of titleCandidates) {
-            candidates.push(path.join(rootDir, 'bookBedtime', `${t} (Bedtime).txt`));
-            candidates.push(path.join(rootDir, 'bookBedtime', `${t}.txt`));
-          }
+          candidates.push(path.join(byTitleDir, 'bedtime.pages.json'));
+          candidates.push(path.join(byTitleDir, 'bedtime.story.json'));
+          candidates.push(path.join(byTitleDir, 'bedtime.txt'));
+          candidates.push(path.join(byTitleDir, 'full.pages.json'));
+          candidates.push(path.join(byTitleDir, 'full.story.json'));
+          candidates.push(path.join(byTitleDir, 'full.txt'));
         }
-
-        expectedSources = candidates;
-        loaded = await loadFirstExistingStoryFile(candidates);
-      } else {
-        const cloudCandidates: string[] = [];
-        const byTitleCandidates = uniqueStrings([cloudFolderHint || '', rawTitle, ...titleCandidates]);
-
-        const pushCloud = (segments: string[]) => {
-          const url = buildCloudTextUrl(segments);
-          if (url) cloudCandidates.push(url);
-        };
-
-        for (const folder of byTitleCandidates) {
-          if (variant === 'full') {
-            pushCloud(['by-title', folder, 'full.pages.json']);
-            pushCloud(['by-title', folder, 'full.story.json']);
-            pushCloud(['by-title', folder, 'full.txt']);
-          } else {
-            pushCloud(['by-title', folder, 'bedtime.pages.json']);
-            pushCloud(['by-title', folder, 'bedtime.story.json']);
-            pushCloud(['by-title', folder, 'bedtime.txt']);
-            pushCloud(['by-title', folder, 'full.pages.json']);
-            pushCloud(['by-title', folder, 'full.story.json']);
-            pushCloud(['by-title', folder, 'full.txt']);
-          }
-        }
-
-        if (variant === 'full' || variant === 'timed') {
-          pushCloud([String(bookId), 'full.pages.json']);
-          pushCloud([String(bookId), 'full.story.json']);
-          pushCloud([String(bookId), 'full.txt']);
-        } else {
-          pushCloud([String(bookId), 'bedtime.pages.json']);
-          pushCloud([String(bookId), 'bedtime.story.json']);
-          pushCloud([String(bookId), 'bedtime.txt']);
-          pushCloud([String(bookId), 'full.pages.json']);
-          pushCloud([String(bookId), 'full.story.json']);
-          pushCloud([String(bookId), 'full.txt']);
-
-          for (const t of titleCandidates) {
-            pushCloud(['bookBedtime', `${t} (Bedtime).txt`]);
-            pushCloud(['bookBedtime', `${t}.txt`]);
-          }
-        }
-
-        expectedSources = cloudCandidates;
-        loaded = await loadFirstExistingStoryUrl(cloudCandidates);
       }
 
+      if (variant === 'full' || variant === 'timed') {
+        candidates.push(path.join(bookDir, 'full.pages.json'));
+        candidates.push(path.join(bookDir, 'full.story.json'));
+        candidates.push(path.join(bookDir, 'full.txt'));
+      } else {
+        candidates.push(path.join(bookDir, 'bedtime.pages.json'));
+        candidates.push(path.join(bookDir, 'bedtime.story.json'));
+        candidates.push(path.join(bookDir, 'bedtime.txt'));
+        candidates.push(path.join(bookDir, 'full.pages.json'));
+        candidates.push(path.join(bookDir, 'full.story.json'));
+        candidates.push(path.join(bookDir, 'full.txt'));
+
+        // Alternative layout: ${LOCAL_TEXT_DIR}/bookBedtime/<Title> (Bedtime).txt
+        for (const t of titleCandidates) {
+          candidates.push(path.join(rootDir, 'bookBedtime', `${t} (Bedtime).txt`));
+          candidates.push(path.join(rootDir, 'bookBedtime', `${t}.txt`));
+        }
+      }
+
+      const loaded = await loadFirstExistingStoryFile(candidates);
       if (!loaded) {
         return NextResponse.json(
           {
-            error: contentMode === 'cloud' ? 'Missing cloud text file for this book' : 'Missing local text file for this book',
-            expectedPaths: expectedSources,
+            error: 'Missing local text file for this book',
+            expectedPaths: candidates,
           },
           { status: 400 }
         );
@@ -725,8 +652,8 @@ export async function POST(req: NextRequest) {
             bookId,
             minutes: 0,
             wpm,
-            title: bookTitle,
-            author: bookAuthor,
+            title: book.title,
+            author: book.authors || 'Unknown',
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -741,8 +668,8 @@ export async function POST(req: NextRequest) {
             bookId,
             minutes: bedtimeMinutes,
             wpm,
-            title: bookTitle,
-            author: bookAuthor,
+            title: book.title,
+            author: book.authors || 'Unknown',
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -756,8 +683,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: effectiveMinutes,
           wpm,
-          title: bookTitle,
-          author: bookAuthor,
+          title: book.title,
+          author: book.authors || 'Unknown',
           pages: loaded.pages,
           content: '',
           blocks: null,
@@ -774,8 +701,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: 0,
           wpm,
-          title: bookTitle,
-          author: bookAuthor,
+          title: book.title,
+          author: book.authors || 'Unknown',
           content: cleaned,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -795,8 +722,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: bedtimeMinutes,
           wpm,
-          title: bookTitle,
-          author: bookAuthor,
+          title: book.title,
+          author: book.authors || 'Unknown',
           content: bedtimeContent,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -812,14 +739,177 @@ export async function POST(req: NextRequest) {
         bookId,
         minutes: effectiveMinutes,
         wpm,
-        title: bookTitle,
-        author: bookAuthor,
+        title: book.title,
+        author: book.authors || 'Unknown',
         content,
         mode: 'extractive' as Mode,
       }, locale));
     }
 
-    return NextResponse.json({ error: `Unsupported CONTENT_MODE: ${contentMode}` }, { status: 400 });
+    if (contentMode === 'cloud') {
+      const rawTitle = book.title;
+      const titleCandidates = uniqueStrings([
+        rawTitle,
+        rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+        rawTitle.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+        rawTitle.split(':')[0]?.trim() || rawTitle,
+        rawTitle.replace(/\s*:\s*\$[a-z]\b\s*/gi, ' ').trim(),
+        rawTitle.replace(/\$[a-z]\b/gi, ' ').trim(),
+      ])
+        .map((t) => t.replace(/\s*\[[^\]]*\]\s*$/, '').trim())
+        .map(toSafeFilenameBase)
+        .filter(Boolean);
+
+      const candidates: string[] = [];
+
+      for (const titleCandidate of titleCandidates) {
+        if (variant === 'full') {
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.pages.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.story.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.txt'));
+        } else {
+          candidates.push(path.posix.join('by-title', titleCandidate, 'bedtime.pages.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'bedtime.story.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'bedtime.txt'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.pages.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.story.json'));
+          candidates.push(path.posix.join('by-title', titleCandidate, 'full.txt'));
+        }
+      }
+
+      if (variant === 'full' || variant === 'timed') {
+        candidates.push(path.posix.join(String(bookId), 'full.pages.json'));
+        candidates.push(path.posix.join(String(bookId), 'full.story.json'));
+        candidates.push(path.posix.join(String(bookId), 'full.txt'));
+      } else {
+        candidates.push(path.posix.join(String(bookId), 'bedtime.pages.json'));
+        candidates.push(path.posix.join(String(bookId), 'bedtime.story.json'));
+        candidates.push(path.posix.join(String(bookId), 'bedtime.txt'));
+        candidates.push(path.posix.join(String(bookId), 'full.pages.json'));
+        candidates.push(path.posix.join(String(bookId), 'full.story.json'));
+        candidates.push(path.posix.join(String(bookId), 'full.txt'));
+
+        for (const t of titleCandidates) {
+          candidates.push(path.posix.join('bookBedtime', `${t} (Bedtime).txt`));
+          candidates.push(path.posix.join('bookBedtime', `${t}.txt`));
+        }
+      }
+
+      const loaded = await loadFirstExistingStoryFileFromCloud(candidates);
+      if (!loaded) {
+        return NextResponse.json(
+          {
+            error: 'Missing cloud text file for this book',
+            expectedPaths: candidates,
+          },
+          { status: 400 }
+        );
+      }
+
+      if (loaded.pages && loaded.pages.length > 0) {
+        if (variant === 'full') {
+          return NextResponse.json(await localizeAbridgePayload({
+            bookId,
+            minutes: 0,
+            wpm,
+            title: book.title,
+            author: book.authors || 'Unknown',
+            pages: loaded.pages,
+            content: '',
+            blocks: null,
+            sourceFormat: loaded.sourceFormat,
+            mode: 'local' as Mode,
+          }, locale));
+        }
+
+        if (variant === 'bedtime') {
+          const bedtimeMinutes = 10;
+          return NextResponse.json(await localizeAbridgePayload({
+            bookId,
+            minutes: bedtimeMinutes,
+            wpm,
+            title: book.title,
+            author: book.authors || 'Unknown',
+            pages: loaded.pages,
+            content: '',
+            blocks: null,
+            sourceFormat: loaded.sourceFormat,
+            mode: 'local' as Mode,
+          }, locale));
+        }
+
+        const effectiveMinutes = minutes ?? 10;
+        return NextResponse.json(await localizeAbridgePayload({
+          bookId,
+          minutes: effectiveMinutes,
+          wpm,
+          title: book.title,
+          author: book.authors || 'Unknown',
+          pages: loaded.pages,
+          content: '',
+          blocks: null,
+          sourceFormat: loaded.sourceFormat,
+          mode: 'local' as Mode,
+        }, locale));
+      }
+
+      const raw = loaded.text.trim();
+      const cleaned = stripEndBoilerplate(stripFrontMatter(stripGutenbergBoilerplate(raw)));
+
+      if (variant === 'full') {
+        return NextResponse.json(await localizeAbridgePayload({
+          bookId,
+          minutes: 0,
+          wpm,
+          title: book.title,
+          author: book.authors || 'Unknown',
+          content: cleaned,
+          blocks: loaded.blocks ?? null,
+          sourceFormat: loaded.sourceFormat,
+          mode: 'local' as Mode,
+        }, locale));
+      }
+
+      if (variant === 'bedtime') {
+        const bedtimeMinutes = 10;
+        const bedtimeTargetWords = bedtimeMinutes * wpm;
+        const bedtimeContent = loaded.filePath.toLowerCase().endsWith('bedtime.txt') || loaded.filePath.toLowerCase().endsWith('bedtime.story.json')
+          ? cleaned
+          : extractiveAbridge(cleaned, bedtimeTargetWords);
+
+        return NextResponse.json(await localizeAbridgePayload({
+          bookId,
+          minutes: bedtimeMinutes,
+          wpm,
+          title: book.title,
+          author: book.authors || 'Unknown',
+          content: bedtimeContent,
+          blocks: loaded.blocks ?? null,
+          sourceFormat: loaded.sourceFormat,
+          mode: ((loaded.filePath.toLowerCase().endsWith('bedtime.txt') || loaded.filePath.toLowerCase().endsWith('bedtime.story.json')) ? 'local' : 'extractive') as Mode,
+        }, locale));
+      }
+
+      const effectiveMinutes = minutes ?? 10;
+      const targetWords = effectiveMinutes * wpm;
+      const content = extractiveAbridge(cleaned, targetWords);
+      return NextResponse.json(await localizeAbridgePayload({
+        bookId,
+        minutes: effectiveMinutes,
+        wpm,
+        title: book.title,
+        author: book.authors || 'Unknown',
+        content,
+        mode: 'extractive' as Mode,
+      }, locale));
+    }
+
+    return NextResponse.json(
+      {
+        error: `Unsupported CONTENT_MODE: ${contentMode}. Supported values: local, cloud.`,
+      },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Abridge API error:', error);
     return NextResponse.json({ error: 'Failed to abridge book' }, { status: 500 });

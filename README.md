@@ -63,15 +63,10 @@ SQLITE_PATH=.data/app.db
 READ_ALOUD_WPM=160
 ALLOW_HOSTS=gutenberg.org,standardebooks.org
 CONTENT_MODE=local
-NEXT_PUBLIC_CONTENT_MODE=local
-# For CONTENT_MODE=cloud, point to your CDN base URL that serves the .data directory.
-# Example: https://d123456abcdef8.cloudfront.net
-CLOUDFRONT_BASE_URL=
-# Optional prefix between base URL and .data files (no leading/trailing slash required).
-# Example: ".data" if files are served as https://.../.data/texts/by-title/...
-CLOUDFRONT_DATA_PREFIX=
-# Optional explicit catalog URL override. If empty, app uses /texts/by-title/catalog.json under CloudFront base.
-CLOUDFRONT_CATALOG_URL=
+# Required when CONTENT_MODE=cloud:
+# CLOUDFRONT_BASE_URL=https://dxxxxxxxxxxxx.cloudfront.net
+# Optional prefix if your S3 objects are under a subfolder (example: .data):
+# CLOUDFRONT_DATA_PREFIX=.data
 TRANSLATION_PROVIDER=libretranslate
 LIBRETRANSLATE_URL=http://localhost:5000
 # LIBRETRANSLATE_API_KEY=optional_if_your_server_requires_it
@@ -84,6 +79,19 @@ LIBRETRANSLATE_URL=http://localhost:5000
 
 - `ENFORCE_PREMIUM_IN_DEV` - Set to `1` to keep premium paywalls enabled in dev.
 - `BYPASS_PREMIUM` - Set to `1` to bypass premium checks (useful for local testing). In `NODE_ENV=development`, the abridged bedtime/timed paywall is bypassed by default unless `ENFORCE_PREMIUM_IN_DEV` is set.
+
+### Local vs Cloud content
+
+- `CONTENT_MODE=local` (default): reads story/image/audio assets from local `.data/texts`.
+- `CONTENT_MODE=cloud`: reads those assets from CloudFront (`CLOUDFRONT_BASE_URL`) and keeps API paths unchanged (`/api/local-image`, `/api/local-audio`, `/api/illustration`, `/api/story-pages`, `/api/abridge`).
+- Use `CLOUDFRONT_DATA_PREFIX` if your bucket keeps files under a folder (for example `.data`), otherwise leave it unset.
+
+### Vercel deployment notes
+
+- For Vercel, set `SQLITE_PATH=/tmp/app.db` (ephemeral per deployment/cold start).
+- Keep `CONTENT_MODE=cloud` and set `CLOUDFRONT_BASE_URL` to your distribution domain.
+- If CloudFront origin path is already `/.data`, leave `CLOUDFRONT_DATA_PREFIX` unset.
+- Set `NEXT_PUBLIC_BASE_URL` to your deployed URL (for custom domain, `https://www.spectra-usa.com`).
 ```
 
 ## Getting Started
@@ -151,12 +159,6 @@ Query params:
 - `yarn lint` - Run ESLint
 - `yarn drizzle-kit generate` - Generate migrations
 - `yarn drizzle-kit migrate` - Apply migrations
-
-## Cloud Catalog (no SQLite in cloud mode)
-
-- Run `node scripts/generate-local-metadata.mjs` to generate `metadata.json` files and `.data/texts/by-title/catalog.json`.
-- Upload `.data/` to S3 so CloudFront serves `texts/by-title/catalog.json` and per-book metadata/files.
-- Set `CONTENT_MODE=cloud`, `NEXT_PUBLIC_CONTENT_MODE=cloud`, and `CLOUDFRONT_*` env vars.
 
 ## How It Works
 
