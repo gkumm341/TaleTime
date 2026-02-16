@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { syncLocalByTitleToDb } from '@/lib/local-book-sync';
 import { maybeTranslateManyTexts, resolveRequestLocale, shouldTranslate } from '@/lib/server/translation';
+import { getContentMode } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs'; // Required for SQLite
 
@@ -309,7 +310,7 @@ let lastLocalSyncAt = 0;
 let localSyncInFlight: Promise<void> | null = null;
 
 async function maybeSyncLocalByTitle(): Promise<void> {
-  const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
+  const contentMode = getContentMode();
   if (contentMode !== 'local') return;
 
   const now = Date.now();
@@ -391,7 +392,7 @@ export async function GET(req: NextRequest) {
   );
 
   try {
-    const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
+    const contentMode = getContentMode();
     await maybeBootstrapCatalogFromGutendex(contentMode);
     const localIds = contentMode === 'local' ? await getLocalBookIdsWithText() : null;
 
