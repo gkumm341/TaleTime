@@ -27,11 +27,85 @@ type GutendexBook = {
   download_count?: number | null;
 };
 type GutendexResponse = {
+  count?: number;
   next?: string | null;
+  previous?: string | null;
   results?: GutendexBook[];
 };
 
 let bootstrapInFlight: Promise<void> | null = null;
+
+async function fetchCloudCatalogFallback(params: {
+  page: number;
+  limit: number;
+  search: string;
+  languages: string[];
+  sortBy: string;
+  locale: ReturnType<typeof resolveRequestLocale>;
+}) {
+  const url = new URL('https://gutendex.com/books');
+  url.searchParams.set('topic', 'children');
+  url.searchParams.set('page', String(Math.max(1, params.page)));
+  if (params.search) url.searchParams.set('search', params.search);
+  if (params.languages.length > 0) {
+    url.searchParams.set('languages', params.languages.join(','));
+  } else {
+    url.searchParams.set('languages', 'en');
+  }
+
+  const response = await fetch(url.toString(), { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`Gutendex fallback failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as GutendexResponse;
+  const raw = Array.isArray(payload.results) ? payload.results : [];
+
+  const mapped = raw.map((book) => {
+    const formats = book.formats || {};
+    const authors = (book.authors || [])
+      .map((author) => (author.name || '').trim())
+      .filter(Boolean)
+      .join('; ');
+
+    return {
+      id: book.id,
+      title: (book.title || `Book ${book.id}`).trim(),
+      authors: authors || 'Unknown',
+      subjects: book.subjects || [],
+      coverUrl: formats['image/jpeg'] || null,
+      txtUrl: pickTextUrl(formats),
+      epubUrl: formats['application/epub+zip'] || null,
+      downloadCount: typeof book.download_count === 'number' ? book.download_count : 0,
+      minutes: null,
+      words: null,
+      isCached: false,
+    } satisfies CatalogBookResult;
+  });
+
+  switch (params.sortBy) {
+    case 'title':
+      mapped.sort((a, b) => a.title.localeCompare(b.title));
+      break;
+    case 'author':
+      mapped.sort((a, b) => a.authors.localeCompare(b.authors));
+      break;
+    case 'popularity':
+    default:
+      mapped.sort((a, b) => (b.downloadCount || 0) - (a.downloadCount || 0));
+      break;
+  }
+
+  const limited = mapped.slice(0, params.limit);
+  const localized = await localizeCatalogResults(limited, params.locale);
+
+  return NextResponse.json({
+    count: payload.count ?? mapped.length,
+    next: payload.next ?? null,
+    previous: payload.previous ?? null,
+    results: localized,
+  });
+}
 
 function pickTextUrl(formats: GutendexFormats | undefined): string | null {
   if (!formats) return null;
@@ -675,6 +749,22 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Catalog API error:', error);
+
+    try {
+      if (getContentMode() === 'cloud') {
+        return await fetchCloudCatalogFallback({
+          page,
+          limit,
+          search,
+          languages,
+          sortBy,
+          locale,
+        });
+      }
+    } catch (fallbackError) {
+      console.error('Catalog fallback error:', fallbackError);
+    }
+
     return NextResponse.json(
       { error: 'Failed to fetch catalog' },
       { status: 500 }
