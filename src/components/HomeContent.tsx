@@ -55,6 +55,18 @@ export function HomeContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Book[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [isCoarsePointerDevice, setIsCoarsePointerDevice] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+    const media = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsCoarsePointerDevice(media.matches);
+
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   // Load persisted selection (client only)
   useEffect(() => {
@@ -244,48 +256,50 @@ export function HomeContent() {
                   </select>
                 </div>
               </div>
-          <form
-            className="hidden xl:flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:max-w-3xl"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const form = e.currentTarget;
-              const input = form.querySelector('input[type="text"]') as HTMLInputElement | null;
-              const value = input?.value ?? searchQuery;
-              handleSearch(value);
-            }}
-          >
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    clearSearch();
-                  }
-                }}
-                placeholder={t('search.placeholder')}
-                className="tt-input pl-12 pr-10 py-3"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-tt-tertiary/20 transition-colors"
+              {!isCoarsePointerDevice && (
+                <form
+                  className="hidden xl:flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:max-w-3xl"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const input = form.querySelector('input[type="text"]') as HTMLInputElement | null;
+                    const value = input?.value ?? searchQuery;
+                    handleSearch(value);
+                  }}
                 >
-                  <X className="w-4 h-4 text-tt-muted" />
-                </button>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          clearSearch();
+                        }
+                      }}
+                      placeholder={t('search.placeholder')}
+                      className="tt-input pl-12 pr-10 py-3"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-tt-tertiary/20 transition-colors"
+                      >
+                        <X className="w-4 h-4 text-tt-muted" />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSearching || !searchQuery.trim()}
+                    className="tt-btn-primary w-full sm:w-auto px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  >
+                    {isSearching ? t('search.searching') : t('search.button')}
+                  </button>
+                </form>
               )}
-            </div>
-            <button
-              type="submit"
-              disabled={isSearching || !searchQuery.trim()}
-              className="tt-btn-primary w-full sm:w-auto px-6 py-3 rounded-tt shadow-tt hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-            >
-              {isSearching ? t('search.searching') : t('search.button')}
-            </button>
-          </form>
               <div className="flex items-center gap-3 justify-between lg:justify-end">
                 {/* Version segmented control */}
                 <div className="flex items-center gap-2">
@@ -321,30 +335,8 @@ export function HomeContent() {
             </div>
           </div>
 
-          {searchResults !== null && (
-            <div className="mt-2 text-sm text-tt-muted">
-              {searchResults.length > 0 ? (
-                <span>
-                  {t('result.found', {
-                    count: searchResults.length,
-                    plural: searchResults.length !== 1 ? 's' : '',
-                    query: searchQuery,
-                  })}
-                </span>
-              ) : (
-                <span>{t('result.none', { query: searchQuery })}</span>
-              )}
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="ml-2 text-tt-accent hover:underline"
-              >
-                {t('result.clear')}
-              </button>
-            </div>
-          )}
           <form
-            className="flex xl:hidden flex-col sm:flex-row sm:items-center gap-2 w-full lg:max-w-3xl"
+            className={`${isCoarsePointerDevice ? 'flex' : 'flex xl:hidden'} flex-col sm:flex-row sm:items-center gap-2 w-full`}
             onSubmit={(e) => {
               e.preventDefault();
               const form = e.currentTarget;
@@ -385,6 +377,29 @@ export function HomeContent() {
               {isSearching ? t('search.searching') : t('search.button')}
             </button>
           </form>
+
+          {searchResults !== null && (
+            <div className="mt-2 text-sm text-tt-muted">
+              {searchResults.length > 0 ? (
+                <span>
+                  {t('result.found', {
+                    count: searchResults.length,
+                    plural: searchResults.length !== 1 ? 's' : '',
+                    query: searchQuery,
+                  })}
+                </span>
+              ) : (
+                <span>{t('result.none', { query: searchQuery })}</span>
+              )}
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="ml-2 text-tt-accent hover:underline"
+              >
+                {t('result.clear')}
+              </button>
+            </div>
+          )}
           <div className="">
             {/* Error State */}
             {error && (

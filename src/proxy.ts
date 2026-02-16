@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   DEFAULT_LOCALE,
-  detectLocaleFromAcceptLanguage,
   getLocaleFromPath,
-  normalizeLocale,
   stripLocaleFromPath,
   withLocalePath,
 } from '@/i18n/routing';
@@ -44,12 +42,8 @@ export function proxy(request: NextRequest) {
     return response;
   }
 
-  const localeFromCookie = normalizeLocale(request.cookies.get('taletime-language')?.value);
-  const localeFromHeader = detectLocaleFromAcceptLanguage(request.headers.get('accept-language'));
-  const locale = localeFromCookie ?? localeFromHeader ?? DEFAULT_LOCALE;
-
   const redirectUrl = request.nextUrl.clone();
-  redirectUrl.pathname = withLocalePath(pathname, locale);
+  redirectUrl.pathname = withLocalePath(pathname, DEFAULT_LOCALE);
   return NextResponse.redirect(redirectUrl);
 }
 

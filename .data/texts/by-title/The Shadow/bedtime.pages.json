@@ -1,189 +1,113 @@
 {
   "version": 1,
   "title": "The Shadow",
-  "author": "Unknown",
+  "author": "Hans Christian Andersen",
   "pages": [
     {
       "id": "p1",
       "paragraphs": [
-        "The Shadow",
-        "(A calm bedtime retelling)"
-      ]
-    },
-    {
-      "id": "p2",
-      "paragraphs": [
         "In a warm city where the streets glowed at sunset, there lived a learned man.",
         "He liked books.",
         "He liked ideas.",
-        "He liked quiet evenings when the air felt soft and still."
-      ]
-    },
-    {
-      "id": "p3",
-      "paragraphs": [
+        "He liked quiet evenings when the air felt soft and still.",
         "One night, he sat on a balcony.",
         "Across the courtyard was a bright house.",
         "Music drifted from its windows.",
-        "Light spilled onto the walls."
-      ]
-    },
-    {
-      "id": "p4",
-      "paragraphs": [
+        "Light spilled onto the walls.",
         "The learned man watched.",
-        "And beside him, his shadow stretched long on the ground."
-      ]
-    },
-    {
-      "id": "p5",
-      "paragraphs": [
+        "And beside him, his shadow stretched long on the ground.",
         "“Look,” the learned man said softly, as if speaking to himself.",
         "“It seems so lively over there.",
         "I wonder what is happening.”"
       ]
     },
     {
-      "id": "p6",
+      "id": "p2",
+      "text": "{{image1.png}}"
+    },
+    {
+      "id": "p3",
       "paragraphs": [
         "And as the light shifted…",
-        "Something strange happened."
-      ]
-    },
-    {
-      "id": "p7",
-      "paragraphs": [
+        "Something strange happened.",
         "The shadow moved.",
         "Not just the way shadows move.",
-        "But as if it were deciding."
-      ]
-    },
-    {
-      "id": "p8",
-      "paragraphs": [
+        "But as if it were deciding.",
         "It slipped away from the learned man.",
         "Crossed the courtyard.",
-        "And disappeared into the bright house."
-      ]
-    },
-    {
-      "id": "p9",
-      "paragraphs": [
+        "And disappeared into the bright house.",
         "The learned man blinked.",
         "He rubbed his eyes.",
-        "But the shadow did not return."
-      ]
-    },
-    {
-      "id": "p10",
-      "paragraphs": [
+        "But the shadow did not return.",
         "Days passed.",
         "The learned man felt oddly lighter.",
         "And oddly lonelier.",
-        "As if a quiet companion had gone away."
+        "As if a quiet companion had gone away.",
+        "Years passed."
       ]
     },
     {
-      "id": "p11",
+      "id": "p4",
+      "text": "{{image2.png}}"
+    },
+    {
+      "id": "p5",
       "paragraphs": [
-        "Years passed.",
         "And one day, a visitor arrived.",
         "A tall gentleman.",
         "Well dressed.",
-        "Confident."
-      ]
-    },
-    {
-      "id": "p12",
-      "paragraphs": [
+        "Confident.",
         "He bowed.",
-        "“Do you remember me?” the visitor asked."
-      ]
-    },
-    {
-      "id": "p13",
-      "paragraphs": [
+        "“Do you remember me?” the visitor asked.",
         "The learned man stared.",
-        "“I… do not,” he said."
-      ]
-    },
-    {
-      "id": "p14",
-      "paragraphs": [
+        "“I… do not,” he said.",
         "The visitor smiled.",
         "“I am your shadow,” he said.",
         "“I went out into the world.",
         "I learned many things.",
-        "And now I have returned.”"
-      ]
-    },
-    {
-      "id": "p15",
-      "paragraphs": [
+        "And now I have returned.”",
         "The learned man felt a chill.",
         "Because the visitor did not feel like a shadow anymore.",
         "He felt like someone in charge."
       ]
     },
     {
-      "id": "p16",
+      "id": "p6",
+      "text": "{{image3.png}}"
+    },
+    {
+      "id": "p7",
       "paragraphs": [
         "The shadow spoke smoothly.",
         "He told stories.",
         "He made jokes.",
-        "He knew how to charm a room."
-      ]
-    },
-    {
-      "id": "p17",
-      "paragraphs": [
+        "He knew how to charm a room.",
         "People listened.",
-        "People admired him."
-      ]
-    },
-    {
-      "id": "p18",
-      "paragraphs": [
-        "And the learned man—quiet and thoughtful—was ignored."
-      ]
-    },
-    {
-      "id": "p19",
-      "paragraphs": [
+        "People admired him.",
+        "And the learned man—quiet and thoughtful—was ignored.",
         "The shadow began to say,",
         "“Come with me.",
         "Let me lead.",
         "You can follow.",
-        "It will be easier that way.”"
-      ]
-    },
-    {
-      "id": "p20",
-      "paragraphs": [
+        "It will be easier that way.”",
         "The learned man felt uneasy.",
         "Because a shadow is meant to follow.",
-        "Not to command."
+        "Not to command.",
+        "But the world can be dazzled by confidence."
       ]
     },
     {
-      "id": "p21",
-      "paragraphs": [
-        "But the world can be dazzled by confidence.",
-        "Even when confidence is empty."
-      ]
+      "id": "p8",
+      "text": "{{image4.png}}"
     },
     {
-      "id": "p22",
+      "id": "p9",
       "paragraphs": [
+        "Even when confidence is empty.",
         "So the learned man made a choice.",
         "He stepped back.",
         "He became careful.",
-        "He protected what was true inside him."
-      ]
-    },
-    {
-      "id": "p23",
-      "paragraphs": [
+        "He protected what was true inside him.",
         "And in the quiet of his own room, he remembered something important:",
         "That the brightest voice is not always the wisest.",
         "That the boldest presence is not always the kindest.",
@@ -191,22 +115,19 @@
         "not pride,",
         "not fear,",
         "not a shadow—",
-        "take the place of our true selves."
-      ]
-    },
-    {
-      "id": "p24",
-      "paragraphs": [
+        "take the place of our true selves.",
         "So he lived gently.",
         "And he held onto what mattered.",
         "Even when the world was noisy."
       ]
     },
     {
-      "id": "p25",
-      "paragraphs": [
-        "The End!"
-      ]
+      "id": "p10",
+      "text": "{{video.mp4}}"
+    },
+    {
+      "id": "p11",
+      "text": "{{image6.png}}"
     }
   ]
 }

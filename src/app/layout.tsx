@@ -3,7 +3,7 @@ import { Baloo_2, Inter } from "next/font/google"
 import { headers } from "next/headers"
 import "./globals.css"
 import { Providers } from "@/components/Providers"
-import { DEFAULT_LOCALE, normalizeLocale } from "@/i18n/routing"
+import { DEFAULT_LOCALE, normalizeLocale, type Locale } from "@/i18n/routing"
 
 const baloo = Baloo_2({
   subsets: ["latin"],
@@ -92,7 +92,7 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headerList = await headers()
-  const locale = normalizeLocale(headerList.get('x-locale')) ?? DEFAULT_LOCALE
+  const locale: Locale = normalizeLocale(headerList.get('x-locale')) ?? DEFAULT_LOCALE
 
   return (
     <html lang={locale} suppressHydrationWarning className={`${baloo.variable} ${inter.variable}`}>
@@ -110,7 +110,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="msapplication-TileColor" content="#3b82f6" />
       </head>
       <body className="tt-page antialiased font-body">
-        <Providers>{children}</Providers>
+        <Providers initialLocale={locale}>{children}</Providers>
       </body>
     </html>
   )

@@ -49,6 +49,9 @@ export type BookFlipHandle = {
 };
 
 const MAX_TEXT_LINES_PER_PAGE = 22;
+const STORY_TEXT_TOP_OFFSET_COMPACT = -52;
+const STORY_TEXT_TOP_OFFSET_DEFAULT = -16;
+const STORY_TEXT_TOP_OFFSET_AFTER_SECOND_PAGE_DELTA = 10;
 
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg'];
 
@@ -717,6 +720,7 @@ function StoryPage({
   isSpreadStart,
   isActive,
   compactTopSpacing,
+  lowerTopMargin,
 }: {
   title?: string;
   bookTitle?: string;
@@ -727,6 +731,7 @@ function StoryPage({
   isSpreadStart?: boolean;
   isActive?: boolean;
   compactTopSpacing?: boolean;
+  lowerTopMargin?: boolean;
 }) {
   const singlePlaceholderName = useMemo(() => getSinglePlaceholderName(text ?? ''), [text]);
   const fullPageMediaUrl = singlePlaceholderName ? inlineImages?.[singlePlaceholderName] : undefined;
@@ -951,6 +956,10 @@ function StoryPage({
 
   // Detect if this is a "continuation" chunk (no header elements at all).
   const hasHeader = Boolean(bookTitle || title || isSpreadStart);
+  const baseTopOffset = compactTopSpacing ? STORY_TEXT_TOP_OFFSET_COMPACT : STORY_TEXT_TOP_OFFSET_DEFAULT;
+  const topOffset = lowerTopMargin
+    ? baseTopOffset + STORY_TEXT_TOP_OFFSET_AFTER_SECOND_PAGE_DELTA
+    : baseTopOffset;
 
   return (
     <div
@@ -998,7 +1007,9 @@ function StoryPage({
 
       <div
         className="flex-1 overflow-hidden"
-        style={{ marginTop: compactTopSpacing ? "-20px" : "16px" }}
+        style={{
+          marginTop: `${topOffset}px`,
+        }}
       >
         <div className="h-full overflow-y-auto pr-4 pb-6 box-border">
           <div className="tt-storybook-prose tt-storybook-prose-book leading-snug" lang="en">
@@ -1090,7 +1101,7 @@ export default function BookFlip({
     const measureOuter = document.createElement("div");
     measureOuter.className = "flex-1 overflow-hidden";
     Object.assign(measureOuter.style, {
-      marginTop: isTouchDevice ? "-20px" : "16px",
+      marginTop: `${isTouchDevice ? STORY_TEXT_TOP_OFFSET_COMPACT : STORY_TEXT_TOP_OFFSET_DEFAULT}px`,
     } as Partial<CSSStyleDeclaration>);
     const measureInner = document.createElement("div");
     measureInner.className = "h-full overflow-hidden pr-4 pb-6 box-border";
@@ -1291,6 +1302,11 @@ export default function BookFlip({
           bookTitle: isFirstChunk && pageIdx === 0 ? storyTitle : undefined,
           title: isFirstChunk ? p.title : undefined,
         });
+        const baseTopOffset = isTouchDevice ? STORY_TEXT_TOP_OFFSET_COMPACT : STORY_TEXT_TOP_OFFSET_DEFAULT;
+        const topOffset = pageIdx > 1
+          ? baseTopOffset + STORY_TEXT_TOP_OFFSET_AFTER_SECOND_PAGE_DELTA
+          : baseTopOffset;
+        measureOuter.style.marginTop = `${topOffset}px`;
         const maxHeight = getMaxHeightForCurrentLayout();
         const findChunk = makeFindChunk(maxHeight);
 
@@ -1559,6 +1575,7 @@ export default function BookFlip({
                   inlineImages={p.inlineImages}
                   isSpreadStart={usePortrait || idx % 2 === 0}
                   compactTopSpacing={isTouchDevice}
+                  lowerTopMargin={idx > 1}
                   isActive={
                     usePortrait
                       ? pageIndex === idx + 1 + frontBlankPageCount

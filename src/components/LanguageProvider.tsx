@@ -6,8 +6,6 @@ import { messages } from '@/i18n/messages';
 import {
   DEFAULT_LOCALE,
   Locale,
-  getLocaleFromPath,
-  normalizeLocale,
   withLocalePath,
 } from '@/i18n/routing';
 
@@ -30,36 +28,25 @@ function interpolate(template: string, vars?: Record<string, string | number>) {
   }, template);
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
+export function LanguageProvider({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
+  const [locale, setLocaleState] = useState<Locale>(() => {
+    return initialLocale ?? DEFAULT_LOCALE;
+  });
 
   useEffect(() => {
-    const localeFromPath = pathname ? getLocaleFromPath(pathname) : null;
-    if (localeFromPath) {
-      setLocaleState(localeFromPath);
-      localStorage.setItem(STORAGE_KEY, localeFromPath);
-      return;
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const normalizedStored = normalizeLocale(stored);
-    if (normalizedStored) {
-      setLocaleState(normalizedStored);
-      return;
-    }
-
-    const nav = navigator.language;
-    const normalizedNav = normalizeLocale(nav);
-    if (normalizedNav) {
-      setLocaleState(normalizedNav);
-      return;
-    }
-
-    setLocaleState(DEFAULT_LOCALE);
-  }, [pathname]);
+    const next = initialLocale ?? DEFAULT_LOCALE;
+    setLocaleState(next);
+    localStorage.setItem(STORAGE_KEY, next);
+  }, [initialLocale]);
 
   const setLocale = (next: Locale) => {
     setLocaleState(next);

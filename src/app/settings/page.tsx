@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePreferences } from '@/contexts/PreferencesContext';
+import { useCookieConsent } from '@/contexts/CookieConsentContext';
 import { Sidebar } from '@/components/Sidebar';
 import { exportPreferences, importPreferences } from '@/lib/preferences';
 import { getStorageInfo, getBrowserStorageEstimate, formatBytes } from '@/lib/storage-utils';
@@ -9,8 +10,21 @@ import { Save, RotateCcw, Download, Upload, HardDrive } from 'lucide-react';
 
 export default function SettingsPage() {
   const { preferences, updatePreferences, resetToDefaults, loading } = usePreferences();
+  const { status: cookieConsentStatus, acceptCookies, declineCookies } = useCookieConsent();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleAcceptCookies = () => {
+    acceptCookies();
+    setMessage({ type: 'success', text: 'Cookie preferences updated: all cookies accepted.' });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const handleDeclineCookies = () => {
+    declineCookies();
+    setMessage({ type: 'success', text: 'Cookie preferences updated: non-essential cookies declined.' });
+    setTimeout(() => setMessage(null), 3000);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -198,6 +212,43 @@ export default function SettingsPage() {
               className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
             />
           </label>
+        </div>
+
+        <div className="bg-tt-surface dark:bg-gray-800 rounded-tt border border-gray-300 dark:border-gray-600 p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-tt-primary dark:text-white">
+            Cookie Preferences
+          </h2>
+
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Current choice:{' '}
+            <span className="font-medium text-tt-primary dark:text-white">
+              {cookieConsentStatus === 'accepted'
+                ? 'All cookies accepted'
+                : cookieConsentStatus === 'declined'
+                ? 'Only essential cookies'
+                : 'Not chosen yet'}
+            </span>
+          </p>
+
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Essential cookies are always used for core app features such as sign-in and language.
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleAcceptCookies}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Accept All Cookies
+            </button>
+
+            <button
+              onClick={handleDeclineCookies}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Decline Non-Essential
+            </button>
+          </div>
         </div>
 
         {/* Storage Info */}

@@ -16,6 +16,7 @@ import { BsMoonStarsFill } from 'react-icons/bs';
 import { GiBookCover } from 'react-icons/gi';
 import { FaPauseCircle, FaPlay, FaPlayCircle, FaStop, FaStopCircle } from 'react-icons/fa';
 import BookmarkPng from '@/components/BookmarkPng';
+import { ReaderQuickTips } from '@/components/ReaderQuickTips';
 import {
   clearAbridgedBookmark,
   getAbridgedBookmark,
@@ -153,7 +154,7 @@ function useFlipDimensions(isMobile: boolean) {
 }
 
 export default function AbridgedBookPage() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1609,7 +1610,7 @@ export default function AbridgedBookPage() {
               {/* On desktop, these controls move to the right-side blank area under the bookmark. */}
               {!useSideControls && (
                 <>
-                  <Button
+                  {/* <Button
                     onClick={() => flipNav?.prev()}
                     variant="outline"
                     size="sm"
@@ -1617,15 +1618,15 @@ export default function AbridgedBookPage() {
                     type="button"
                   >
                     Prev
-                  </Button>
-                  <Button
+                  </Button> */}
+                  {/* <Button
                     onClick={() => flipNav?.next()}
                     size="sm"
                     disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1 || isStartingOver}
                     type="button"
                   >
                     Next
-                  </Button>
+                  </Button> */}
 
                   <Button
                     variant={bookmark ? 'outline' : 'default'}
@@ -1830,6 +1831,8 @@ export default function AbridgedBookPage() {
 
       {/* Body */}
       <main className="max-w-7xl mx-auto px-4 py-6 relative z-10">
+  
+
         {loading && (
           <div className="py-16 text-center text-tt-muted dark:text-gray-400">
             {variant === 'full' ? 'Loading full text…' : 'Loading bedtime version…'}
@@ -2182,18 +2185,23 @@ export default function AbridgedBookPage() {
                       </>
                     )}
                   </div>
+
                 </div>
               )}
+              
             </div>
+            
           </div>
         )}
+                        {!loading && !error && data && <ReaderQuickTips />}
 
         <div className="text-xs text-tt-primary/60 dark:text-gray-400 text-center mt-4">
           {isMobile
-            ? "Tip: swipe/drag to flip pages."
-            : "Tip: click/drag page corners to flip."}
+            ? t('reader.hint.mobile')
+            : t('reader.hint.desktop')}
         </div>
       </main>
+
     </div>
   );
 }

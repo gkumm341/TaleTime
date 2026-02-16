@@ -305,6 +305,8 @@
     hyphens: auto;
     font-kerning: normal;
     text-rendering: optimizeLegibility;
+    font-size: 0.85rem;
+    line-height: 1.5;
   }
 
   @media (max-width: 1280px) {
@@ -325,7 +327,7 @@
 
   .tt-storybook-paragraph {
     margin: 0;
-    margin-bottom: 1em;
+    margin-bottom: 0.62em;
   }
 
   .tt-storybook-paragraph:last-child {
@@ -333,7 +335,7 @@
   }
 
   .tt-storybook-paragraph + .tt-storybook-paragraph {
-    text-indent: 1.6em;
+    text-indent: 1.2em;
   }
 
   .tt-storybook-dropcap {

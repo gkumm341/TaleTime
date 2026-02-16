@@ -250,39 +250,6 @@ export default function HistoryPage() {
     }
   }
 
-  function setBookRating(bookId: number, rating: number) {
-    const clamped = Math.max(1, Math.min(5, Math.round(rating)));
-    setRatings((prev) => ({ ...prev, [bookId]: clamped }));
-
-    void (async () => {
-      try {
-        await fetch('/api/ratings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookId, rating: clamped }),
-        });
-      } catch {
-        // ignore
-      }
-    })();
-  }
-
-  function clearBookRating(bookId: number) {
-    setRatings((prev) => {
-      const next = { ...prev };
-      delete next[bookId];
-      return next;
-    });
-
-    void (async () => {
-      try {
-        await fetch(`/api/ratings?bookId=${bookId}`, { method: 'DELETE' });
-      } catch {
-        // ignore
-      }
-    })();
-  }
-
   const totalBooks =
     unifiedByGroups.today.length + unifiedByGroups.lastWeek.length + unifiedByGroups.earlier.length;
   const totalMinutesRead = [...unifiedByGroups.today, ...unifiedByGroups.lastWeek, ...unifiedByGroups.earlier]
@@ -363,8 +330,6 @@ export default function HistoryPage() {
                         item={item} 
                         rating={ratings[item.bookId]}
                         onRemove={removeItem}
-                        onRate={setBookRating}
-                        onClearRating={clearBookRating}
                         animationDelay={index * 50}
                       />
                     ))}
@@ -385,8 +350,6 @@ export default function HistoryPage() {
                         item={item} 
                         rating={ratings[item.bookId]}
                         onRemove={removeItem}
-                        onRate={setBookRating}
-                        onClearRating={clearBookRating}
                         animationDelay={index * 50}
                       />
                     ))}
@@ -407,8 +370,6 @@ export default function HistoryPage() {
                         item={item} 
                         rating={ratings[item.bookId]}
                         onRemove={removeItem}
-                        onRate={setBookRating}
-                        onClearRating={clearBookRating}
                         animationDelay={index * 50}
                       />
                     ))}
@@ -427,17 +388,11 @@ interface HistoryCardProps {
   item: UnifiedHistoryItem;
   rating?: number;
   onRemove: (item: UnifiedHistoryItem) => void;
-  onRate: (bookId: number, rating: number) => void;
-  onClearRating: (bookId: number) => void;
   animationDelay: number;
 }
 
-function HistoryCard({ item, rating, onRemove, onRate, onClearRating, animationDelay }: HistoryCardProps) {
-  const [showRating, setShowRating] = useState(false);
-
-  const estimatedMinutes = item.estimatedMinutes || 0;
+function HistoryCard({ item, rating, onRemove, animationDelay }: HistoryCardProps) {
   const progress = item.progressPercent ?? 0;
-  const timeLeft = estimatedMinutes ? Math.ceil((estimatedMinutes * (100 - progress)) / 100) : 0;
   const isCompleted = progress >= 100;
   const href = `/book/${item.bookId}/abridged?variant=${item.variant}`;
   const variantLabel = item.variant === 'bedtime' ? 'Bedtime' : 'Full';
@@ -478,50 +433,6 @@ function HistoryCard({ item, rating, onRemove, onRate, onClearRating, animationD
         >
           <Trash2 className="w-3 h-3" />
         </button>
-        <button
-          onClick={() => setShowRating((v) => !v)}
-          className="absolute top-1 left-1 p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 z-10"
-          title="Rate this book"
-        >
-          ⭐
-        </button>
-
-        {showRating && (
-          <div className="absolute left-2 top-10 z-20 rounded-xl bg-white/95 dark:bg-gray-950/95 backdrop-blur border border-black/10 dark:border-white/10 shadow-xl px-2 py-2">
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => {
-                    onRate(item.bookId, n);
-                    setShowRating(false);
-                  }}
-                  className={`h-8 w-8 rounded-lg text-lg transition-colors ${
-                    (rating || 0) >= n ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
-                  }`}
-                  aria-label={`Rate ${n} stars`}
-                  title={`Rate ${n} stars`}
-                >
-                  ★
-                </button>
-              ))}
-            </div>
-
-            {typeof rating === 'number' && rating >= 1 && rating <= 5 && (
-              <button
-                type="button"
-                className="mt-2 w-full h-8 rounded-lg text-[12px] font-semibold bg-rose-100 text-rose-700 hover:bg-rose-200 transition-colors"
-                onClick={() => {
-                  onClearRating(item.bookId);
-                  setShowRating(false);
-                }}
-              >
-                Clear rating
-              </button>
-            )}
-          </div>
-        )}
 
         <Link href={href}>
           <h3 className="font-bold text-xs line-clamp-2 group-hover:text-tt-tertiary transition-all relative z-10 pr-6">
@@ -529,7 +440,6 @@ function HistoryCard({ item, rating, onRemove, onRate, onClearRating, animationD
           </h3>
         </Link>
         <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 font-medium relative z-10 lg:flex items-center gap-1.5">
-          <span className="text-xs lg:text-base">✍️</span>
           {item.authors}
         </p>
 
@@ -548,18 +458,7 @@ function HistoryCard({ item, rating, onRemove, onRate, onClearRating, animationD
             <span className="inline-flex items-center px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 text-green-800 dark:text-green-200 font-semibold shadow-md border border-green-200 dark:border-green-800 text-xs">
               <span className="lg:hidden">✓</span><span className="hidden lg:inline">✅ Completed</span>
             </span>
-          ) : (
-            <>
-              <span className="inline-flex items-center px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-800 dark:text-purple-200 font-semibold shadow-md border border-purple-200 dark:border-purple-800 text-xs">
-                <span className="lg:hidden">📊 </span>{progress}%
-              </span>
-              {timeLeft > 0 && (
-                <span className="hidden lg:inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-100 to-pink-100 dark:from-rose-900 dark:to-pink-900 text-rose-800 dark:text-rose-200 font-semibold shadow-md border border-rose-200 dark:border-rose-800 text-xs">
-                  ⏱️ {timeLeft} min left
-                </span>
-              )}
-            </>
-          )}
+          ) : null}
         </div>
         <div className="hidden lg:flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 relative z-10">
           <span className="flex items-center gap-1">

@@ -185,7 +185,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
           </div>
 
           {/* Build Your Story shortcut */}
-          <Link
+          {/* <Link
             href={localizePath('/build-story')}
             onClick={closeSidebar}
             className="w-full mt-2 flex items-center justify-between gap-3 px-4 py-3 rounded-tt border border-tt-border/10 bg-tt-surface/70 hover:bg-tt-surface/90 text-tt-primary font-semibold shadow-sm hover:shadow-tt transition-all"
@@ -195,7 +195,7 @@ export function Sidebar({ activePage = 'home', children }: SidebarProps) {
               <span className="text-sm">{t('nav.buildStory')}</span>
             </span>
             <span className="text-sm">›</span>
-          </Link>
+          </Link> */}
 
           <div className="mt-2 rounded-tt border border-tt-border/10 bg-tt-surface/70 p-3">
             <LanguageSelector />

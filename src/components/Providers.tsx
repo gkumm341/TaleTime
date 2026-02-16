@@ -6,18 +6,24 @@ import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { CacheManager } from '@/components/CacheManager';
 import { PWAInstallPrompt, OfflineBanner } from '@/components/PWAComponents';
 import { LanguageProvider } from '@/components/LanguageProvider';
+import { CookieConsentProvider } from '@/contexts/CookieConsentContext';
+import { CookieConsentBanner } from '@/components/CookieConsentBanner';
+import type { Locale } from '@/i18n/routing';
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, initialLocale }: { children: ReactNode; initialLocale?: Locale }) {
   return (
-    <LanguageProvider>
-      <PreferencesProvider>
-        <ThemeProvider>
-          <CacheManager />
-          <OfflineBanner />
-          <PWAInstallPrompt />
-          {children}
-        </ThemeProvider>
-      </PreferencesProvider>
+    <LanguageProvider initialLocale={initialLocale}>
+      <CookieConsentProvider>
+        <PreferencesProvider>
+          <ThemeProvider>
+            <CacheManager />
+            <OfflineBanner />
+            <PWAInstallPrompt />
+            <CookieConsentBanner />
+            {children}
+          </ThemeProvider>
+        </PreferencesProvider>
+      </CookieConsentProvider>
     </LanguageProvider>
   );
 }
