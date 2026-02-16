@@ -14,8 +14,15 @@ function encodePathSegments(pathOrSegments: string | string[]): string {
 }
 
 export function getContentMode(): ContentMode {
-  const mode = (process.env.CONTENT_MODE || 'local').trim().toLowerCase();
-  return mode === 'cloud' ? 'cloud' : 'local';
+  const mode = (process.env.CONTENT_MODE || '').trim().toLowerCase();
+  if (mode === 'cloud') return 'cloud';
+  if (mode === 'local') return 'local';
+
+  if (process.env.VERCEL === '1') {
+    return 'cloud';
+  }
+
+  return 'local';
 }
 
 export function getLocalTextDir(): string {
