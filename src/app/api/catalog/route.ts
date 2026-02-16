@@ -13,6 +13,7 @@ export const runtime = 'nodejs'; // Required for SQLite
 const DEFAULT_ITEMS_PER_PAGE = 100;
 const MAX_ITEMS_PER_PAGE = 100;
 const BOOTSTRAP_MAX_PAGES = 4;
+const BOOTSTRAP_INSERT_BATCH_SIZE = 40;
 
 type GutendexAuthor = { name?: string | null };
 type GutendexFormats = Record<string, string | undefined>;
@@ -101,23 +102,15 @@ async function maybeBootstrapCatalogFromGutendex(contentMode: string): Promise<v
 
       if (rows.length === 0) return;
 
-      await db
-        .insert(books)
-        .values(rows)
-        .onConflictDoUpdate({
-          target: books.id,
-          set: {
-            title: sql`excluded.title`,
-            authors: sql`excluded.authors`,
-            languages: sql`excluded.languages`,
-            subjects: sql`excluded.subjects`,
-            coverUrl: sql`excluded.cover_url`,
-            txtUrl: sql`excluded.txt_url`,
-            epubUrl: sql`excluded.epub_url`,
-            downloadCount: sql`excluded.download_count`,
-            updatedAt: sql`excluded.updated_at`,
-          },
-        });
+      for (let i = 0; i < rows.length; i += BOOTSTRAP_INSERT_BATCH_SIZE) {
+        const batch = rows.slice(i, i + BOOTSTRAP_INSERT_BATCH_SIZE);
+        if (batch.length === 0) continue;
+
+        await db
+          .insert(books)
+          .values(batch)
+          .onConflictDoNothing({ target: books.id });
+      }
     })().finally(() => {
       bootstrapInFlight = null;
     });
