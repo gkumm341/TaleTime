@@ -1,8 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: "C:\\dev\\taletime",
+  outputFileTracingExcludes: {
+    '*': [
+      '.data/texts/**/*',
+      '.data/**/*.mp3',
+      '.data/**/*.png',
+      '.data/**/*.jpg',
+      '.data/**/*.jpeg',
+      '.data/**/*.webp',
+      '.data/**/Illustrations/**/*',
+    ],
   },
   images: {
     remotePatterns: [
