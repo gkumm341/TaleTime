@@ -12,6 +12,31 @@ export const runtime = 'nodejs'; // Required for SQLite
 
 const DEFAULT_ITEMS_PER_PAGE = 100;
 const MAX_ITEMS_PER_PAGE = 100;
+const DEFAULT_TEST_CATALOG_BOOK_IDS = [11, 45, 236, 99002];
+const TEST_CATALOG_ID_REMAP = new Map<number, number>([
+  [74, 99002],
+  [2591, 236],
+]);
+
+function isTestCatalogEnabled(): boolean {
+  const raw = (process.env.TEST_CATALOG_ENABLED || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
+}
+
+function getTestCatalogBookIds(): number[] | null {
+  if (!isTestCatalogEnabled()) return null;
+
+  const raw = (process.env.TEST_CATALOG_BOOK_IDS || '').trim();
+  if (!raw) return DEFAULT_TEST_CATALOG_BOOK_IDS;
+
+  const ids = raw
+    .split(',')
+    .map((part) => parseInt(part.trim(), 10))
+    .filter((id) => Number.isFinite(id) && id > 0)
+    .map((id) => TEST_CATALOG_ID_REMAP.get(id) ?? id);
+
+  return Array.from(new Set(ids));
+}
 
 function normalizeTitleKey(input: string): string {
   return input
@@ -281,6 +306,9 @@ export async function GET(req: NextRequest) {
   try {
     const contentMode = getContentMode();
     const localIds = contentMode === 'local' ? await getLocalBookIdsWithText() : null;
+    const hasLocalDiskCatalog = contentMode === 'local' && Array.isArray(localIds) && localIds.length > 0;
+    const testCatalogBookIds = getTestCatalogBookIds();
+    const hasTestCatalog = Array.isArray(testCatalogBookIds);
 
     // If ids are provided, return those books (batch fetch) in the same order.
     if (idsParam) {
@@ -294,8 +322,13 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
       }
 
-      const allowedIds =
-        contentMode === 'local' && localIds ? uniqueIds.filter((id) => localIds.includes(id)) : uniqueIds;
+      let allowedIds = hasLocalDiskCatalog && localIds
+        ? uniqueIds.filter((id) => localIds.includes(id))
+        : uniqueIds;
+
+      if (hasTestCatalog && testCatalogBookIds) {
+        allowedIds = allowedIds.filter((id) => testCatalogBookIds.includes(id));
+      }
 
       if (allowedIds.length === 0) {
         return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
@@ -354,7 +387,14 @@ export async function GET(req: NextRequest) {
     // If bookId is provided, return single book
     if (bookId) {
       const parsedId = parseInt(bookId);
-      if (contentMode === 'local' && localIds && !localIds.includes(parsedId)) {
+      if (hasTestCatalog && testCatalogBookIds && !testCatalogBookIds.includes(parsedId)) {
+        return NextResponse.json(
+          { error: 'Book not found (outside test catalog)' },
+          { status: 404 }
+        );
+      }
+
+      if (hasLocalDiskCatalog && localIds && !localIds.includes(parsedId)) {
         return NextResponse.json(
           { error: 'Book not found (no local text file)' },
           { status: 404 }
@@ -464,11 +504,17 @@ export async function GET(req: NextRequest) {
     let whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Local mode: only return books that have local text present on disk.
-    if (contentMode === 'local') {
-      if (!localIds || localIds.length === 0) {
+    if (hasLocalDiskCatalog && localIds) {
+      whereClause = whereClause ? and(whereClause, inArray(books.id, localIds)) : inArray(books.id, localIds);
+    }
+
+    if (hasTestCatalog) {
+      if (!testCatalogBookIds || testCatalogBookIds.length === 0) {
         return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
       }
-      whereClause = whereClause ? and(whereClause, inArray(books.id, localIds)) : inArray(books.id, localIds);
+      whereClause = whereClause
+        ? and(whereClause, inArray(books.id, testCatalogBookIds))
+        : inArray(books.id, testCatalogBookIds);
     }
 
     // Determine sort order
