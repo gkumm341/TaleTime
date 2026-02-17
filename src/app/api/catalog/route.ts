@@ -6,6 +6,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { syncLocalByTitleToDb } from '@/lib/local-book-sync';
 import { maybeTranslateManyTexts, resolveRequestLocale, shouldTranslate } from '@/lib/server/translation';
+import { getContentMode } from '@/lib/server/content-source';
+import { getCloudBookId, loadCloudCatalogMetadata, type CloudBookMetadata } from '@/lib/server/cloud-catalog';
 
 export const runtime = 'nodejs'; // Required for SQLite
 
@@ -196,7 +198,7 @@ let lastLocalSyncAt = 0;
 let localSyncInFlight: Promise<void> | null = null;
 
 async function maybeSyncLocalByTitle(): Promise<void> {
-  const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
+  const contentMode = getContentMode();
   if (contentMode !== 'local') return;
 
   const now = Date.now();
@@ -278,8 +280,189 @@ export async function GET(req: NextRequest) {
   );
 
   try {
-    const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
+    const contentMode = getContentMode();
     const localIds = contentMode === 'local' ? await getLocalBookIdsWithText() : null;
+
+    if (contentMode === 'cloud') {
+      const cloudMeta = await loadCloudCatalogMetadata();
+      if (cloudMeta.length === 0) {
+        return NextResponse.json(
+          {
+            error: 'Cloud catalog is empty or unavailable',
+            hint: 'Upload .data/texts/by-title/catalog.json to CloudFront, or set CLOUDFRONT_CATALOG_URL.',
+          },
+          { status: 503 }
+        );
+      }
+
+      const cloudBooks = cloudMeta.map((meta) => ({
+        id: getCloudBookId(meta as CloudBookMetadata),
+        title: meta.book.title,
+        authors: (meta.book.authors || []).join(', ') || 'Unknown',
+        subjects: meta.book.subjects || [],
+        coverUrl: meta.book.links?.coverUrl ?? null,
+        txtUrl: meta.book.links?.txtUrl ?? null,
+        epubUrl: meta.book.links?.epubUrl ?? null,
+        downloadCount: meta.book.downloadCount ?? 0,
+        minutes: meta.book.estimate?.minutes ?? null,
+        words: meta.book.estimate?.words ?? null,
+        isCached: true,
+        languages: (meta.book.languages || []).length ? (meta.book.languages || []) : ['en'],
+      }));
+
+      if (idsParam) {
+        const rawIds = idsParam
+          .split(',')
+          .map((s) => parseInt(s.trim()))
+          .filter((n) => Number.isFinite(n) && n > 0);
+        const uniqueIds = Array.from(new Set(rawIds)).slice(0, MAX_ITEMS_PER_PAGE);
+
+        if (uniqueIds.length === 0) {
+          return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
+        }
+
+        const byId = new Map<number, (typeof cloudBooks)[number]>();
+        for (const b of cloudBooks) byId.set(b.id, b);
+
+        const ordered = uniqueIds
+          .map((id) => byId.get(id))
+          .filter(Boolean)
+          .map((book) => ({
+            id: book!.id,
+            title: book!.title,
+            authors: book!.authors,
+            subjects: book!.subjects,
+            coverUrl: book!.coverUrl,
+            txtUrl: book!.txtUrl,
+            epubUrl: book!.epubUrl,
+            downloadCount: book!.downloadCount,
+            minutes: book!.minutes,
+            words: book!.words,
+            isCached: book!.isCached,
+          })) as CatalogBookResult[];
+
+        const localized = await localizeCatalogResults(ordered, locale);
+        return NextResponse.json({ count: localized.length, next: null, previous: null, results: localized });
+      }
+
+      if (bookId) {
+        const parsedId = parseInt(bookId);
+        const found = cloudBooks.find((b) => b.id === parsedId);
+        if (!found) {
+          return NextResponse.json({ error: 'Book not found' }, { status: 404 });
+        }
+
+        const localizedSingle = await localizeCatalogResults(
+          [{
+            id: found.id,
+            title: found.title,
+            authors: found.authors,
+            subjects: found.subjects,
+            coverUrl: found.coverUrl,
+            txtUrl: found.txtUrl,
+            epubUrl: found.epubUrl,
+            downloadCount: found.downloadCount,
+            minutes: found.minutes,
+            words: found.words,
+            isCached: found.isCached,
+          }],
+          locale
+        );
+
+        return NextResponse.json({ count: 1, next: null, previous: null, results: localizedSingle });
+      }
+
+      let filtered = cloudBooks;
+
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter((book) =>
+          book.title.toLowerCase().includes(q) || book.authors.toLowerCase().includes(q)
+        );
+      }
+
+      if (languages.length > 0) {
+        const wanted = new Set(languages.map((l) => l.toLowerCase()));
+        filtered = filtered.filter((book) => book.languages.some((l) => wanted.has(l.toLowerCase())));
+      }
+
+      if (ageCategories.length > 0) {
+        const AGE_KEYWORDS: Record<string, string[]> = {
+          'early-readers': ['Nursery rhymes', 'Picture books'],
+          'beginning-readers': ['Fairy tales', 'Fables', "Children's stories", 'Juvenile fiction'],
+          'middle-grade': ['Adventure', 'Fantasy', 'Bildungsromans', 'Pirates', 'Treasure'],
+          'young-adult': ['Young adult', 'Romance', 'Psychological'],
+        };
+
+        const keywords = ageCategories.flatMap((category) => AGE_KEYWORDS[category] || []);
+        if (keywords.length > 0) {
+          filtered = filtered.filter((book) =>
+            keywords.some((keyword) => book.subjects.some((subject) => subject.includes(keyword)))
+          );
+        }
+      }
+
+      if (durations.length > 0) {
+        filtered = filtered.filter((book) => {
+          if (!book.minutes) return false;
+          return durations.some((duration) => {
+            if (duration === 'short') return book.minutes! < 10;
+            if (duration === 'medium') return book.minutes! >= 10 && book.minutes! <= 25;
+            if (duration === 'long') return book.minutes! > 25;
+            return true;
+          });
+        });
+      }
+
+      if (offlineOnly) {
+        filtered = filtered.filter((book) => book.isCached);
+      }
+
+      switch (sortBy) {
+        case 'title':
+          filtered.sort((a, b) => a.title.localeCompare(b.title));
+          break;
+        case 'author':
+          filtered.sort((a, b) => a.authors.localeCompare(b.authors));
+          break;
+        case 'length':
+          filtered.sort((a, b) => (a.minutes ?? Number.MAX_SAFE_INTEGER) - (b.minutes ?? Number.MAX_SAFE_INTEGER));
+          break;
+        case 'popularity':
+        default:
+          filtered.sort((a, b) => (b.downloadCount ?? 0) - (a.downloadCount ?? 0));
+          break;
+      }
+
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / limit);
+      const offset = (page - 1) * limit;
+      const paged = filtered.slice(offset, offset + limit);
+
+      const localizedResults = await localizeCatalogResults(
+        paged.map((book) => ({
+          id: book.id,
+          title: book.title,
+          authors: book.authors,
+          subjects: book.subjects,
+          coverUrl: book.coverUrl,
+          txtUrl: book.txtUrl,
+          epubUrl: book.epubUrl,
+          downloadCount: book.downloadCount,
+          minutes: book.minutes,
+          words: book.words,
+          isCached: book.isCached,
+        })),
+        locale
+      );
+
+      return NextResponse.json({
+        count: total,
+        next: page < totalPages ? `?page=${page + 1}` : null,
+        previous: page > 1 ? `?page=${page - 1}` : null,
+        results: localizedResults,
+      });
+    }
 
     // If ids are provided, return those books (batch fetch) in the same order.
     if (idsParam) {
@@ -329,7 +512,7 @@ export async function GET(req: NextRequest) {
         .map((result) => ({
           id: result!.id,
           title: result!.title,
-          authors: result!.authors,
+          authors: result!.authors || '',
           subjects: result!.subjects ? JSON.parse(result!.subjects) : [],
           coverUrl: result!.coverUrl,
           txtUrl: result!.txtUrl,
@@ -392,7 +575,7 @@ export async function GET(req: NextRequest) {
         [{
           id: result.id,
           title: result.title,
-          authors: result.authors,
+          authors: result.authors || '',
           subjects: result.subjects ? JSON.parse(result.subjects) : [],
           coverUrl: result.coverUrl,
           txtUrl: result.txtUrl,
@@ -546,7 +729,7 @@ export async function GET(req: NextRequest) {
     const results = filteredBooks.map((book) => ({
       id: book.id,
       title: book.title,
-      authors: book.authors,
+      authors: book.authors || '',
       subjects: book.subjects ? JSON.parse(book.subjects) : [],
       coverUrl: book.coverUrl,
       txtUrl: book.txtUrl,

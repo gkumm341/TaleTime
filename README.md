@@ -62,6 +62,16 @@ Create a `.env.local` file:
 SQLITE_PATH=.data/app.db
 READ_ALOUD_WPM=160
 ALLOW_HOSTS=gutenberg.org,standardebooks.org
+CONTENT_MODE=local
+NEXT_PUBLIC_CONTENT_MODE=local
+# For CONTENT_MODE=cloud, point to your CDN base URL that serves the .data directory.
+# Example: https://d123456abcdef8.cloudfront.net
+CLOUDFRONT_BASE_URL=
+# Optional prefix between base URL and .data files (no leading/trailing slash required).
+# Example: ".data" if files are served as https://.../.data/texts/by-title/...
+CLOUDFRONT_DATA_PREFIX=
+# Optional explicit catalog URL override. If empty, app uses /texts/by-title/catalog.json under CloudFront base.
+CLOUDFRONT_CATALOG_URL=
 TRANSLATION_PROVIDER=libretranslate
 LIBRETRANSLATE_URL=http://localhost:5000
 # LIBRETRANSLATE_API_KEY=optional_if_your_server_requires_it
@@ -141,6 +151,12 @@ Query params:
 - `yarn lint` - Run ESLint
 - `yarn drizzle-kit generate` - Generate migrations
 - `yarn drizzle-kit migrate` - Apply migrations
+
+## Cloud Catalog (no SQLite in cloud mode)
+
+- Run `node scripts/generate-local-metadata.mjs` to generate `metadata.json` files and `.data/texts/by-title/catalog.json`.
+- Upload `.data/` to S3 so CloudFront serves `texts/by-title/catalog.json` and per-book metadata/files.
+- Set `CONTENT_MODE=cloud`, `NEXT_PUBLIC_CONTENT_MODE=cloud`, and `CLOUDFRONT_*` env vars.
 
 ## How It Works
 

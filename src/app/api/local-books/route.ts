@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { getContentMode } from '@/lib/server/content-source';
+import { getCloudBookId, loadCloudCatalogMetadata, type CloudBookMetadata } from '@/lib/server/cloud-catalog';
 import {
   maybeTranslateManyTexts,
   resolveRequestLocale,
@@ -69,15 +71,12 @@ function isHiddenLocalTitle(title: string): boolean {
   return HIDDEN_LOCAL_TITLE_KEYS.has(normalizeTitleKey(title));
 }
 
-function stableFallbackId(title: string): number {
-  let hash = 0;
-  for (let i = 0; i < title.length; i++) {
-    hash = (hash * 31 + title.charCodeAt(i)) | 0;
-  }
-  return 900000 + (Math.abs(hash) % 100000);
-}
-
 async function loadAllMetadata(): Promise<BookMetadata[]> {
+  if (getContentMode() === 'cloud') {
+    const cloudItems = await loadCloudCatalogMetadata();
+    return cloudItems as BookMetadata[];
+  }
+
   const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
   const byTitleDir = path.resolve(process.cwd(), baseDir, 'by-title');
 
@@ -151,10 +150,19 @@ export async function GET(req: NextRequest) {
   try {
     const allMetadata = await loadAllMetadata();
 
+    if (getContentMode() === 'cloud' && allMetadata.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'Cloud catalog is empty or unavailable',
+          hint: 'Upload .data/texts/by-title/catalog.json to CloudFront, or set CLOUDFRONT_CATALOG_URL.',
+        },
+        { status: 503 }
+      );
+    }
+
     const allBooks: LocalBookResult[] = allMetadata.map((meta) => {
       const title = meta.book.title;
-      const rawId = meta.book.id;
-      const id = Number.isFinite(rawId) && rawId != null ? Number(rawId) : stableFallbackId(title);
+      const id = getCloudBookId(meta as CloudBookMetadata);
       const localFolderName = meta.local?.folderName?.trim() || title;
       return {
         id,

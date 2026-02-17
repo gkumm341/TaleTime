@@ -39,7 +39,8 @@ interface Book {
 
 export function HomeContent() {
   const { t, locale } = useI18n();
-  const isLocalContent = process.env.NEXT_PUBLIC_CONTENT_MODE === 'local';
+  const contentMode = process.env.NEXT_PUBLIC_CONTENT_MODE;
+  const isLocalContent = contentMode === 'local' || contentMode === 'cloud';
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

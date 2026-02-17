@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-01-18T20:35:58.889Z",
+  "generatedAt": "2026-02-17T19:14:36.356Z",
   "book": {
     "id": 99012,
     "title": "The Bell",
@@ -53,6 +53,12 @@
         "filename": "bedtime.txt",
         "bytes": 2214,
         "sha256": "f2305321ac1bf49c54a0b82b6afed656ded1581530798107912ea923799525ff"
+      },
+      {
+        "role": "other",
+        "filename": "bedtime.pages.json",
+        "bytes": 3573,
+        "sha256": "447d3810a1af2b6c12eb0d485895304d9424eb779c3b2e5dbd706a60725bb8cc"
       },
       {
         "role": "audio",

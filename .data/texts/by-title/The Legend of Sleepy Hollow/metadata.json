@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-01-18T20:35:59.018Z",
+  "generatedAt": "2026-02-17T19:14:36.418Z",
   "book": {
     "id": 41,
     "title": "The Legend of Sleepy Hollow",
@@ -31,9 +31,9 @@
     "downloadCount": 49447,
     "updatedAt": 1762465432338,
     "links": {
-      "txtUrl": "https://www.gutenberg.org/ebooks/41.txt.utf-8",
-      "epubUrl": "https://www.gutenberg.org/ebooks/41.epub3.images",
-      "coverUrl": "https://www.gutenberg.org/cache/epub/41/pg41.cover.medium.jpg"
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
     },
     "estimate": {
       "minutes": 107,
@@ -61,8 +61,20 @@
       {
         "role": "bedtime",
         "filename": "bedtime.txt",
-        "bytes": 3535,
-        "sha256": "c16951796e9b101316bfa9a3dc3b26ff4c833c3b8dd67d1602932ac95e91e76d"
+        "bytes": 3512,
+        "sha256": "d6bfbe5ef00335c8e5b5eda0bbb59e9b672916f7119494468d7ac87996e09b17"
+      },
+      {
+        "role": "other",
+        "filename": "bedtime.pages.json",
+        "bytes": 4860,
+        "sha256": "2bcae1ec49cf277bd13018ce36146f3abe12ba1714054da51136111e55be8acb"
+      },
+      {
+        "role": "audio",
+        "filename": "The_Legend_of_Sleepy_Hollow.mp3",
+        "bytes": 3835130,
+        "sha256": "c6912e88d85f313fdd7882312836f6738c3521ab6ca3c993bdee5613e2fc5ca9"
       },
       {
         "role": "image",

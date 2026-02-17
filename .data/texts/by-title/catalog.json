@@ -1,0 +1,1642 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-02-17T19:14:36.528Z",
+  "books": [
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.232Z",
+      "book": {
+        "id": 11,
+        "title": "Alice's Adventures in Wonderland",
+        "authors": [
+          "Carroll, Lewis"
+        ],
+        "characters": [
+          "Alice",
+          "White Rabbit",
+          "Cheshire Cat",
+          "Queen of Hearts",
+          "Mad Hatter",
+          "March Hare",
+          "Caterpillar",
+          "King of Hearts",
+          "Duchess"
+        ],
+        "keywords": [
+          "fantasy",
+          "nonsense",
+          "Victorian",
+          "dream",
+          "curiosity",
+          "absurd",
+          "playing cards",
+          "tea party",
+          "rabbit hole",
+          "wonderland"
+        ],
+        "description": "A young girl named Alice falls down a rabbit hole into a fantastical underground world populated by peculiar creatures.",
+        "languages": [],
+        "subjects": [
+          "Alice (Fictitious character from Carroll) -- Juvenile fiction",
+          "Children's stories",
+          "Fantasy fiction",
+          "Imaginary places -- Juvenile fiction"
+        ],
+        "downloadCount": 65142,
+        "updatedAt": 1762465432338,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": {
+          "minutes": 209,
+          "words": 33384,
+          "wpm": 160,
+          "source": "txt-head",
+          "computedAt": 1762465347627
+        },
+        "source": {
+          "kind": "gutenberg",
+          "externalId": 11
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "Alice’s Adventures in Wonderland",
+        "relativeDir": ".data/texts/by-title/Alice’s Adventures in Wonderland",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 151559,
+            "sha256": "312361a0d404b606bb1402c3d023f39854c82a9a2c68e878acf976be4ef7e9cb"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 4777,
+            "sha256": "89b708ece93476a1fe6f2cc4a967e16a062557c644ec245fce8bf195de29b871"
+          },
+          {
+            "role": "audio",
+            "filename": "Alice's_Adventures_in_Wonderland.mp3",
+            "bytes": 4935198,
+            "sha256": "c442ec4915a6284ebe0e1809a39a44867680e8c4a55bf5c61b8011ec5e6444a0"
+          },
+          {
+            "role": "image",
+            "filename": "Alice's_Adventures_in_Wonderland.png",
+            "bytes": 3220282,
+            "sha256": "b999c740e8246075aec979cfff27f59dc004246f18229b572d7898ebf012def2"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 6758,
+            "sha256": "7fd95a95d9cb31d3f54ce86fe4a0e36a375e72d8b977bab041705215b9ccb420"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.story.json",
+            "bytes": 9720,
+            "sha256": "f082b8a0caf7b017cf4c8d13e769e91f6772b2f1e26a619678a9b7abcd426943"
+          },
+          {
+            "role": "other",
+            "filename": "full.story.json",
+            "bytes": 197454,
+            "sha256": "b97f2299d6954080b3b6ab920d213b0b8aa54bd53a302d96dd982bfc2afb8a22"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.251Z",
+      "book": {
+        "id": 45,
+        "title": "Anne of Green Gables",
+        "authors": [
+          "Montgomery, L. M. (Lucy Maud)"
+        ],
+        "characters": [
+          "Anne Shirley",
+          "Matthew Cuthbert",
+          "Marilla Cuthbert",
+          "Diana Barry",
+          "Gilbert Blythe",
+          "Rachel Lynde"
+        ],
+        "keywords": [
+          "orphan",
+          "adoption",
+          "friendship",
+          "imagination",
+          "Prince Edward Island",
+          "coming-of-age",
+          "red hair",
+          "kindred spirits"
+        ],
+        "description": "An imaginative orphan girl is mistakenly sent to a farm on Prince Edward Island, where she wins the hearts of her reluctant caretakers.",
+        "languages": [],
+        "subjects": [
+          "Bildungsromans",
+          "Canada -- History -- 1867-1914 -- Fiction",
+          "Country life -- Prince Edward Island -- Fiction",
+          "Friendship -- Fiction",
+          "Girls -- Fiction",
+          "Islands -- Fiction",
+          "Orphans -- Fiction",
+          "Prince Edward Island -- History -- 20th century -- Fiction",
+          "Shirley, Anne (Fictitious character) -- Fiction"
+        ],
+        "downloadCount": 24731,
+        "updatedAt": 1762465432338,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": {
+          "minutes": 739,
+          "words": 118165,
+          "wpm": 160,
+          "source": "txt-head",
+          "computedAt": 1762465349358
+        },
+        "source": {
+          "kind": "gutenberg",
+          "externalId": 45
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "Anne of Green Gables",
+        "relativeDir": ".data/texts/by-title/Anne of Green Gables",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 595833,
+            "sha256": "cf0b0da6e3a68d2588ee47463b8b279915bc9d907a3b39c9edbcb66f3d7912c7"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 3877,
+            "sha256": "5f61015b0f1be8496af36414bd400462e447eac697242070de4adb88b587fc8e"
+          },
+          {
+            "role": "audio",
+            "filename": "Anne_of_Green_Gables.mp3",
+            "bytes": 4002731,
+            "sha256": "50904dd68611a8e2419a2f0621e7a6e75a0cea5bda1fbc9044ee974d830024be"
+          },
+          {
+            "role": "image",
+            "filename": "Anne_of_Green_Gables.png",
+            "bytes": 2984373,
+            "sha256": "79ace401fec5837c338ad78b000ef799c41670fce05a1d63c491dac95753154a"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 5246,
+            "sha256": "d6e5cd3f4c8a4a02693f85328c2ba4f0c115f44bca275e4434ffcbd4e19b4b5e"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.270Z",
+      "book": {
+        "id": 99002,
+        "title": "Ashputtel",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Ashputtel",
+          "Stepmother",
+          "Stepsisters",
+          "Prince",
+          "Father"
+        ],
+        "keywords": [
+          "Cinderella",
+          "fairy tale",
+          "glass slipper",
+          "ball",
+          "magic",
+          "transformation",
+          "Grimm",
+          "stepfamily"
+        ],
+        "description": "A mistreated girl receives magical help to attend the royal ball, where she captures the prince's heart.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "Ashputtel",
+        "relativeDir": ".data/texts/by-title/Ashputtel",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 13541,
+            "sha256": "54383d6da20e33d8d396df07c85c612508a25a3214debec0e243631d68e0378e"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 4346,
+            "sha256": "91e1c321cb6cc3e59c48d2f90c2a5594a867d9534a8e5e4ff5d23b016a14a35b"
+          },
+          {
+            "role": "audio",
+            "filename": "Ashputtel.mp3",
+            "bytes": 4614624,
+            "sha256": "b7c59b95ce469035e0e49be73dc61b5835208e97cf23da106a08804d4505c86b"
+          },
+          {
+            "role": "image",
+            "filename": "Ashputtel.png",
+            "bytes": 3043492,
+            "sha256": "a1ad58e6c91480a331283266cba966d7c2f16000abbface1d7fbf54abf085262"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 6193,
+            "sha256": "f59b8c011abf60642ce4ee01091d7d96402d5c9b4f668f9626e73f302bd59322"
+          },
+          {
+            "role": "other",
+            "filename": "full.story.json",
+            "bytes": 15171,
+            "sha256": "b9c24a0f5f9b0d4052c501a8331ef5696a6b6600be248a97af16a894896f5cb5"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.288Z",
+      "book": {
+        "id": 99005,
+        "title": "Briar Rose",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Briar Rose",
+          "King",
+          "Queen",
+          "Wise Women",
+          "Prince",
+          "Wicked Fairy"
+        ],
+        "keywords": [
+          "Sleeping Beauty",
+          "fairy tale",
+          "curse",
+          "spindle",
+          "100 years",
+          "true love",
+          "Grimm",
+          "enchantment"
+        ],
+        "description": "A princess is cursed to sleep for a hundred years until awakened by true love's kiss.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "Briar Rose",
+        "relativeDir": ".data/texts/by-title/Briar Rose",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 7917,
+            "sha256": "35bcb6292ff1e0c884b949a7eab2fb100eb4ebda3f81a875bdf4647d1d9b5fcd"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 5758,
+            "sha256": "3160233406d95d018984607e73daeb059fe97eb2ec4b35515e4b91b1a7706249"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 8751,
+            "sha256": "c181962cd88888b5890ecf440e6527a1ac8d86b51918d5e5b43c35216eb58c16"
+          },
+          {
+            "role": "audio",
+            "filename": "Briar_Rose.mp3",
+            "bytes": 5846095,
+            "sha256": "3792ba3605b9bc88d423e11bfa86f1b067e4ba5cbe4a12c8d6ca7fe1507e71f8"
+          },
+          {
+            "role": "image",
+            "filename": "Briar_Rose.png",
+            "bytes": 2689066,
+            "sha256": "8b69b79393554ee74e14d0bf1aab89ca94d4aba32bd275dfdbcf6b0906243049"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.306Z",
+      "book": {
+        "id": 99006,
+        "title": "Hansel & Gretel",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Hansel",
+          "Gretel",
+          "Witch",
+          "Father",
+          "Stepmother"
+        ],
+        "keywords": [
+          "fairy tale",
+          "forest",
+          "gingerbread house",
+          "witch",
+          "siblings",
+          "Grimm",
+          "breadcrumbs",
+          "oven"
+        ],
+        "description": "Two siblings lost in the forest discover a house made of sweets, owned by a wicked witch.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "Hansel & Gretel",
+        "relativeDir": ".data/texts/by-title/Hansel & Gretel",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 15991,
+            "sha256": "36f6c92fd359aea827a89e0827e7a3f41dd0635b1a4b802493fd6d16fcbf009b"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 4211,
+            "sha256": "dab5095237c1ba89538b4a1e87fc27becf5278eaa80d19d1b44d4b3c3ec6d5ba"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 6040,
+            "sha256": "162c8b415319e67f15ef95dccfc9ab9ce2ac3bf93d3d349b9afbcadbae22c3e2"
+          },
+          {
+            "role": "image",
+            "filename": "Hansel & Gretel.png",
+            "bytes": 2644325,
+            "sha256": "c4e8d508d31828c6aea1d4ca03e4662b3dad91dbf66f4e01b5a727ff873bcd83"
+          },
+          {
+            "role": "audio",
+            "filename": "Hansel_and_Gretel.mp3",
+            "bytes": 4597905,
+            "sha256": "b6a42a17da91169c5135d641bda4ec9b79b2a644ef77a3023235aa2cacd654d0"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.325Z",
+      "book": {
+        "id": 99007,
+        "title": "Rapunzel",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Rapunzel",
+          "Witch",
+          "Prince"
+        ],
+        "keywords": [
+          "fairy tale",
+          "tower",
+          "long hair",
+          "Grimm",
+          "rescue",
+          "magic",
+          "enchantment"
+        ],
+        "description": "A girl with impossibly long hair is imprisoned in a tower by a witch until a prince discovers her.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "Rapunzel",
+        "relativeDir": ".data/texts/by-title/Rapunzel",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 7470,
+            "sha256": "e3a94bd0d156bc099b8c0ca8ac81e2dfb69875144f3d7c0eb2de1447220155c5"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 9442,
+            "sha256": "b52dbea2fb3e4ac5711aed441c4cca7b894b8ecb725f137fa15121945b8d39c6"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 5941,
+            "sha256": "179387a306b7acd9de0201c36196610a183b0832152d7283bcb61210ebc1daea"
+          },
+          {
+            "role": "audio",
+            "filename": "Rapunzel.mp3",
+            "bytes": 5045539,
+            "sha256": "4a48504a1a8ccd58c2df41f4ec0f2fdf431e0bf287eb3e08f5d6fa054d8b5584"
+          },
+          {
+            "role": "image",
+            "filename": "Rapunzel.png",
+            "bytes": 2859418,
+            "sha256": "e2e678faec3a790752becbaf66a4ed9eb3fd324c4f2d1ad6149d4031b7ca999d"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.343Z",
+      "book": {
+        "id": 99010,
+        "title": "Rumpelstiltskin",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Miller's Daughter",
+          "Rumpelstiltskin",
+          "King"
+        ],
+        "keywords": [
+          "fairy tale",
+          "spinning",
+          "gold",
+          "name",
+          "bargain",
+          "Grimm",
+          "firstborn"
+        ],
+        "description": "A mysterious imp helps a girl spin straw into gold, demanding her firstborn child in return.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "Rumpelstiltskin",
+        "relativeDir": ".data/texts/by-title/Rumpelstiltskin",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 6075,
+            "sha256": "3d37fd10e06978c01879c3fc56dc3260d502879aab328487dbd1f33df14aa744"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 3823,
+            "sha256": "781e99bf10695ac36a33bd5c91ac8f3c4fde610c9796b8a34c963880e3e24359"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 5700,
+            "sha256": "f16b97a297f637b992461f8286408a177370644e0a4ddfb82bad13154f8a61c9"
+          },
+          {
+            "role": "audio",
+            "filename": "Rumpelstiltskin.mp3",
+            "bytes": 4322470,
+            "sha256": "8584e576cea54c2096a6bc88a929df844b3a348ee41ac14712791e67982f6dca"
+          },
+          {
+            "role": "image",
+            "filename": "Rumpelstiltskin.png",
+            "bytes": 3162429,
+            "sha256": "03740e198f8dfc074d3e4d67319a6ce2f691bcfb0785f5235e8649ccb26f314d"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.356Z",
+      "book": {
+        "id": 99012,
+        "title": "The Bell",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Prince",
+          "Poor Boy"
+        ],
+        "keywords": [
+          "Andersen",
+          "mystery",
+          "forest",
+          "sound",
+          "nature",
+          "spiritual"
+        ],
+        "description": "Two boys search for the source of a mysterious bell that rings through the forest.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Bell",
+        "relativeDir": ".data/texts/by-title/The Bell",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 2976,
+            "sha256": "c1721c09c2a907cb9bfda16c9cfe46880eb12919248719c863f075a4375f566d"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 2214,
+            "sha256": "f2305321ac1bf49c54a0b82b6afed656ded1581530798107912ea923799525ff"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 3573,
+            "sha256": "447d3810a1af2b6c12eb0d485895304d9424eb779c3b2e5dbd706a60725bb8cc"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Bell.mp3",
+            "bytes": 2373526,
+            "sha256": "024f3e8e3d8bd09792768d263118711e0fe82226979d3b821435e85a07ba972c"
+          },
+          {
+            "role": "image",
+            "filename": "The_Bell.png",
+            "bytes": 3136824,
+            "sha256": "97e44649f78f8eb5cf1ac4024dbae4ceb02bfd44e0aaf6cd4ce450507677b18e"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.369Z",
+      "book": {
+        "id": 99013,
+        "title": "The Dream of Little Tuk",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Little Tuk"
+        ],
+        "keywords": [
+          "Andersen",
+          "dream",
+          "geography",
+          "lessons",
+          "imagination",
+          "Denmark"
+        ],
+        "description": "A boy dreams his way through geography lessons in a magical nighttime adventure.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Dream of Little Tuk",
+        "relativeDir": ".data/texts/by-title/The Dream of Little Tuk",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 10495,
+            "sha256": "05f95b4ef5b5fc5b609f1b399438556a926c1062531c57b0f59db6cb9b8dca0e"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 2015,
+            "sha256": "ca6fc5c7ebaa96af17d9fb246306bfcd9eb12f2f9091095c6c1f75f9851a58d8"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 3314,
+            "sha256": "d9709747085501f204a7fc3c7302d18f7350a882c4206243f6856f2c78e91ea9"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Dream_of_Little_tuk.mp3",
+            "bytes": 2263603,
+            "sha256": "2e7e6fb60c67a25582d57c53e5eed82ee5bb281137b9418bdbf7533bd65aeaf9"
+          },
+          {
+            "role": "image",
+            "filename": "The_Dream_of_Little_Tuk.png",
+            "bytes": 2959222,
+            "sha256": "a6b55a6dde0f0011aca8e9820ab84183b192ac1d2cc06efa64c92e1b532dc424"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.385Z",
+      "book": {
+        "id": 99008,
+        "title": "The Fisherman & His Wife",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Fisherman",
+          "Wife",
+          "Enchanted Flounder"
+        ],
+        "keywords": [
+          "Grimm",
+          "greed",
+          "wishes",
+          "magic fish",
+          "contentment",
+          "sea"
+        ],
+        "description": "A fisherman's wife demands ever greater wishes from an enchanted fish until her greed goes too far.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Fisherman & His Wife",
+        "relativeDir": ".data/texts/by-title/The Fisherman & His Wife",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 11293,
+            "sha256": "aad752346698601bf13b53eb1ad7b12d69e435b47639023587fcb1c679a971fa"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 4304,
+            "sha256": "bafd69049bd26def5a7e4a5d29bd1c177f5ac4972ad24ccb610cda5278932cac"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 5800,
+            "sha256": "68866336e8ea1aa7df3acabb9350a487ac4b4693e4d31415c211aad95931ef5a"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Fisherman_&_His_Wife.mp3",
+            "bytes": 4694036,
+            "sha256": "501ea6869483b897fa6ad0dff03b28b82d0b1c4020f5bace3fb6ff8b6dcbed48"
+          },
+          {
+            "role": "image",
+            "filename": "The_Fisherman_&_His_Wife.png",
+            "bytes": 3097624,
+            "sha256": "9b2c72e8de8dab2f51b6feec0e97afb15ed79e79aa32cd7bfe4f0650d6cfdbe1"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.402Z",
+      "book": {
+        "id": 236,
+        "title": "The Jungle Book",
+        "authors": [
+          "Kipling, Rudyard"
+        ],
+        "characters": [
+          "Mowgli",
+          "Baloo",
+          "Bagheera",
+          "Shere Khan",
+          "Akela",
+          "Kaa",
+          "Raksha"
+        ],
+        "keywords": [
+          "India",
+          "jungle",
+          "wolves",
+          "animals",
+          "coming-of-age",
+          "law of the jungle",
+          "Kipling"
+        ],
+        "description": "A boy raised by wolves in the Indian jungle learns the ways of the wild from animal friends.",
+        "languages": [],
+        "subjects": [
+          "Adventure stories, English",
+          "Animals -- Fiction",
+          "Feral children -- Fiction",
+          "India -- Fiction",
+          "India -- History -- 19th century -- Fiction",
+          "Jungle animals -- Fiction",
+          "Jungles -- Fiction",
+          "Mowgli (Fictitious character) -- Fiction",
+          "Short stories"
+        ],
+        "downloadCount": 10442,
+        "updatedAt": 1762465432338,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": {
+          "minutes": 368,
+          "words": 58743,
+          "wpm": 160,
+          "source": "txt-head",
+          "computedAt": 1762465351745
+        },
+        "source": {
+          "kind": "gutenberg",
+          "externalId": 236
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Jungle Book",
+        "relativeDir": ".data/texts/by-title/The Jungle Book",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 298958,
+            "sha256": "a15ab7a56ecf803443ae6906c7ba61b0bc5204d32eab5b7362b63902047bd82f"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 4906,
+            "sha256": "2a0c3e3376b8e9d8024838432db606254ca686ae5dc0bdda550b30598e77766b"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 6908,
+            "sha256": "1801b2f2f08dac044eca2ed81f1ba8af2d1b0b37d88191e03ff0ec75d1ca1df1"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Jungle_Book.mp3",
+            "bytes": 5346470,
+            "sha256": "0a53c8f4e1b345617e9b282cc64a2a157f925278df21fe44848617a3aa888f74"
+          },
+          {
+            "role": "image",
+            "filename": "The_Jungle_Book.png",
+            "bytes": 3146343,
+            "sha256": "66d52da375aaf5589f78194772a9f8b86886b79ef6b49fd7d2db445a68c871a5"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.418Z",
+      "book": {
+        "id": 41,
+        "title": "The Legend of Sleepy Hollow",
+        "authors": [
+          "Irving, Washington"
+        ],
+        "characters": [
+          "Ichabod Crane",
+          "Katrina Van Tassel",
+          "Brom Bones",
+          "Headless Horseman"
+        ],
+        "keywords": [
+          "Irving",
+          "ghost",
+          "Headless Horseman",
+          "Halloween",
+          "Hudson Valley",
+          "schoolmaster",
+          "pumpkin"
+        ],
+        "description": "A superstitious schoolmaster encounters the legendary Headless Horseman in a haunted valley.",
+        "languages": [],
+        "subjects": [
+          "Ghosts -- Fiction",
+          "New York (State) -- History -- 1775-1865 -- Fiction"
+        ],
+        "downloadCount": 49447,
+        "updatedAt": 1762465432338,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": {
+          "minutes": 107,
+          "words": 17028,
+          "wpm": 160,
+          "source": "txt-head",
+          "computedAt": 1762465347760
+        },
+        "source": {
+          "kind": "gutenberg",
+          "externalId": 41
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Legend of Sleepy Hollow",
+        "relativeDir": ".data/texts/by-title/The Legend of Sleepy Hollow",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 71050,
+            "sha256": "8f6349aacfc5a4985e246f761efcbe026c7463a5cbe9a1175c0d156dab0a49b7"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 3512,
+            "sha256": "d6bfbe5ef00335c8e5b5eda0bbb59e9b672916f7119494468d7ac87996e09b17"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 4860,
+            "sha256": "2bcae1ec49cf277bd13018ce36146f3abe12ba1714054da51136111e55be8acb"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Legend_of_Sleepy_Hollow.mp3",
+            "bytes": 3835130,
+            "sha256": "c6912e88d85f313fdd7882312836f6738c3521ab6ca3c993bdee5613e2fc5ca9"
+          },
+          {
+            "role": "image",
+            "filename": "The_Legend_of_Sleepy_Hollow.png",
+            "bytes": 2744919,
+            "sha256": "081f18344a92a2f2414f70266b0180aa2beaf819c42c5d783b8b1656eaab2c02"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.437Z",
+      "book": {
+        "id": 113,
+        "title": "The Secret Garden",
+        "authors": [
+          "Burnett, Frances Hodgson"
+        ],
+        "characters": [
+          "Mary Lennox",
+          "Colin Craven",
+          "Dickon",
+          "Ben Weatherstaff",
+          "Martha",
+          "Archibald Craven"
+        ],
+        "keywords": [
+          "garden",
+          "healing",
+          "friendship",
+          "Yorkshire",
+          "orphan",
+          "nature",
+          "transformation",
+          "manor"
+        ],
+        "description": "An orphaned girl discovers a hidden garden that transforms her and those around her.",
+        "languages": [],
+        "subjects": [
+          "Gardens -- Juvenile fiction",
+          "Orphans -- Juvenile fiction",
+          "People with disabilities -- Juvenile fiction",
+          "Yorkshire (England) -- Juvenile fiction"
+        ],
+        "downloadCount": 5866,
+        "updatedAt": 1762465432339,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": {
+          "minutes": 554,
+          "words": 88544,
+          "wpm": 160,
+          "source": "txt-head",
+          "computedAt": 1762465354155
+        },
+        "source": {
+          "kind": "gutenberg",
+          "externalId": 113
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Secret Garden",
+        "relativeDir": ".data/texts/by-title/The Secret Garden",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 455087,
+            "sha256": "c7a065710fe2873dcc6a07d60095950f6c97f247e15189c13d815b862fce2fb5"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 5027,
+            "sha256": "8cabc088e36d01a0285f85adfef74bd0eea10590e8c64dbd4ed0c647d486d038"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 6365,
+            "sha256": "2b01666b06c5dfc63d64947dcf1b7e6fdf6bc2546f7daf1649010cdbaa8cabb7"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Secret_Garden.mp3",
+            "bytes": 5590140,
+            "sha256": "e23d62736bf35ba992cc1ac6959778cb4b1ccb7e46f69b3048e37450177ed8d6"
+          },
+          {
+            "role": "image",
+            "filename": "The_Secret_Garden.png",
+            "bytes": 2770642,
+            "sha256": "562ae5c5c0491f2ed0cb747516504f45536c126c147ace2586143641967671f4"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.448Z",
+      "book": {
+        "id": 99025,
+        "title": "The Shadow",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Learned Man",
+          "Shadow"
+        ],
+        "keywords": [
+          "Andersen",
+          "doppelganger",
+          "identity",
+          "darkness",
+          "philosophy",
+          "tragic"
+        ],
+        "description": "A man's shadow takes on a life of its own with sinister consequences.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Shadow",
+        "relativeDir": ".data/texts/by-title/The Shadow",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 3241,
+            "sha256": "f091e9240c092d6f2811fd4a82013628bc1481366a178fc59be8c140a0f5c0a0"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 2601,
+            "sha256": "5ee943967d5eb749566f96abdba05f2294bb08066f9b3f667dc3445b76d9486b"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 4050,
+            "sha256": "57c527c2bf68c7a12f862a9b07627fa1401a05f0eecdcf2a1446d3f55a44d001"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Shadow.mp3",
+            "bytes": 3002973,
+            "sha256": "1d7c1eece3757ea060c40bc6819aa3e4e748147d3405b530669dfa9b125cad92"
+          },
+          {
+            "role": "image",
+            "filename": "The_Shadow.png",
+            "bytes": 2752204,
+            "sha256": "1702e547a7b7e3c52c00c4401feb2e57d8ee7f7949504ba3b2cd01663fe2ae53"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.461Z",
+      "book": {
+        "id": 99026,
+        "title": "The Shoes of Fortune",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Councillor",
+          "Watchman",
+          "Clerk",
+          "Student"
+        ],
+        "keywords": [
+          "Andersen",
+          "magic shoes",
+          "wishes",
+          "transformation",
+          "Copenhagen",
+          "fantasy"
+        ],
+        "description": "Magical galoshes grant wishes to various people, often with unexpected results.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Shoes of Fortune",
+        "relativeDir": ".data/texts/by-title/The Shoes of Fortune",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 4464,
+            "sha256": "bb2360e8dc9a93183a1bc71e1342beaab8c860d8a488456497b4e670d36c7a8c"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 2977,
+            "sha256": "684819749cc27495159333b093a65808a30c95483a71d636dde43424f63ef004"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 4616,
+            "sha256": "63fa0a2af3ece537fdd18e1218cc67bb57a2a8f4e6ac2ccc4713756801f7ac33"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Shoes_of_Fortune.mp3",
+            "bytes": 3329817,
+            "sha256": "deb366565ba24d6914d64fe9a465371440918d5862c45b856051ca7dcc8f7073"
+          },
+          {
+            "role": "image",
+            "filename": "The_Shoes_of_Fortune.png",
+            "bytes": 2936248,
+            "sha256": "90833cd47764618d2dc771902e4ef10a60e322617411b75d7abe84edb3fa18c7"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.478Z",
+      "book": {
+        "id": 99011,
+        "title": "The Twelve Dancing Princesses",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Twelve Princesses",
+          "Soldier",
+          "King",
+          "Old Woman"
+        ],
+        "keywords": [
+          "Grimm",
+          "dancing",
+          "secret",
+          "underground",
+          "enchantment",
+          "mystery",
+          "shoes"
+        ],
+        "description": "A soldier uncovers the mystery of twelve princesses who wear out their shoes dancing each night.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Twelve Dancing Princesses",
+        "relativeDir": ".data/texts/by-title/The Twelve Dancing Princesses",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 8519,
+            "sha256": "91edfe96a6bdbd7eb62f078ac3f8e5ecd99d50541867da4a119731782e037f3b"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 5133,
+            "sha256": "408a1af315144d8e1fc991eec52b0e7b005cc9775faca3fa90f37e1cb66c0c56"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 7071,
+            "sha256": "7f66ad610f6daa7eef12f900ec46cf69c8786d9687bfd26e94f6116154e22129"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Twelve_Dancing_Princesses.mp3",
+            "bytes": 5263296,
+            "sha256": "e38ebf5be774f9006b59eaa0cbf93e72b6334c83bcbf5359b8f02972d6f41a5f"
+          },
+          {
+            "role": "image",
+            "filename": "The_Twelve_Dancing_Princesses.png",
+            "bytes": 2855101,
+            "sha256": "95245d49bff2e56410a90e357193e9ace49e5624f70be129be1099a4e572fd2c"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.495Z",
+      "book": {
+        "id": 55,
+        "title": "The Wonderful Wizard of Oz",
+        "authors": [
+          "Baum, L. Frank (Lyman Frank)"
+        ],
+        "characters": [
+          "Dorothy",
+          "Toto",
+          "Scarecrow",
+          "Tin Woodman",
+          "Cowardly Lion",
+          "Wizard of Oz",
+          "Wicked Witch",
+          "Glinda"
+        ],
+        "keywords": [
+          "Kansas",
+          "tornado",
+          "yellow brick road",
+          "Emerald City",
+          "magic",
+          "home",
+          "ruby slippers",
+          "Baum"
+        ],
+        "description": "A Kansas girl and her dog are swept by tornado to a magical land where they seek a wizard's help to return home.",
+        "languages": [],
+        "subjects": [
+          "Courage -- Juvenile fiction",
+          "Cowardly Lion (Fictitious character) -- Juvenile fiction",
+          "Cyclones -- Juvenile fiction",
+          "Dreams -- Juvenile fiction",
+          "Fantasy literature",
+          "Gale, Dorothy (Fictitious character) -- Juvenile fiction",
+          "Good and evil -- Juvenile fiction",
+          "Home -- Juvenile fiction",
+          "Oz (Imaginary place) -- Juvenile fiction",
+          "Scarecrow (Fictitious character from Baum) -- Juvenile fiction",
+          "Tin Woodman (Fictitious character) -- Juvenile fiction",
+          "Toto (Fictitious character) -- Juvenile fiction",
+          "Witches -- Juvenile fiction",
+          "Wizard of Oz (Fictitious character) -- Juvenile fiction"
+        ],
+        "downloadCount": 17901,
+        "updatedAt": 1762465432338,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": {
+          "minutes": 286,
+          "words": 45722,
+          "wpm": 160,
+          "source": "txt-head",
+          "computedAt": 1762465349692
+        },
+        "source": {
+          "kind": "gutenberg",
+          "externalId": 55
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "The Wonderful Wizard of Oz",
+        "relativeDir": ".data/texts/by-title/The Wonderful Wizard of Oz",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 212677,
+            "sha256": "236607227520e1158f25b836bbcfe898aab4a536bcd5b4628141ef1ae8024fdc"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 5366,
+            "sha256": "c3f4053e2e182a37cf1788b6eea6d9ae44a4fbeacb00d8ca808484b970708e54"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 7175,
+            "sha256": "93ef92c3efb037f7595b6093b21c066f003f7f0fc1e5bc5c7a57684d73595745"
+          },
+          {
+            "role": "audio",
+            "filename": "The_Wonderful_Wizard_of_Oz.mp3",
+            "bytes": 5785327,
+            "sha256": "8cacaf67aff3ff771156c71252aa184855779bd84100430654f6111115578015"
+          },
+          {
+            "role": "image",
+            "filename": "The_Wonderful_Wizard_of_Oz.png",
+            "bytes": 3092541,
+            "sha256": "b48f4712cf972828ab37ecec50ed7ae16cf74fecff934c2178a0cc7f54eada76"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.512Z",
+      "book": {
+        "id": 99009,
+        "title": "Tom Thumb",
+        "authors": [
+          "Unknown"
+        ],
+        "characters": [
+          "Tom Thumb",
+          "Parents",
+          "King",
+          "Giant"
+        ],
+        "keywords": [
+          "Grimm",
+          "tiny",
+          "adventure",
+          "clever",
+          "fairy tale",
+          "size"
+        ],
+        "description": "A boy no bigger than a thumb uses his wits to survive extraordinary adventures.",
+        "languages": [
+          "en"
+        ],
+        "subjects": [],
+        "downloadCount": 0,
+        "updatedAt": null,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": null,
+        "source": {
+          "kind": "local",
+          "externalId": null
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "Tom Thumb",
+        "relativeDir": ".data/texts/by-title/Tom Thumb",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 13161,
+            "sha256": "4764f9f81a55c41a4c21c84de3e9860346dbb16f8ad2e39e4b7a5776f08da968"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 4105,
+            "sha256": "139b9d0e40530ac631c6fde0dc41ed177b365ea54e215d63ff9a72e50c536ef2"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 6256,
+            "sha256": "1fe8b8989e58f5d0e1eec019526ef5e7e5a3096948547dda5bea200f5e26728a"
+          },
+          {
+            "role": "audio",
+            "filename": "Tom_Thumb.mp3",
+            "bytes": 4572828,
+            "sha256": "f709f9d8f96caf3fab020884fc3030a11db51a924186c1b3f737d96840bbcaf9"
+          },
+          {
+            "role": "image",
+            "filename": "Tom_Thumb.png",
+            "bytes": 3186916,
+            "sha256": "2019d09fd50fa941c5e49e1f6797640e438b82702ec611dc7c4009114195e8e0"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-02-17T19:14:36.528Z",
+      "book": {
+        "id": 120,
+        "title": "Treasure Island",
+        "authors": [
+          "Stevenson, Robert Louis"
+        ],
+        "characters": [
+          "Jim Hawkins",
+          "Long John Silver",
+          "Captain Smollett",
+          "Dr. Livesey",
+          "Squire Trelawney",
+          "Ben Gunn",
+          "Billy Bones"
+        ],
+        "keywords": [
+          "pirates",
+          "treasure",
+          "map",
+          "Stevenson",
+          "sea",
+          "adventure",
+          "parrot",
+          "mutiny"
+        ],
+        "description": "A young boy finds a treasure map and sets sail on a dangerous voyage with pirates.",
+        "languages": [],
+        "subjects": [
+          "Pirates -- Fiction",
+          "Sea stories",
+          "Treasure Island (Imaginary place) -- Fiction",
+          "Treasure troves -- Fiction"
+        ],
+        "downloadCount": 17700,
+        "updatedAt": 1762465432338,
+        "links": {
+          "txtUrl": null,
+          "epubUrl": null,
+          "coverUrl": null
+        },
+        "estimate": {
+          "minutes": 486,
+          "words": 77610,
+          "wpm": 160,
+          "source": "txt-head",
+          "computedAt": 1762465349333
+        },
+        "source": {
+          "kind": "gutenberg",
+          "externalId": 120
+        }
+      },
+      "local": {
+        "layout": "by-title",
+        "folderName": "Treasure Island",
+        "relativeDir": ".data/texts/by-title/Treasure Island",
+        "files": [
+          {
+            "role": "full",
+            "filename": "full.txt",
+            "bytes": 393612,
+            "sha256": "13605ee3c4d6d4eabca3f741589b6ec5406e3e2064685a8d2c0a1dbc8c14e5bb"
+          },
+          {
+            "role": "bedtime",
+            "filename": "bedtime.txt",
+            "bytes": 4423,
+            "sha256": "fbbe83ae7a25528c981dd42eb061704801b54b47574e7e77b8b8a2e912bd8b3d"
+          },
+          {
+            "role": "other",
+            "filename": "bedtime.pages.json",
+            "bytes": 6305,
+            "sha256": "57e3f0534db1afd4e70ca877092f7e4914e482aacbea23b79d348deacce0f78f"
+          },
+          {
+            "role": "audio",
+            "filename": "Treasure_Island.mp3",
+            "bytes": 4959858,
+            "sha256": "1f2c7b55af6aaa5e7bc250f48049ceca21283a78fe988f6e5121739e89f64732"
+          },
+          {
+            "role": "image",
+            "filename": "Treasure_Island.png",
+            "bytes": 2928510,
+            "sha256": "704940c90ea63274121cd3c4df33de703accc7096a832729bcc353d2b6eba47b"
+          }
+        ]
+      }
+    }
+  ]
+}

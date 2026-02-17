@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-01-18T20:35:59.082Z",
+  "generatedAt": "2026-02-17T19:14:36.495Z",
   "book": {
     "id": 55,
     "title": "The Wonderful Wizard of Oz",
@@ -48,9 +48,9 @@
     "downloadCount": 17901,
     "updatedAt": 1762465432338,
     "links": {
-      "txtUrl": "https://www.gutenberg.org/ebooks/55.txt.utf-8",
-      "epubUrl": "https://www.gutenberg.org/ebooks/55.epub3.images",
-      "coverUrl": "https://www.gutenberg.org/cache/epub/55/pg55.cover.medium.jpg"
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
     },
     "estimate": {
       "minutes": 286,
@@ -72,14 +72,26 @@
       {
         "role": "full",
         "filename": "full.txt",
-        "bytes": 210366,
-        "sha256": "03d07dd6dc602855183b92a1d3c3625f39a6b481637c8b04b0db01ef96cac378"
+        "bytes": 212677,
+        "sha256": "236607227520e1158f25b836bbcfe898aab4a536bcd5b4628141ef1ae8024fdc"
       },
       {
         "role": "bedtime",
         "filename": "bedtime.txt",
-        "bytes": 5304,
-        "sha256": "bfc022e3a90030b2addfd5a73f130de9bcf6f5f73d84c1037dbe36b18c3482e6"
+        "bytes": 5366,
+        "sha256": "c3f4053e2e182a37cf1788b6eea6d9ae44a4fbeacb00d8ca808484b970708e54"
+      },
+      {
+        "role": "other",
+        "filename": "bedtime.pages.json",
+        "bytes": 7175,
+        "sha256": "93ef92c3efb037f7595b6093b21c066f003f7f0fc1e5bc5c7a57684d73595745"
+      },
+      {
+        "role": "audio",
+        "filename": "The_Wonderful_Wizard_of_Oz.mp3",
+        "bytes": 5785327,
+        "sha256": "8cacaf67aff3ff771156c71252aa184855779bd84100430654f6111115578015"
       },
       {
         "role": "image",

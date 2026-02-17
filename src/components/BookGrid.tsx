@@ -53,7 +53,8 @@ export function BookGrid({
   timeSelection?: TimeOptionId | null;
   displayMode?: 'detailed' | 'covers';
 }) {
-  const isLocalContent = process.env.NEXT_PUBLIC_CONTENT_MODE === 'local';
+  const contentMode = process.env.NEXT_PUBLIC_CONTENT_MODE;
+  const isLocalContent = contentMode === 'local' || contentMode === 'cloud';
   const [books, setBooks] = useState<Book[]>(initialBooks);
   const [loading, setLoading] = useState<Set<number>>(new Set());
 
@@ -257,7 +258,7 @@ export function BookGrid({
             {/* Custom book image from .data/texts/by-title/<Title>/<Title>.png */}
             <div className={isCoverOnly ? 'relative w-full aspect-[2/3] bg-tt-surface/60 dark:bg-tt-primary/60 overflow-hidden' : 'relative w-full aspect-[2/3] bg-tt-surface dark:bg-tt-primary overflow-hidden'}>
               <Image
-                src={`/api/local-image?title=${encodeURIComponent(book.title)}${book.localFolderName ? `&folder=${encodeURIComponent(book.localFolderName)}` : ''}`}
+                src={`/api/local-image?title=${encodeURIComponent(book.title)}&bookId=${book.id}${book.localFolderName ? `&folder=${encodeURIComponent(book.localFolderName)}` : ''}`}
                 alt={book.title}
                 fill
                 className={isCoverOnly ? 'object-cover group-hover:scale-[1.02] transition-transform duration-500' : 'object-contain group-hover:scale-105 transition-transform duration-500'}

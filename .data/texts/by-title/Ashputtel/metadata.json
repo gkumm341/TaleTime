@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-01-18T20:35:58.795Z",
+  "generatedAt": "2026-02-17T19:14:36.270Z",
   "book": {
     "id": 99002,
     "title": "Ashputtel",
@@ -70,6 +70,18 @@
         "filename": "Ashputtel.png",
         "bytes": 3043492,
         "sha256": "a1ad58e6c91480a331283266cba966d7c2f16000abbface1d7fbf54abf085262"
+      },
+      {
+        "role": "other",
+        "filename": "bedtime.pages.json",
+        "bytes": 6193,
+        "sha256": "f59b8c011abf60642ce4ee01091d7d96402d5c9b4f668f9626e73f302bd59322"
+      },
+      {
+        "role": "other",
+        "filename": "full.story.json",
+        "bytes": 15171,
+        "sha256": "b9c24a0f5f9b0d4052c501a8331ef5696a6b6600be248a97af16a894896f5cb5"
       }
     ]
   }

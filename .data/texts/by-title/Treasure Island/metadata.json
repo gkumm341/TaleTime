@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-01-18T20:35:59.098Z",
+  "generatedAt": "2026-02-17T19:14:36.528Z",
   "book": {
     "id": 120,
     "title": "Treasure Island",
@@ -37,9 +37,9 @@
     "downloadCount": 17700,
     "updatedAt": 1762465432338,
     "links": {
-      "txtUrl": "https://www.gutenberg.org/ebooks/120.txt.utf-8",
-      "epubUrl": "https://www.gutenberg.org/ebooks/120.epub3.images",
-      "coverUrl": "https://www.gutenberg.org/cache/epub/120/pg120.cover.medium.jpg"
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
     },
     "estimate": {
       "minutes": 486,
@@ -61,14 +61,26 @@
       {
         "role": "full",
         "filename": "full.txt",
-        "bytes": 390609,
-        "sha256": "96f31e7b75bbf71da71eed46fe6436b3ced0d79612ad5f9d2d7631703ab25fbb"
+        "bytes": 393612,
+        "sha256": "13605ee3c4d6d4eabca3f741589b6ec5406e3e2064685a8d2c0a1dbc8c14e5bb"
       },
       {
         "role": "bedtime",
         "filename": "bedtime.txt",
-        "bytes": 4408,
-        "sha256": "38de1ea64719a2fb202ca13f8f8f188d57398a4bcd581e06d9d77e0008019724"
+        "bytes": 4423,
+        "sha256": "fbbe83ae7a25528c981dd42eb061704801b54b47574e7e77b8b8a2e912bd8b3d"
+      },
+      {
+        "role": "other",
+        "filename": "bedtime.pages.json",
+        "bytes": 6305,
+        "sha256": "57e3f0534db1afd4e70ca877092f7e4914e482aacbea23b79d348deacce0f78f"
+      },
+      {
+        "role": "audio",
+        "filename": "Treasure_Island.mp3",
+        "bytes": 4959858,
+        "sha256": "1f2c7b55af6aaa5e7bc250f48049ceca21283a78fe988f6e5121739e89f64732"
       },
       {
         "role": "image",

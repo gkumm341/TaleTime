@@ -22,6 +22,8 @@ import {
   resolveRequestLocale,
   shouldTranslate,
 } from '@/lib/server/translation';
+import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
+import { getCloudBookId, loadCloudCatalogMetadata } from '@/lib/server/cloud-catalog';
 import type { Locale } from '@/i18n/routing';
 
 export const runtime = 'nodejs';
@@ -100,6 +102,46 @@ async function loadFirstExistingStoryFile(paths: string[]): Promise<
       }
 
       return { filePath: p, text: raw, sourceFormat: 'txt' };
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+async function loadFirstExistingStoryUrl(urls: string[]): Promise<
+  | {
+      filePath: string;
+      text: string;
+      blocks?: StoryBlock[];
+      pages?: StoryPageInput[];
+      sourceFormat: 'txt' | 'story-json' | 'story-pages';
+    }
+  | null
+> {
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const raw = await res.text();
+
+      const lower = url.toLowerCase();
+
+      if (lower.endsWith('.pages.json')) {
+        const parsed = parseStoryPagesJson(raw);
+        const pages = parsed.doc.pages;
+        const text = storyPagesToLegacyText(pages);
+        return { filePath: url, text, pages, sourceFormat: 'story-pages' };
+      }
+
+      if (lower.endsWith('.story.json')) {
+        const parsed = parseStoryJson(raw);
+        const blocks = parsed.doc.blocks;
+        const text = storyBlocksToLegacyText(blocks);
+        return { filePath: url, text, blocks, sourceFormat: 'story-json' };
+      }
+
+      return { filePath: url, text: raw, sourceFormat: 'txt' };
     } catch {
       // ignore
     }
@@ -522,19 +564,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const book = await db.query.books.findFirst({ where: eq(books.id, bookId) });
-    if (!book) {
-      return NextResponse.json({ error: 'Book not found' }, { status: 404 });
-    }
-    const contentMode = (process.env.CONTENT_MODE || 'local').toLowerCase();
+    const contentMode = getContentMode();
 
-    // Local mode: read provided .txt files from disk (no network requests).
-    if (contentMode === 'local') {
+    let bookTitle = '';
+    let bookAuthor = 'Unknown';
+    let cloudFolderHint: string | null = null;
+
+    if (contentMode === 'cloud') {
+      const cloudMeta = await loadCloudCatalogMetadata();
+      const cloudBook = cloudMeta.find((meta) => getCloudBookId(meta) === bookId);
+      if (!cloudBook) {
+        return NextResponse.json({ error: 'Book not found in cloud catalog' }, { status: 404 });
+      }
+      bookTitle = cloudBook.book.title;
+      bookAuthor = (cloudBook.book.authors || []).join(', ') || 'Unknown';
+      cloudFolderHint = cloudBook.local?.folderName?.trim() || null;
+    } else {
+      const book = await db.query.books.findFirst({ where: eq(books.id, bookId) });
+      if (!book) {
+        return NextResponse.json({ error: 'Book not found' }, { status: 404 });
+      }
+      bookTitle = book.title;
+      bookAuthor = book.authors || 'Unknown';
+    }
+
+    if (contentMode === 'local' || contentMode === 'cloud') {
       const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
       const rootDir = path.resolve(process.cwd(), baseDir);
       const bookDir = path.join(rootDir, String(bookId));
 
-      const rawTitle = book.title;
+      const rawTitle = bookTitle;
       const titleCandidates = uniqueStrings([
         rawTitle,
         // Common case: DB title includes a parenthetical subtitle, but the file doesn't.
@@ -550,52 +609,111 @@ export async function POST(req: NextRequest) {
         .map(toSafeFilenameBase)
         .filter(Boolean);
 
-      const candidates: string[] = [];
+      let expectedSources: string[] = [];
+      let loaded:
+        | {
+            filePath: string;
+            text: string;
+            blocks?: StoryBlock[];
+            pages?: StoryPageInput[];
+            sourceFormat: 'txt' | 'story-json' | 'story-pages';
+          }
+        | null = null;
 
-      // Preferred layout: ${LOCAL_TEXT_DIR}/by-title/<Title>/bedtime.txt|full.txt
-      const byTitleRoot = path.join(rootDir, 'by-title');
-      const byTitleFolder = await findMatchingSubdir({ parentDir: byTitleRoot, titleCandidates });
-      if (byTitleFolder) {
-        const byTitleDir = path.join(byTitleRoot, byTitleFolder);
-        if (variant === 'full') {
-          candidates.push(path.join(byTitleDir, 'full.pages.json'));
-          candidates.push(path.join(byTitleDir, 'full.story.json'));
-          candidates.push(path.join(byTitleDir, 'full.txt'));
+      if (contentMode === 'local') {
+        const candidates: string[] = [];
+
+        // Preferred layout: ${LOCAL_TEXT_DIR}/by-title/<Title>/bedtime.txt|full.txt
+        const byTitleRoot = path.join(rootDir, 'by-title');
+        const byTitleFolder = await findMatchingSubdir({ parentDir: byTitleRoot, titleCandidates });
+        if (byTitleFolder) {
+          const byTitleDir = path.join(byTitleRoot, byTitleFolder);
+          if (variant === 'full') {
+            candidates.push(path.join(byTitleDir, 'full.pages.json'));
+            candidates.push(path.join(byTitleDir, 'full.story.json'));
+            candidates.push(path.join(byTitleDir, 'full.txt'));
+          } else {
+            candidates.push(path.join(byTitleDir, 'bedtime.pages.json'));
+            candidates.push(path.join(byTitleDir, 'bedtime.story.json'));
+            candidates.push(path.join(byTitleDir, 'bedtime.txt'));
+            candidates.push(path.join(byTitleDir, 'full.pages.json'));
+            candidates.push(path.join(byTitleDir, 'full.story.json'));
+            candidates.push(path.join(byTitleDir, 'full.txt'));
+          }
+        }
+
+        if (variant === 'full' || variant === 'timed') {
+          candidates.push(path.join(bookDir, 'full.pages.json'));
+          candidates.push(path.join(bookDir, 'full.story.json'));
+          candidates.push(path.join(bookDir, 'full.txt'));
         } else {
-          candidates.push(path.join(byTitleDir, 'bedtime.pages.json'));
-          candidates.push(path.join(byTitleDir, 'bedtime.story.json'));
-          candidates.push(path.join(byTitleDir, 'bedtime.txt'));
-          candidates.push(path.join(byTitleDir, 'full.pages.json'));
-          candidates.push(path.join(byTitleDir, 'full.story.json'));
-          candidates.push(path.join(byTitleDir, 'full.txt'));
-        }
-      }
+          candidates.push(path.join(bookDir, 'bedtime.pages.json'));
+          candidates.push(path.join(bookDir, 'bedtime.story.json'));
+          candidates.push(path.join(bookDir, 'bedtime.txt'));
+          candidates.push(path.join(bookDir, 'full.pages.json'));
+          candidates.push(path.join(bookDir, 'full.story.json'));
+          candidates.push(path.join(bookDir, 'full.txt'));
 
-      if (variant === 'full' || variant === 'timed') {
-        candidates.push(path.join(bookDir, 'full.pages.json'));
-        candidates.push(path.join(bookDir, 'full.story.json'));
-        candidates.push(path.join(bookDir, 'full.txt'));
+          // Alternative layout: ${LOCAL_TEXT_DIR}/bookBedtime/<Title> (Bedtime).txt
+          for (const t of titleCandidates) {
+            candidates.push(path.join(rootDir, 'bookBedtime', `${t} (Bedtime).txt`));
+            candidates.push(path.join(rootDir, 'bookBedtime', `${t}.txt`));
+          }
+        }
+
+        expectedSources = candidates;
+        loaded = await loadFirstExistingStoryFile(candidates);
       } else {
-        candidates.push(path.join(bookDir, 'bedtime.pages.json'));
-        candidates.push(path.join(bookDir, 'bedtime.story.json'));
-        candidates.push(path.join(bookDir, 'bedtime.txt'));
-        candidates.push(path.join(bookDir, 'full.pages.json'));
-        candidates.push(path.join(bookDir, 'full.story.json'));
-        candidates.push(path.join(bookDir, 'full.txt'));
+        const cloudCandidates: string[] = [];
+        const byTitleCandidates = uniqueStrings([cloudFolderHint || '', rawTitle, ...titleCandidates]);
 
-        // Alternative layout: ${LOCAL_TEXT_DIR}/bookBedtime/<Title> (Bedtime).txt
-        for (const t of titleCandidates) {
-          candidates.push(path.join(rootDir, 'bookBedtime', `${t} (Bedtime).txt`));
-          candidates.push(path.join(rootDir, 'bookBedtime', `${t}.txt`));
+        const pushCloud = (segments: string[]) => {
+          const url = buildCloudTextUrl(segments);
+          if (url) cloudCandidates.push(url);
+        };
+
+        for (const folder of byTitleCandidates) {
+          if (variant === 'full') {
+            pushCloud(['by-title', folder, 'full.pages.json']);
+            pushCloud(['by-title', folder, 'full.story.json']);
+            pushCloud(['by-title', folder, 'full.txt']);
+          } else {
+            pushCloud(['by-title', folder, 'bedtime.pages.json']);
+            pushCloud(['by-title', folder, 'bedtime.story.json']);
+            pushCloud(['by-title', folder, 'bedtime.txt']);
+            pushCloud(['by-title', folder, 'full.pages.json']);
+            pushCloud(['by-title', folder, 'full.story.json']);
+            pushCloud(['by-title', folder, 'full.txt']);
+          }
         }
+
+        if (variant === 'full' || variant === 'timed') {
+          pushCloud([String(bookId), 'full.pages.json']);
+          pushCloud([String(bookId), 'full.story.json']);
+          pushCloud([String(bookId), 'full.txt']);
+        } else {
+          pushCloud([String(bookId), 'bedtime.pages.json']);
+          pushCloud([String(bookId), 'bedtime.story.json']);
+          pushCloud([String(bookId), 'bedtime.txt']);
+          pushCloud([String(bookId), 'full.pages.json']);
+          pushCloud([String(bookId), 'full.story.json']);
+          pushCloud([String(bookId), 'full.txt']);
+
+          for (const t of titleCandidates) {
+            pushCloud(['bookBedtime', `${t} (Bedtime).txt`]);
+            pushCloud(['bookBedtime', `${t}.txt`]);
+          }
+        }
+
+        expectedSources = cloudCandidates;
+        loaded = await loadFirstExistingStoryUrl(cloudCandidates);
       }
 
-      const loaded = await loadFirstExistingStoryFile(candidates);
       if (!loaded) {
         return NextResponse.json(
           {
-            error: 'Missing local text file for this book',
-            expectedPaths: candidates,
+            error: contentMode === 'cloud' ? 'Missing cloud text file for this book' : 'Missing local text file for this book',
+            expectedPaths: expectedSources,
           },
           { status: 400 }
         );
@@ -607,8 +725,8 @@ export async function POST(req: NextRequest) {
             bookId,
             minutes: 0,
             wpm,
-            title: book.title,
-            author: book.authors || 'Unknown',
+            title: bookTitle,
+            author: bookAuthor,
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -623,8 +741,8 @@ export async function POST(req: NextRequest) {
             bookId,
             minutes: bedtimeMinutes,
             wpm,
-            title: book.title,
-            author: book.authors || 'Unknown',
+            title: bookTitle,
+            author: bookAuthor,
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -638,8 +756,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: effectiveMinutes,
           wpm,
-          title: book.title,
-          author: book.authors || 'Unknown',
+          title: bookTitle,
+          author: bookAuthor,
           pages: loaded.pages,
           content: '',
           blocks: null,
@@ -656,8 +774,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: 0,
           wpm,
-          title: book.title,
-          author: book.authors || 'Unknown',
+          title: bookTitle,
+          author: bookAuthor,
           content: cleaned,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -677,8 +795,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: bedtimeMinutes,
           wpm,
-          title: book.title,
-          author: book.authors || 'Unknown',
+          title: bookTitle,
+          author: bookAuthor,
           content: bedtimeContent,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -694,19 +812,14 @@ export async function POST(req: NextRequest) {
         bookId,
         minutes: effectiveMinutes,
         wpm,
-        title: book.title,
-        author: book.authors || 'Unknown',
+        title: bookTitle,
+        author: bookAuthor,
         content,
         mode: 'extractive' as Mode,
       }, locale));
     }
 
-    return NextResponse.json(
-      {
-        error: `Unsupported CONTENT_MODE: ${contentMode}. This app is configured for local-only content.`,
-      },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: `Unsupported CONTENT_MODE: ${contentMode}` }, { status: 400 });
   } catch (error) {
     console.error('Abridge API error:', error);
     return NextResponse.json({ error: 'Failed to abridge book' }, { status: 500 });

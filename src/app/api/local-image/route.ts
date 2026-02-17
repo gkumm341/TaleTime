@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import { createReadStream } from 'fs';
 import { readdirSync } from 'fs';
 import { join } from 'path';
+import { Readable } from 'stream';
+import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
+import { getCloudBookId, loadCloudCatalogMetadata } from '@/lib/server/cloud-catalog';
 
 export const runtime = 'nodejs';
 
@@ -44,11 +47,138 @@ function isSupportedImage(filename: string) {
   );
 }
 
+type CloudMetadata = {
+  book?: {
+    links?: {
+      coverUrl?: string;
+    };
+  };
+  local?: {
+    folderName?: string;
+    files?: Array<{
+      role?: string;
+      filename?: string;
+    }>;
+  };
+};
+
+function redirectTo(url: string, status = 307) {
+  return new Response(null, {
+    status,
+    headers: {
+      Location: url,
+      'Cache-Control': 'no-store, max-age=0',
+    },
+  });
+}
+
+function uniqueStrings(values: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const v of values) {
+    const trimmed = v.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+function resolveFolderCandidates(title: string, folder?: string | null): string[] {
+  const values = [
+    folder || '',
+    title,
+    title.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+    title.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+    title.split(':')[0]?.trim() || title,
+  ];
+  return uniqueStrings(values);
+}
+
+async function fetchCloudMetadataForFolder(folderName: string): Promise<CloudMetadata | null> {
+  const url = buildCloudTextUrl(['by-title', folderName, 'metadata.json']);
+  if (!url) return null;
+
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return (await res.json()) as CloudMetadata;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveCloudMetadata(
+  title: string,
+  folder?: string | null,
+  bookId?: number | null
+): Promise<{ metadata: CloudMetadata; folderName: string } | null> {
+
+  if (bookId != null) {
+    try {
+      const catalog = await loadCloudCatalogMetadata();
+      const matched = catalog.find((item) => getCloudBookId(item) === bookId) as CloudMetadata | undefined;
+      if (matched) {
+        return {
+          metadata: matched,
+          folderName: matched.local?.folderName?.trim() || folder?.trim() || title,
+        };
+      }
+    } catch {
+      // ignore and continue with title/folder candidates
+    }
+  }
+
+  const candidates = resolveFolderCandidates(title, folder);
+  for (const candidate of candidates) {
+    const metadata = await fetchCloudMetadataForFolder(candidate);
+    if (metadata) {
+      return {
+        metadata,
+        folderName: metadata.local?.folderName?.trim() || candidate,
+      };
+    }
+  }
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
   const folder = req.nextUrl.searchParams.get('folder');
+  const bookIdRaw = Number(req.nextUrl.searchParams.get('bookId'));
+  const bookId = Number.isFinite(bookIdRaw) && bookIdRaw > 0 ? bookIdRaw : null;
   if (!title) {
     return new Response('Missing title', { status: 400 });
+  }
+
+  if (getContentMode() === 'cloud') {
+    const resolved = await resolveCloudMetadata(title, folder, bookId);
+    if (resolved) {
+      const cloudFolder = resolved.folderName;
+      const files = resolved.metadata.local?.files || [];
+      const imageFilename = files.find((f) => {
+        const filename = f.filename || '';
+        return f.role === 'image' && isSupportedImage(filename);
+      })?.filename;
+
+      if (imageFilename) {
+        const url = buildCloudTextUrl(['by-title', cloudFolder, imageFilename]);
+        if (url) return redirectTo(url);
+      }
+
+      const fallbackCoverUrl = resolved.metadata.book?.links?.coverUrl;
+      if (fallbackCoverUrl && /^https?:\/\//i.test(fallbackCoverUrl)) {
+        return redirectTo(fallbackCoverUrl);
+      }
+    }
+
+    return new Response(TRANSPARENT_PNG, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   }
 
   const requestedKey = normalizeKey(title);
@@ -125,7 +255,8 @@ export async function GET(req: NextRequest) {
 
   const absPath = join(folderPath, imageName);
   const stream = createReadStream(absPath);
-  return new Response(stream as any, {
+  const body = Readable.toWeb(stream) as ReadableStream;
+  return new Response(body, {
     status: 200,
     headers: {
       'Content-Type': guessContentType(imageName),

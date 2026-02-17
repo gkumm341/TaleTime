@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { createReadStream, existsSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import { Readable } from 'stream';
+import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs';
 
@@ -60,8 +62,76 @@ function findIllustrationsFolder(bookFolderPath: string): string | null {
 
 function devLogMissingImage(message: string, details: Record<string, string | undefined>) {
   if (process.env.NODE_ENV === 'production') return;
-  // eslint-disable-next-line no-console
   console.log(`[illustration] ${message}`, details);
+}
+
+type CloudMetadata = {
+  local?: {
+    folderName?: string;
+  };
+};
+
+function redirectTo(url: string, status = 307) {
+  return new Response(null, {
+    status,
+    headers: {
+      Location: url,
+      'Cache-Control': 'no-store, max-age=0',
+    },
+  });
+}
+
+function uniqueStrings(values: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const v of values) {
+    const trimmed = v.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+function resolveFolderCandidates(title: string): string[] {
+  return uniqueStrings([
+    title,
+    title.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+    title.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+    title.split(':')[0]?.trim() || title,
+  ]);
+}
+
+async function fetchCloudMetadataForFolder(folderName: string): Promise<CloudMetadata | null> {
+  const url = buildCloudTextUrl(['by-title', folderName, 'metadata.json']);
+  if (!url) return null;
+
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return (await res.json()) as CloudMetadata;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveCloudFolder(title: string): Promise<string | null> {
+  const candidates = resolveFolderCandidates(title);
+  for (const candidate of candidates) {
+    const metadata = await fetchCloudMetadataForFolder(candidate);
+    if (!metadata) continue;
+    return metadata.local?.folderName?.trim() || candidate;
+  }
+  return null;
+}
+
+async function cloudFileExists(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -80,6 +150,41 @@ export async function GET(req: NextRequest) {
   const safeImage = image.replace(/[/\\]/g, '').replace(/\.\./g, '');
   if (!safeImage) {
     return new Response('Invalid image parameter', { status: 400 });
+  }
+
+  if (getContentMode() === 'cloud') {
+    const cloudFolder = await resolveCloudFolder(title);
+    if (!cloudFolder) {
+      return new Response(TRANSPARENT_PNG, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      });
+    }
+
+    const dirCandidates = ['Illustrations', 'illustrations', 'Illustration', 'images', 'imgs'];
+    for (const dir of dirCandidates) {
+      const url = buildCloudTextUrl(['by-title', cloudFolder, dir, safeImage]);
+      if (!url) continue;
+      if (await cloudFileExists(url)) {
+        return redirectTo(url);
+      }
+    }
+
+    const directUrl = buildCloudTextUrl(['by-title', cloudFolder, safeImage]);
+    if (directUrl && (await cloudFileExists(directUrl))) {
+      return redirectTo(directUrl);
+    }
+
+    return new Response(TRANSPARENT_PNG, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   }
 
   const requestedKey = normalizeKey(title);
@@ -135,7 +240,8 @@ export async function GET(req: NextRequest) {
           const clampedStart = Math.max(0, Math.min(start, size - 1));
           const clampedEnd = Math.max(clampedStart, Math.min(end, size - 1));
           const stream = createReadStream(filePath, { start: clampedStart, end: clampedEnd });
-          return new Response(stream as any, {
+          const body = Readable.toWeb(stream) as ReadableStream;
+          return new Response(body, {
             status: 206,
             headers: {
               'Content-Type': guessContentType(fileName),
@@ -149,7 +255,8 @@ export async function GET(req: NextRequest) {
       }
 
       const stream = createReadStream(filePath);
-      return new Response(stream as any, {
+      const body = Readable.toWeb(stream) as ReadableStream;
+      return new Response(body, {
         status: 200,
         headers: {
           'Content-Type': guessContentType(fileName),
@@ -161,7 +268,8 @@ export async function GET(req: NextRequest) {
     }
 
     const stream = createReadStream(filePath);
-    return new Response(stream as any, {
+    const body = Readable.toWeb(stream) as ReadableStream;
+    return new Response(body, {
       status: 200,
       headers: {
         'Content-Type': guessContentType(fileName),

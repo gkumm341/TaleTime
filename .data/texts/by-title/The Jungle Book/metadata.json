@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-01-18T20:35:59.001Z",
+  "generatedAt": "2026-02-17T19:14:36.402Z",
   "book": {
     "id": 236,
     "title": "The Jungle Book",
@@ -41,9 +41,9 @@
     "downloadCount": 10442,
     "updatedAt": 1762465432338,
     "links": {
-      "txtUrl": "https://www.gutenberg.org/ebooks/236.txt.utf-8",
-      "epubUrl": "https://www.gutenberg.org/ebooks/236.epub3.images",
-      "coverUrl": "https://www.gutenberg.org/cache/epub/236/pg236.cover.medium.jpg"
+      "txtUrl": null,
+      "epubUrl": null,
+      "coverUrl": null
     },
     "estimate": {
       "minutes": 368,
@@ -65,14 +65,20 @@
       {
         "role": "full",
         "filename": "full.txt",
-        "bytes": 296828,
-        "sha256": "111c29f47d4d58ddd2927df29ebd780432689adefa7c00576a0f09bdcbd87a36"
+        "bytes": 298958,
+        "sha256": "a15ab7a56ecf803443ae6906c7ba61b0bc5204d32eab5b7362b63902047bd82f"
       },
       {
         "role": "bedtime",
         "filename": "bedtime.txt",
-        "bytes": 4703,
-        "sha256": "942e83279f48b2a2b388f34ceec77bb33b099d99d81e874f62f08e731bf3d7e5"
+        "bytes": 4906,
+        "sha256": "2a0c3e3376b8e9d8024838432db606254ca686ae5dc0bdda550b30598e77766b"
+      },
+      {
+        "role": "other",
+        "filename": "bedtime.pages.json",
+        "bytes": 6908,
+        "sha256": "1801b2f2f08dac044eca2ed81f1ba8af2d1b0b37d88191e03ff0ec75d1ca1df1"
       },
       {
         "role": "audio",

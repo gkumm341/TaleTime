@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-01-18T20:35:58.908Z",
+  "generatedAt": "2026-02-17T19:14:36.369Z",
   "book": {
     "id": 99013,
     "title": "The Dream of Little Tuk",
@@ -52,6 +52,12 @@
         "filename": "bedtime.txt",
         "bytes": 2015,
         "sha256": "ca6fc5c7ebaa96af17d9fb246306bfcd9eb12f2f9091095c6c1f75f9851a58d8"
+      },
+      {
+        "role": "other",
+        "filename": "bedtime.pages.json",
+        "bytes": 3314,
+        "sha256": "d9709747085501f204a7fc3c7302d18f7350a882c4206243f6856f2c78e91ea9"
       },
       {
         "role": "audio",

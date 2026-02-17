@@ -602,14 +602,14 @@ export default function AbridgedBookPage() {
 
   const coverImageSrc = useMemo(() => {
     if (!data?.title) return undefined;
-    return `/api/local-image?title=${encodeURIComponent(data.title)}`;
-  }, [data?.title]);
+    return `/api/local-image?title=${encodeURIComponent(data.title)}&bookId=${id}`;
+  }, [data?.title, id]);
 
   const coverBackdropUrl = useMemo(() => {
     if (variant !== 'bedtime') return null;
     if (!data?.title) return null;
-    return `/api/local-image?title=${encodeURIComponent(data.title)}`;
-  }, [variant, data?.title]);
+    return `/api/local-image?title=${encodeURIComponent(data.title)}&bookId=${id}`;
+  }, [variant, data?.title, id]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastStoredAudioSecondRef = useRef(-1);
@@ -625,8 +625,8 @@ export default function AbridgedBookPage() {
   const audioResumeKey = useMemo(() => `taletime-audio-resume:${id}:${variant}`, [id, variant]);
   const taleTimeAudioSrc = useMemo(() => {
     const titleForLookup = data?.title || '';
-    return `/api/local-audio?title=${encodeURIComponent(titleForLookup)}`;
-  }, [data?.title]);
+    return `/api/local-audio?title=${encodeURIComponent(titleForLookup)}&bookId=${id}`;
+  }, [data?.title, id]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -766,7 +766,7 @@ export default function AbridgedBookPage() {
     const check = async () => {
       try {
         setAudioStatus('checking');
-        const res = await fetch(`/api/local-audio?title=${encodeURIComponent(safeTitle)}`, {
+        const res = await fetch(`/api/local-audio?title=${encodeURIComponent(safeTitle)}&bookId=${id}`, {
           method: 'HEAD',
         });
         if (cancelled) return;
@@ -781,7 +781,7 @@ export default function AbridgedBookPage() {
     return () => {
       cancelled = true;
     };
-  }, [variant, data?.title]);
+  }, [variant, data?.title, id]);
 
   const handleAudioPlay = useCallback(async () => {
     if (isCheckingAudio) return;

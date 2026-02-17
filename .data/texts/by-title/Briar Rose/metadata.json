@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-01-18T20:35:58.813Z",
+  "generatedAt": "2026-02-17T19:14:36.288Z",
   "book": {
     "id": 99005,
     "title": "Briar Rose",
@@ -51,14 +51,20 @@
       {
         "role": "full",
         "filename": "full.txt",
-        "bytes": 7893,
-        "sha256": "3e040e4b98f48fbf915bca50c90a797456151a98f5b64285a66c1890e5080948"
+        "bytes": 7917,
+        "sha256": "35bcb6292ff1e0c884b949a7eab2fb100eb4ebda3f81a875bdf4647d1d9b5fcd"
       },
       {
         "role": "bedtime",
         "filename": "bedtime.txt",
         "bytes": 5758,
         "sha256": "3160233406d95d018984607e73daeb059fe97eb2ec4b35515e4b91b1a7706249"
+      },
+      {
+        "role": "other",
+        "filename": "bedtime.pages.json",
+        "bytes": 8751,
+        "sha256": "c181962cd88888b5890ecf440e6527a1ac8d86b51918d5e5b43c35216eb58c16"
       },
       {
         "role": "audio",
@@ -69,8 +75,8 @@
       {
         "role": "image",
         "filename": "Briar_Rose.png",
-        "bytes": 2214244,
-        "sha256": "b606978c21afb018a6e08599a8d5dbda51c0a34f71f802c8b17fe2e1a993f65b"
+        "bytes": 2689066,
+        "sha256": "8b69b79393554ee74e14d0bf1aab89ca94d4aba32bd275dfdbcf6b0906243049"
       }
     ]
   }

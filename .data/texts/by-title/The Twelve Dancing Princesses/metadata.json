@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-01-18T20:35:59.075Z",
+  "generatedAt": "2026-02-17T19:14:36.478Z",
   "book": {
     "id": 99011,
     "title": "The Twelve Dancing Princesses",
@@ -58,8 +58,20 @@
         "sha256": "408a1af315144d8e1fc991eec52b0e7b005cc9775faca3fa90f37e1cb66c0c56"
       },
       {
+        "role": "other",
+        "filename": "bedtime.pages.json",
+        "bytes": 7071,
+        "sha256": "7f66ad610f6daa7eef12f900ec46cf69c8786d9687bfd26e94f6116154e22129"
+      },
+      {
+        "role": "audio",
+        "filename": "The_Twelve_Dancing_Princesses.mp3",
+        "bytes": 5263296,
+        "sha256": "e38ebf5be774f9006b59eaa0cbf93e72b6334c83bcbf5359b8f02972d6f41a5f"
+      },
+      {
         "role": "image",
-        "filename": "ChatGPT Image Jan 13, 2026, 03_58_08 PM.png",
+        "filename": "The_Twelve_Dancing_Princesses.png",
         "bytes": 2855101,
         "sha256": "95245d49bff2e56410a90e357193e9ace49e5624f70be129be1099a4e572fd2c"
       }
