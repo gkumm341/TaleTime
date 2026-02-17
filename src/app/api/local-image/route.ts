@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { createReadStream } from 'fs';
 import { readdirSync } from 'fs';
 import { join } from 'path';
+import { getContentMode } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs';
 
@@ -221,6 +222,19 @@ export async function GET(req: NextRequest) {
   }
 
   const fallbackSvg = createFallbackCoverSvg(title);
+
+  if (getContentMode() === 'cloud') {
+    const cloudCover = await fetchCloudCoverImage(title);
+    if (cloudCover) return cloudCover;
+
+    return new Response(fallbackSvg, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
+  }
 
   const requestedKey = normalizeKey(title);
 

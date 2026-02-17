@@ -117,7 +117,6 @@ async function fetchCloudIllustration(title: string, image: string, req: NextReq
           },
         });
       } catch {
-        // try next candidate
       }
     }
   }
