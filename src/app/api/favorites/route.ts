@@ -7,6 +7,22 @@ export const runtime = 'nodejs';
 
 const USER_ID = 'default'; // For now, single-user mode
 
+function sanitizeCoverUrl(coverUrl: string | null | undefined): string | null {
+  if (!coverUrl) return null;
+
+  try {
+    const parsed = new URL(coverUrl);
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'gutenberg.org' || host.endsWith('.gutenberg.org')) {
+      return null;
+    }
+  } catch {
+    // Keep non-URL values unchanged.
+  }
+
+  return coverUrl;
+}
+
 // GET /api/favorites - List all favorites
 export async function GET(req: NextRequest) {
   try {
@@ -54,7 +70,7 @@ export async function GET(req: NextRequest) {
       title: fav.title,
       authors: fav.authors,
       subjects: fav.subjects ? JSON.parse(fav.subjects) : [],
-      coverUrl: fav.coverUrl,
+      coverUrl: sanitizeCoverUrl(fav.coverUrl),
       epubUrl: fav.epubUrl,
       downloadCount: fav.downloadCount,
       minutes: fav.minutes,
