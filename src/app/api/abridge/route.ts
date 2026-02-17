@@ -29,10 +29,13 @@ import type { Locale } from '@/i18n/routing';
 export const runtime = 'nodejs';
 
 function shouldBypassPremiumPaywall(): boolean {
-  // Convenience for local development. Set ENFORCE_PREMIUM_IN_DEV=1 to test paywall flows.
+  // UX testing default: allow bedtime/timed access without auth/paywall.
+  // Set ENFORCE_PREMIUM_GATE=1 (or ENFORCE_PREMIUM_IN_DEV=1 for legacy behavior)
+  // to restore auth + premium checks.
+  if (process.env.ENFORCE_PREMIUM_GATE === '1' || process.env.ENFORCE_PREMIUM_GATE === 'true') return false;
   if (process.env.ENFORCE_PREMIUM_IN_DEV === '1' || process.env.ENFORCE_PREMIUM_IN_DEV === 'true') return false;
-  if (process.env.BYPASS_PREMIUM === '1' || process.env.BYPASS_PREMIUM === 'true') return true;
-  return process.env.NODE_ENV === 'development';
+  if (process.env.BYPASS_PREMIUM === '0' || process.env.BYPASS_PREMIUM === 'false') return false;
+  return true;
 }
 
 type Mode = 'llm' | 'extractive' | 'local';
