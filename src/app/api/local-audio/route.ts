@@ -122,7 +122,6 @@ async function findCloudAudioUrl(title: string): Promise<{ url: string; filename
         const head = await fetch(url, { method: 'HEAD', cache: 'no-store' });
         if (head.ok) return { url, filename: fileName };
       } catch {
-        // continue
       }
     }
   }

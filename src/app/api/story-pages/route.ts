@@ -3,7 +3,6 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { resolveRequestLocale } from '@/lib/server/translation';
 import { translateStoryJson } from '@/lib/story-translations';
-import { maybeTranslateText } from '@/lib/server/translation';
 import { buildCloudTextUrl, getContentMode, getLocalTextDir } from '@/lib/server/content-source';
 
 

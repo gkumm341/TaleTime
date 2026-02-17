@@ -148,7 +148,6 @@ async function loadFirstExistingStoryFileFromCloud(paths: string[]): Promise<
 
       return { filePath: p, text: raw, sourceFormat: 'txt' };
     } catch {
-      // ignore
     }
   }
 
