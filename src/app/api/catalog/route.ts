@@ -669,37 +669,29 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Catalog API error:', error);
+    const fallbackTestIds = getTestCatalogBookIds() ?? DEFAULT_TEST_CATALOG_BOOK_IDS;
+    let requestedIds = fallbackTestIds;
 
-    const fallbackTestIds = getTestCatalogBookIds();
-    if (Array.isArray(fallbackTestIds)) {
-      let requestedIds = fallbackTestIds;
-
-      if (idsParam) {
-        const requestedFromParam = idsParam
-          .split(',')
-          .map((s) => parseInt(s.trim(), 10))
-          .filter((n) => Number.isFinite(n) && n > 0);
-        requestedIds = requestedFromParam.filter((id) => fallbackTestIds.includes(id));
-      } else if (bookId) {
-        const single = parseInt(bookId, 10);
-        requestedIds = fallbackTestIds.includes(single) ? [single] : [];
-      }
-
-      const fallbackResults = requestedIds
-        .map((id) => TEST_CATALOG_FALLBACK_BY_ID[id])
-        .filter(Boolean);
-
-      return NextResponse.json({
-        count: fallbackResults.length,
-        next: null,
-        previous: null,
-        results: fallbackResults,
-      });
+    if (idsParam) {
+      const requestedFromParam = idsParam
+        .split(',')
+        .map((s) => parseInt(s.trim(), 10))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      requestedIds = requestedFromParam.filter((id) => fallbackTestIds.includes(id));
+    } else if (bookId) {
+      const single = parseInt(bookId, 10);
+      requestedIds = fallbackTestIds.includes(single) ? [single] : [];
     }
 
-    return NextResponse.json(
-      { error: 'Failed to fetch catalog' },
-      { status: 500 }
-    );
+    const fallbackResults = requestedIds
+      .map((id) => TEST_CATALOG_FALLBACK_BY_ID[id])
+      .filter(Boolean);
+
+    return NextResponse.json({
+      count: fallbackResults.length,
+      next: null,
+      previous: null,
+      results: fallbackResults,
+    });
   }
 }
