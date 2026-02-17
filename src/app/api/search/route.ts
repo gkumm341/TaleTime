@@ -72,20 +72,19 @@ interface SearchResult {
   score: number;
 }
 
-function sanitizeCoverUrl(coverUrl: string | null | undefined): string | null {
-  if (!coverUrl) return null;
+function sanitizeNonLocalUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
 
   try {
-    const parsed = new URL(coverUrl);
-    const host = parsed.hostname.toLowerCase();
-    if (host === 'gutenberg.org' || host.endsWith('.gutenberg.org')) {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
       return null;
     }
   } catch {
     // Keep non-URL values unchanged.
   }
 
-  return coverUrl;
+  return url;
 }
 
 function normalizeForSearch(input: string): string {
@@ -314,7 +313,7 @@ export async function GET(req: NextRequest) {
           keywords: meta.book.keywords || [],
           description: meta.book.description,
           subjects: meta.book.subjects || [],
-          coverUrl: sanitizeCoverUrl(meta.book.links.coverUrl),
+          coverUrl: sanitizeNonLocalUrl(meta.book.links.coverUrl),
           minutes: meta.book.estimate?.minutes ?? null,
           words: meta.book.estimate?.words ?? null,
           folderName: meta.local.folderName,
