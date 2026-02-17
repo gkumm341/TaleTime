@@ -3,7 +3,6 @@
 import { ReactNode } from 'react';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
-import { CacheManager } from '@/components/CacheManager';
 import { PWAInstallPrompt, OfflineBanner } from '@/components/PWAComponents';
 import { LanguageProvider } from '@/components/LanguageProvider';
 import { CookieConsentProvider } from '@/contexts/CookieConsentContext';
@@ -16,7 +15,6 @@ export function Providers({ children, initialLocale }: { children: ReactNode; in
       <CookieConsentProvider>
         <PreferencesProvider>
           <ThemeProvider>
-            <CacheManager />
             <OfflineBanner />
             <PWAInstallPrompt />
             <CookieConsentBanner />

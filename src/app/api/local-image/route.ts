@@ -46,19 +46,30 @@ function isSupportedImage(filename: string) {
 
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
+  const folder = req.nextUrl.searchParams.get('folder');
   if (!title) {
     return new Response('Missing title', { status: 400 });
   }
 
   const requestedKey = normalizeKey(title);
+  const requestedFolder = folder?.trim();
 
   let matchedFolderName: string | null = null;
   try {
     const entries = readdirSync(BY_TITLE_DIR, { withFileTypes: true });
     const folders = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
-    const exact = folders.find((f) => normalizeKey(f) === requestedKey);
-    matchedFolderName = exact ?? null;
+    if (requestedFolder) {
+      const directFolder = folders.find((f) => f === requestedFolder);
+      if (directFolder) {
+        matchedFolderName = directFolder;
+      }
+    }
+
+    if (!matchedFolderName) {
+      const exact = folders.find((f) => normalizeKey(f) === requestedKey);
+      matchedFolderName = exact ?? null;
+    }
 
     // Fallback: pick best partial match
     if (!matchedFolderName) {
