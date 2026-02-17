@@ -55,6 +55,11 @@ function resolveCatalogUrl(): string | null {
   const explicit = (process.env.CLOUDFRONT_CATALOG_URL || '').trim();
   if (explicit) return explicit;
 
+  const baseUrl = (process.env.CLOUDFRONT_BASE_URL || '').trim();
+  if (!baseUrl || /your-cloudfront-domain/i.test(baseUrl)) {
+    return null;
+  }
+
   const byTitleCatalog = buildCloudTextUrl(['by-title', 'catalog.json']);
   if (byTitleCatalog) return byTitleCatalog;
 
@@ -70,16 +75,20 @@ export async function loadCloudCatalogMetadata(): Promise<CloudBookMetadata[]> {
   const url = resolveCatalogUrl();
   if (!url) return [];
 
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) return [];
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return [];
 
-  const json = (await res.json()) as unknown;
-  const items = normalizeMetadata(json);
-  cloudCatalogCache = {
-    items,
-    expiresAt: now + 30_000,
-  };
-  return items;
+    const json = (await res.json()) as unknown;
+    const items = normalizeMetadata(json);
+    cloudCatalogCache = {
+      items,
+      expiresAt: now + 30_000,
+    };
+    return items;
+  } catch {
+    return [];
+  }
 }
 
 export function getCloudBookId(meta: CloudBookMetadata): number {
