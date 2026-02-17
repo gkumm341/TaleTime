@@ -55,10 +55,37 @@ export function BookGrid({
   const isLocalContent = process.env.NEXT_PUBLIC_CONTENT_MODE === 'local';
   const [books, setBooks] = useState<Book[]>(initialBooks);
   const [loading, setLoading] = useState<Set<number>>(new Set());
+  const [coverSrcById, setCoverSrcById] = useState<Record<number, string | null>>({});
+
+  const getLocalImageSrc = (title: string) => `/api/local-image?title=${encodeURIComponent(title)}`;
+
+  const getPrimaryCoverSrc = (book: Book) => {
+    if (!isLocalContent && book.coverUrl) return book.coverUrl;
+    return getLocalImageSrc(book.title);
+  };
+
+  const getFallbackCoverSrc = (book: Book, currentSrc: string | null) => {
+    const localSrc = getLocalImageSrc(book.title);
+    if (currentSrc !== localSrc) return localSrc;
+
+    if (!isLocalContent && book.coverUrl && currentSrc !== book.coverUrl) {
+      return book.coverUrl;
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     setBooks(initialBooks);
   }, [initialBooks]);
+
+  useEffect(() => {
+    const next: Record<number, string | null> = {};
+    for (const book of initialBooks) {
+      next[book.id] = getPrimaryCoverSrc(book);
+    }
+    setCoverSrcById(next);
+  }, [initialBooks, isLocalContent]);
 
 
   const [authorOverrides, setAuthorOverrides] = useState<Record<number, string>>({});
@@ -255,18 +282,28 @@ export function BookGrid({
           >
             {/* Custom book image from .data/texts/by-title/<Title>/<Title>.png */}
             <div className={isCoverOnly ? 'relative w-full aspect-[2/3] bg-tt-surface/60 dark:bg-tt-primary/60 overflow-hidden' : 'relative w-full aspect-[2/3] bg-tt-surface dark:bg-tt-primary overflow-hidden'}>
-              <Image
-                src={`/api/local-image?title=${encodeURIComponent(book.title)}`}
-                alt={book.title}
-                fill
-                className={isCoverOnly ? 'object-cover group-hover:scale-[1.02] transition-transform duration-500' : 'object-contain group-hover:scale-105 transition-transform duration-500'}
-                sizes={isCoverOnly ? '20vw' : '20vw'}
-                unoptimized
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-                priority={false}
-              />
+              {coverSrcById[book.id] !== null && (
+                <Image
+                  src={coverSrcById[book.id] ?? getPrimaryCoverSrc(book)}
+                  alt={book.title}
+                  fill
+                  className={isCoverOnly ? 'object-cover group-hover:scale-[1.02] transition-transform duration-500' : 'object-contain group-hover:scale-105 transition-transform duration-500'}
+                  sizes={isCoverOnly ? '20vw' : '20vw'}
+                  unoptimized
+                  onError={() => {
+                    setCoverSrcById((prev) => {
+                      const currentSrc = prev[book.id] ?? getPrimaryCoverSrc(book);
+                      const fallbackSrc = getFallbackCoverSrc(book, currentSrc);
+                      if (fallbackSrc === currentSrc) return prev;
+                      return {
+                        ...prev,
+                        [book.id]: fallbackSrc,
+                      };
+                    });
+                  }}
+                  priority={false}
+                />
+              )}
 
               <div
                 className="absolute bottom-2 right-2 z-20 rounded-full bg-black/45 backdrop-blur-sm ring-1 ring-white/20"
