@@ -28,6 +28,9 @@ import { buildCloudTextUrl, getContentMode, getLocalTextDir } from '@/lib/server
 export const runtime = 'nodejs';
 
 function shouldBypassPremiumPaywall(): boolean {
+  // Open access for user testing unless explicitly disabled.
+  if (process.env.OPEN_ACCESS_MODE !== 'false') return true;
+
   // Convenience for local development. Set ENFORCE_PREMIUM_IN_DEV=1 to test paywall flows.
   if (process.env.ENFORCE_PREMIUM_IN_DEV === '1' || process.env.ENFORCE_PREMIUM_IN_DEV === 'true') return false;
   if (process.env.BYPASS_PREMIUM === '1' || process.env.BYPASS_PREMIUM === 'true') return true;
@@ -218,23 +221,11 @@ function uniqueStrings(values: string[]): string[] {
   return out;
 }
 
-function parseAllowHosts(): RegExp[] {
-  return (process.env.ALLOW_HOSTS || 'gutenberg.org,standardebooks.org')
-    .split(',')
-    .map((h) => h.trim())
-    .filter(Boolean)
-    .map((h) => new RegExp(h.replace(/\./g, '\\.') + '$'));
-}
-
-function isAllowedHost(url: URL, allow: RegExp[]): boolean {
-  return allow.some((re) => re.test(url.hostname));
-}
-
 function clampInt(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.trunc(value)));
 }
 
-function stripGutenbergBoilerplate(raw: string): string {
+function stripPublicDomainBoilerplate(raw: string): string {
   const text = raw.replace(/\r\n/g, '\n');
 
   // Try START/END markers first
@@ -262,7 +253,7 @@ function stripFrontMatter(text: string): string {
   let t = text
     // Standalone bracketed stage directions/illustration lines.
     .replace(/^\s*\[(?:illustration|Illustrations?|frontispiece|plate)\b[^\]]*\]\s*$/gim, '')
-    // Gutenberg/SE eBook header crumbs.
+    // Common imported-book header crumbs.
     .replace(/^\s*the millennium fulcrum edition\b.*$/gim, '')
     .replace(/^\s*produced by\b.*$/gim, '')
     .replace(/^\s*\*+\s*$/gm, '');
@@ -285,21 +276,16 @@ function stripFrontMatter(text: string): string {
 }
 
 function stripEndBoilerplate(text: string): string {
-  // Some sources don't include the standard "*** END OF" marker; try to detect
-  // common license/boilerplate sections and truncate before them.
+  // Some sources don't include a standard end marker; detect common
+  // license/boilerplate sections and truncate before them.
   const markers: RegExp[] = [
-    /^\s*end of the project gutenberg ebook\b.*$/im,
-    /^\s*start of (?:the )?project gutenberg(?:\s+license)?\b.*$/im,
     /^\s*start:\s*full license\b.*$/im,
-    /^\s*the full project gutenberg license\b.*$/im,
     /^\s*this ebook is for the use of anyone anywhere\b.*$/im,
-    /^\s*project gutenberg is a registered trademark\b.*$/im,
-    /^\s*www\.gutenberg\.org\b.*$/im,
+    /^\s*full license\b.*$/im,
 
     // Fallback: catch trademark/license paragraphs even if wrapped mid-line.
-    /project gutenberg/i,
-    /gutenberg\s*[™\(]*/i,
     /trademark\s+license/i,
+    /all rights reserved/i,
   ];
 
   let cutIndex: number | null = null;
@@ -571,6 +557,10 @@ export async function POST(req: NextRequest) {
     if (!book) {
       return NextResponse.json({ error: 'Book not found' }, { status: 404 });
     }
+
+    const bookTitle = book.title;
+    const bookAuthors = book.authors;
+
     const contentMode = getContentMode();
 
     // Local mode: read provided .txt files from disk (no network requests).
@@ -579,7 +569,7 @@ export async function POST(req: NextRequest) {
       const rootDir = path.resolve(process.cwd(), baseDir);
       const bookDir = path.join(rootDir, String(bookId));
 
-      const rawTitle = book.title;
+      const rawTitle = bookTitle;
       const titleCandidates = uniqueStrings([
         rawTitle,
         // Common case: DB title includes a parenthetical subtitle, but the file doesn't.
@@ -652,8 +642,8 @@ export async function POST(req: NextRequest) {
             bookId,
             minutes: 0,
             wpm,
-            title: book.title,
-            author: book.authors || 'Unknown',
+            title: bookTitle,
+            author: bookAuthors || 'Unknown',
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -668,8 +658,8 @@ export async function POST(req: NextRequest) {
             bookId,
             minutes: bedtimeMinutes,
             wpm,
-            title: book.title,
-            author: book.authors || 'Unknown',
+            title: bookTitle,
+            author: bookAuthors || 'Unknown',
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -683,8 +673,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: effectiveMinutes,
           wpm,
-          title: book.title,
-          author: book.authors || 'Unknown',
+          title: bookTitle,
+          author: bookAuthors || 'Unknown',
           pages: loaded.pages,
           content: '',
           blocks: null,
@@ -694,15 +684,15 @@ export async function POST(req: NextRequest) {
       }
 
       const raw = loaded.text.trim();
-      const cleaned = stripEndBoilerplate(stripFrontMatter(stripGutenbergBoilerplate(raw)));
+      const cleaned = stripEndBoilerplate(stripFrontMatter(stripPublicDomainBoilerplate(raw)));
 
       if (variant === 'full') {
         return NextResponse.json(await localizeAbridgePayload({
           bookId,
           minutes: 0,
           wpm,
-          title: book.title,
-          author: book.authors || 'Unknown',
+          title: bookTitle,
+          author: bookAuthors || 'Unknown',
           content: cleaned,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -722,8 +712,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: bedtimeMinutes,
           wpm,
-          title: book.title,
-          author: book.authors || 'Unknown',
+          title: bookTitle,
+          author: bookAuthors || 'Unknown',
           content: bedtimeContent,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -739,15 +729,15 @@ export async function POST(req: NextRequest) {
         bookId,
         minutes: effectiveMinutes,
         wpm,
-        title: book.title,
-        author: book.authors || 'Unknown',
+        title: bookTitle,
+        author: bookAuthors || 'Unknown',
         content,
         mode: 'extractive' as Mode,
       }, locale));
     }
 
     if (contentMode === 'cloud') {
-      const rawTitle = book.title;
+      const rawTitle = bookTitle;
       const titleCandidates = uniqueStrings([
         rawTitle,
         rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
@@ -812,8 +802,8 @@ export async function POST(req: NextRequest) {
             bookId,
             minutes: 0,
             wpm,
-            title: book.title,
-            author: book.authors || 'Unknown',
+            title: bookTitle,
+            author: bookAuthors || 'Unknown',
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -828,8 +818,8 @@ export async function POST(req: NextRequest) {
             bookId,
             minutes: bedtimeMinutes,
             wpm,
-            title: book.title,
-            author: book.authors || 'Unknown',
+            title: bookTitle,
+            author: bookAuthors || 'Unknown',
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -843,8 +833,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: effectiveMinutes,
           wpm,
-          title: book.title,
-          author: book.authors || 'Unknown',
+          title: bookTitle,
+          author: bookAuthors || 'Unknown',
           pages: loaded.pages,
           content: '',
           blocks: null,
@@ -854,15 +844,15 @@ export async function POST(req: NextRequest) {
       }
 
       const raw = loaded.text.trim();
-      const cleaned = stripEndBoilerplate(stripFrontMatter(stripGutenbergBoilerplate(raw)));
+      const cleaned = stripEndBoilerplate(stripFrontMatter(stripPublicDomainBoilerplate(raw)));
 
       if (variant === 'full') {
         return NextResponse.json(await localizeAbridgePayload({
           bookId,
           minutes: 0,
           wpm,
-          title: book.title,
-          author: book.authors || 'Unknown',
+          title: bookTitle,
+          author: bookAuthors || 'Unknown',
           content: cleaned,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -881,8 +871,8 @@ export async function POST(req: NextRequest) {
           bookId,
           minutes: bedtimeMinutes,
           wpm,
-          title: book.title,
-          author: book.authors || 'Unknown',
+          title: bookTitle,
+          author: bookAuthors || 'Unknown',
           content: bedtimeContent,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -897,8 +887,8 @@ export async function POST(req: NextRequest) {
         bookId,
         minutes: effectiveMinutes,
         wpm,
-        title: book.title,
-        author: book.authors || 'Unknown',
+        title: bookTitle,
+        author: bookAuthors || 'Unknown',
         content,
         mode: 'extractive' as Mode,
       }, locale));

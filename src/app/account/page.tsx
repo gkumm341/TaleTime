@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 
 type AuthUser = {
@@ -14,9 +13,8 @@ type AuthUser = {
 type MeResponse = { user: AuthUser | null };
 
 export default function AccountPage() {
+  const openAccess = process.env.NEXT_PUBLIC_OPEN_ACCESS !== 'false';
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const next = useMemo(() => searchParams.get('next') || '/', [searchParams]);
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,15 +72,16 @@ export default function AccountPage() {
               <div className="mt-6 text-sm text-gray-600 dark:text-gray-400">Loading…</div>
             ) : !user ? (
               <div className="mt-6">
-                <div className="text-sm text-gray-700 dark:text-gray-300">You&apos;re not signed in.</div>
-                <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                  <Button asChild variant="default">
-                    <Link href={`/signin?next=${encodeURIComponent(next)}`}>Sign in</Link>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <Link href={`/register?next=${encodeURIComponent(next)}`}>Register</Link>
-                  </Button>
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  {openAccess
+                    ? 'Open access testing mode is enabled. Sign-in is not required.'
+                    : 'You\'re not signed in.'}
                 </div>
+                {!openAccess && (
+                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Continue by signing in from the dedicated auth pages.
+                  </div>
+                )}
               </div>
             ) : (
               <div className="mt-6 space-y-4">

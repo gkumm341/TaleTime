@@ -40,6 +40,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'reader.tips.dismiss': 'Got it',
     'reader.hint.mobile': 'Tip: swipe/drag to flip pages.',
     'reader.hint.desktop': 'Tip: click/drag page corners to flip.',
+    'reader.preparingStory': 'Preparing story…',
+    'reader.loadingFull': 'Loading full text…',
+    'reader.loadingBedtime': 'Loading bedtime version…',
+    'reader.tryAgain': 'Try again',
   },
   es: {
     'language.label': 'Idioma',
@@ -80,6 +84,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'reader.tips.dismiss': 'Entendido',
     'reader.hint.mobile': 'Consejo: desliza/arrastra para pasar páginas.',
     'reader.hint.desktop': 'Consejo: haz clic/arrastra las esquinas de página para pasar.',
+    'reader.preparingStory': 'Preparando historia…',
+    'reader.loadingFull': 'Cargando historia completa…',
+    'reader.loadingBedtime': 'Cargando versión para dormir…',
+    'reader.tryAgain': 'Intentar de nuevo',
   },
   el: {
     'language.label': 'Γλώσσα',
@@ -120,6 +128,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'reader.tips.dismiss': 'Το κατάλαβα',
     'reader.hint.mobile': 'Συμβουλή: σύρετε για να γυρίσετε σελίδες.',
     'reader.hint.desktop': 'Συμβουλή: κάντε κλικ/σύρετε τις γωνίες της σελίδας για γύρισμα.',
+    'reader.preparingStory': 'Προετοιμασία ιστορίας…',
+    'reader.loadingFull': 'Φόρτωση πλήρους ιστορίας…',
+    'reader.loadingBedtime': 'Φόρτωση έκδοσης για ύπνο…',
+    'reader.tryAgain': 'Δοκιμάστε ξανά',
   },
   'pt-BR': {
     'language.label': 'Idioma',
@@ -160,6 +172,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'reader.tips.dismiss': 'Entendi',
     'reader.hint.mobile': 'Dica: deslize/arraste para virar páginas.',
     'reader.hint.desktop': 'Dica: clique/arraste os cantos da página para virar.',
+    'reader.preparingStory': 'Preparando história…',
+    'reader.loadingFull': 'Carregando história completa…',
+    'reader.loadingBedtime': 'Carregando versão para dormir…',
+    'reader.tryAgain': 'Tentar novamente',
   },
   de: {
     'language.label': 'Sprache',
@@ -200,5 +216,9 @@ export const messages: Record<Locale, Record<string, string>> = {
     'reader.tips.dismiss': 'Verstanden',
     'reader.hint.mobile': 'Tipp: Wische/ziehe, um Seiten umzublättern.',
     'reader.hint.desktop': 'Tipp: Klicke/ziehe an den Seitenecken zum Umblättern.',
+    'reader.preparingStory': 'Geschichte wird vorbereitet…',
+    'reader.loadingFull': 'Vollständige Geschichte wird geladen…',
+    'reader.loadingBedtime': 'Gute-Nacht-Version wird geladen…',
+    'reader.tryAgain': 'Erneut versuchen',
   },
 };

@@ -61,7 +61,7 @@ Create a `.env.local` file:
 ```env
 SQLITE_PATH=.data/app.db
 READ_ALOUD_WPM=160
-ALLOW_HOSTS=gutenberg.org,standardebooks.org
+ALLOW_HOSTS=
 CONTENT_MODE=local
 # Required when CONTENT_MODE=cloud:
 # CLOUDFRONT_BASE_URL=https://dxxxxxxxxxxxx.cloudfront.net
@@ -106,9 +106,9 @@ yarn install
 yarn drizzle-kit migrate
 ```
 
-3. **Populate the database** (optional but recommended):
+3. **Populate the database** (optional):
 
-To pre-populate the database with children's books:
+If you have a metadata source or import script for your own books:
 
 ```bash
 # Using the provided script (requires Node 18+ for fetch)
@@ -117,10 +117,9 @@ node scripts/populate-books.mjs
 # Or browse to http://localhost:3000 and wait for initial data sync
 ```
 
-The populate script will:
-- Fetch all children's books from Gutendex (~200+ books)
-- Save metadata to SQLite database
-- Take about 2-3 minutes to complete
+The populate script can:
+- Save book metadata to SQLite database
+- Prepare records for local/cloud story assets
 - Reading time estimates are calculated on-demand when browsing
 
 4. **Start the development server**:
@@ -133,7 +132,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 ## API Routes
 
 ### GET /api/catalog
-Fetch books from Gutendex, upsert to SQLite, return with estimates if available.
+Fetch books from SQLite and return catalog entries with available estimates.
 
 Query params:
 - `topic` - Filter by topic (e.g., "Children")
@@ -162,7 +161,7 @@ Query params:
 
 ## How It Works
 
-1. **Book Discovery**: Home page fetches from `/api/catalog`, which queries Gutendex and stores metadata in SQLite
+1. **Book Discovery**: Home page fetches from `/api/catalog`, which reads your catalog metadata from SQLite
 2. **Lazy Estimates**: BookGrid component loads reading-time estimates in batches of 4 (to avoid server overload)
 3. **EPUB Caching**: When opening a book, reader checks IndexedDB first, then downloads via `/api/proxy` and caches
 4. **Position Persistence**: epub.js CFI positions saved to IndexedDB on each page turn
