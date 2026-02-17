@@ -1,13 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  outputFileTracingIncludes: {
-    '*': [
-      '.data/texts/**/*',
-    ],
+  turbopack: {
+    root: "C:\\dev\\taletime",
   },
   images: {
-    remotePatterns: [],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'www.gutenberg.org',
+        pathname: '/cache/epub/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'standardebooks.org',
+        pathname: '/ebooks/**',
+      },
+    ],
     localPatterns: [
       // Allow images from /public (e.g. /hat.png) when using next/image.
       { pathname: '/**' },

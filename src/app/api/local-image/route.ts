@@ -2,77 +2,19 @@ import { NextRequest } from 'next/server';
 import { createReadStream } from 'fs';
 import { readdirSync } from 'fs';
 import { join } from 'path';
-import { getContentMode } from '@/lib/server/content-source';
+import { Readable } from 'stream';
+import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
+import { getCloudBookId, loadCloudCatalogMetadata } from '@/lib/server/cloud-catalog';
 
 export const runtime = 'nodejs';
 
 const BY_TITLE_DIR = join(process.cwd(), '.data', 'texts', 'by-title');
 
-function trimSlashes(value: string): string {
-  return value.replace(/^\/+|\/+$/g, '');
-}
-
-function encodePathSegments(pathOrSegments: string | string[]): string {
-  const raw = Array.isArray(pathOrSegments) ? pathOrSegments.join('/') : pathOrSegments;
-  return raw
-    .split('/')
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
-}
-
-function buildCloudDataUrl(pathOrSegments: string | string[]): string | null {
-  const baseUrl = (process.env.CLOUDFRONT_BASE_URL || '').trim();
-  if (!baseUrl) return null;
-
-  const dataPrefix = trimSlashes(process.env.CLOUDFRONT_DATA_PREFIX || '');
-  const encodedPath = encodePathSegments(pathOrSegments);
-  const base = baseUrl.replace(/\/+$/, '');
-
-  if (dataPrefix) {
-    return `${base}/${dataPrefix}/${encodedPath}`;
-  }
-
-  return `${base}/${encodedPath}`;
-}
-
-function buildCloudTextUrl(pathOrSegments: string | string[]): string | null {
-  const relative = Array.isArray(pathOrSegments)
-    ? ['texts', ...pathOrSegments].join('/')
-    : `texts/${pathOrSegments}`;
-  return buildCloudDataUrl(relative);
-}
-
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-function createFallbackCoverSvg(title: string): string {
-  const trimmed = title.trim();
-  const safeTitle = escapeXml(trimmed || 'Story');
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900" role="img" aria-label="${safeTitle} cover placeholder">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1e2a47"/>
-      <stop offset="100%" stop-color="#344f84"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="900" fill="url(#bg)"/>
-  <rect x="34" y="34" width="532" height="832" rx="24" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2"/>
-  <text x="300" y="220" text-anchor="middle" fill="rgba(255,255,255,0.78)" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="34" font-weight="600">TaleTime</text>
-  <foreignObject x="70" y="280" width="460" height="430">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;justify-content:center;height:100%;text-align:center;color:#fff;font-size:42px;line-height:1.2;font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;font-weight:700;word-break:break-word;">
-      ${safeTitle}
-    </div>
-  </foreignObject>
-</svg>`;
-}
+// 1x1 transparent PNG
+const TRANSPARENT_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/6X9m7QAAAAASUVORK5CYII=',
+  'base64'
+);
 
 function normalizeKey(input: string) {
   return input
@@ -105,146 +47,159 @@ function isSupportedImage(filename: string) {
   );
 }
 
-function buildTitleFolderCandidates(rawTitle: string): string[] {
-  const title = rawTitle.trim();
-  if (!title) return [];
+type CloudMetadata = {
+  book?: {
+    links?: {
+      coverUrl?: string;
+    };
+  };
+  local?: {
+    folderName?: string;
+    files?: Array<{
+      role?: string;
+      filename?: string;
+    }>;
+  };
+};
 
-  const candidates = [
+function redirectTo(url: string, status = 307) {
+  return new Response(null, {
+    status,
+    headers: {
+      Location: url,
+      'Cache-Control': 'no-store, max-age=0',
+    },
+  });
+}
+
+function uniqueStrings(values: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const v of values) {
+    const trimmed = v.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+function resolveFolderCandidates(title: string, folder?: string | null): string[] {
+  const values = [
+    folder || '',
     title,
-    title.replace(/'/g, '’'),
-    title.replace(/’/g, "'"),
     title.replace(/\s*\([^)]*\)\s*$/, '').trim(),
     title.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
     title.split(':')[0]?.trim() || title,
-  ].filter(Boolean);
+  ];
+  return uniqueStrings(values);
+}
 
-  const unique: string[] = [];
-  const seen = new Set<string>();
+async function fetchCloudMetadataForFolder(folderName: string): Promise<CloudMetadata | null> {
+  const url = buildCloudTextUrl(['by-title', folderName, 'metadata.json']);
+  if (!url) return null;
+
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return (await res.json()) as CloudMetadata;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveCloudMetadata(
+  title: string,
+  folder?: string | null,
+  bookId?: number | null
+): Promise<{ metadata: CloudMetadata; folderName: string } | null> {
+
+  if (bookId != null) {
+    try {
+      const catalog = await loadCloudCatalogMetadata();
+      const matched = catalog.find((item) => getCloudBookId(item) === bookId) as CloudMetadata | undefined;
+      if (matched) {
+        return {
+          metadata: matched,
+          folderName: matched.local?.folderName?.trim() || folder?.trim() || title,
+        };
+      }
+    } catch {
+      // ignore and continue with title/folder candidates
+    }
+  }
+
+  const candidates = resolveFolderCandidates(title, folder);
   for (const candidate of candidates) {
-    const key = candidate.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    unique.push(candidate);
-  }
-  return unique;
-}
-
-function buildCloudImageFilenameCandidates(folderName: string): string[] {
-  const stems = [
-    folderName,
-    folderName.replace(/\s+/g, '_'),
-    folderName.replace(/\s+/g, '-'),
-    folderName.replace(/[’']/g, ''),
-    folderName.replace(/[’']/g, '').replace(/\s+/g, '_'),
-    folderName.replace(/[’']/g, '').replace(/\s+/g, '-'),
-  ];
-
-  const files = [
-    ...stems.map((stem) => `${stem}.png`),
-    ...stems.map((stem) => `${stem}.webp`),
-    ...stems.map((stem) => `${stem}.jpg`),
-    ...stems.map((stem) => `${stem}.jpeg`),
-  ];
-
-  const unique: string[] = [];
-  const seen = new Set<string>();
-  for (const file of files) {
-    const key = file.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    unique.push(file);
-  }
-  return unique;
-}
-
-async function fetchCloudCoverImage(title: string): Promise<Response | null> {
-  const folderCandidates = buildTitleFolderCandidates(title);
-  if (folderCandidates.length === 0) return null;
-
-  for (const folderName of folderCandidates) {
-    const metadataUrl = buildCloudTextUrl(['by-title', folderName, 'metadata.json']);
-
-    const imageNameCandidates: string[] = [];
-    if (metadataUrl) {
-      try {
-        const metadataRes = await fetch(metadataUrl, { cache: 'no-store' });
-        if (metadataRes.ok) {
-          const metadata = await metadataRes.json().catch(() => null) as {
-            local?: { files?: Array<{ role?: string; filename?: string }> };
-          } | null;
-
-          const files = metadata?.local?.files ?? [];
-          for (const file of files) {
-            if (!file?.filename) continue;
-            if (file.role === 'image' || isSupportedImage(file.filename)) {
-              imageNameCandidates.push(file.filename);
-            }
-          }
-        }
-      } catch {
-      }
-    }
-
-    imageNameCandidates.push(...buildCloudImageFilenameCandidates(folderName));
-
-    const seen = new Set<string>();
-    for (const imageName of imageNameCandidates) {
-      const key = imageName.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const imageUrl = buildCloudTextUrl(['by-title', folderName, imageName]);
-      if (!imageUrl) continue;
-
-      try {
-        const imageRes = await fetch(imageUrl, { cache: 'no-store' });
-        if (!imageRes.ok || !imageRes.body) continue;
-
-        return new Response(imageRes.body, {
-          status: 200,
-          headers: {
-            'Content-Type': imageRes.headers.get('content-type') || guessContentType(imageName),
-            'Cache-Control': 'no-store, max-age=0',
-          },
-        });
-      } catch {
-      }
+    const metadata = await fetchCloudMetadataForFolder(candidate);
+    if (metadata) {
+      return {
+        metadata,
+        folderName: metadata.local?.folderName?.trim() || candidate,
+      };
     }
   }
-
   return null;
 }
 
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
+  const folder = req.nextUrl.searchParams.get('folder');
+  const bookIdRaw = Number(req.nextUrl.searchParams.get('bookId'));
+  const bookId = Number.isFinite(bookIdRaw) && bookIdRaw > 0 ? bookIdRaw : null;
   if (!title) {
     return new Response('Missing title', { status: 400 });
   }
 
-  const fallbackSvg = createFallbackCoverSvg(title);
-
   if (getContentMode() === 'cloud') {
-    const cloudCover = await fetchCloudCoverImage(title);
-    if (cloudCover) return cloudCover;
+    const resolved = await resolveCloudMetadata(title, folder, bookId);
+    if (resolved) {
+      const cloudFolder = resolved.folderName;
+      const files = resolved.metadata.local?.files || [];
+      const imageFilename = files.find((f) => {
+        const filename = f.filename || '';
+        return f.role === 'image' && isSupportedImage(filename);
+      })?.filename;
 
-    return new Response(fallbackSvg, {
+      if (imageFilename) {
+        const url = buildCloudTextUrl(['by-title', cloudFolder, imageFilename]);
+        if (url) return redirectTo(url);
+      }
+
+      const fallbackCoverUrl = resolved.metadata.book?.links?.coverUrl;
+      if (fallbackCoverUrl && /^https?:\/\//i.test(fallbackCoverUrl)) {
+        return redirectTo(fallbackCoverUrl);
+      }
+    }
+
+    return new Response(TRANSPARENT_PNG, {
       status: 200,
       headers: {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Type': 'image/png',
         'Cache-Control': 'no-store, max-age=0',
       },
     });
   }
 
   const requestedKey = normalizeKey(title);
+  const requestedFolder = folder?.trim();
 
   let matchedFolderName: string | null = null;
   try {
     const entries = readdirSync(BY_TITLE_DIR, { withFileTypes: true });
     const folders = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
-    const exact = folders.find((f) => normalizeKey(f) === requestedKey);
-    matchedFolderName = exact ?? null;
+    if (requestedFolder) {
+      const directFolder = folders.find((f) => f === requestedFolder);
+      if (directFolder) {
+        matchedFolderName = directFolder;
+      }
+    }
+
+    if (!matchedFolderName) {
+      const exact = folders.find((f) => normalizeKey(f) === requestedKey);
+      matchedFolderName = exact ?? null;
+    }
 
     // Fallback: pick best partial match
     if (!matchedFolderName) {
@@ -258,13 +213,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (!matchedFolderName) {
-    const cloudCover = await fetchCloudCoverImage(title);
-    if (cloudCover) return cloudCover;
-
-    return new Response(fallbackSvg, {
+    return new Response(TRANSPARENT_PNG, {
       status: 200,
       headers: {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Type': 'image/png',
         'Cache-Control': 'no-store, max-age=0',
       },
     });
@@ -292,13 +244,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (!imageName) {
-    const cloudCover = await fetchCloudCoverImage(title);
-    if (cloudCover) return cloudCover;
-
-    return new Response(fallbackSvg, {
+    return new Response(TRANSPARENT_PNG, {
       status: 200,
       headers: {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Type': 'image/png',
         'Cache-Control': 'no-store, max-age=0',
       },
     });
@@ -306,7 +255,8 @@ export async function GET(req: NextRequest) {
 
   const absPath = join(folderPath, imageName);
   const stream = createReadStream(absPath);
-  return new Response(stream as any, {
+  const body = Readable.toWeb(stream) as ReadableStream;
+  return new Response(body, {
     status: 200,
     headers: {
       'Content-Type': guessContentType(imageName),

@@ -7,36 +7,12 @@ import path from 'node:path';
 import { syncLocalByTitleToDb } from '@/lib/local-book-sync';
 import { maybeTranslateManyTexts, resolveRequestLocale, shouldTranslate } from '@/lib/server/translation';
 import { getContentMode } from '@/lib/server/content-source';
+import { getCloudBookId, loadCloudCatalogMetadata, type CloudBookMetadata } from '@/lib/server/cloud-catalog';
 
 export const runtime = 'nodejs'; // Required for SQLite
 
 const DEFAULT_ITEMS_PER_PAGE = 100;
 const MAX_ITEMS_PER_PAGE = 100;
-const DEFAULT_TEST_CATALOG_BOOK_IDS = [11, 45, 236, 99002];
-const TEST_CATALOG_ID_REMAP = new Map<number, number>([
-  [74, 99002],
-  [2591, 236],
-]);
-
-function isTestCatalogEnabled(): boolean {
-  const raw = (process.env.TEST_CATALOG_ENABLED || '').trim().toLowerCase();
-  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
-}
-
-function getTestCatalogBookIds(): number[] | null {
-  if (!isTestCatalogEnabled()) return null;
-
-  const raw = (process.env.TEST_CATALOG_BOOK_IDS || '').trim();
-  if (!raw) return DEFAULT_TEST_CATALOG_BOOK_IDS;
-
-  const ids = raw
-    .split(',')
-    .map((part) => parseInt(part.trim(), 10))
-    .filter((id) => Number.isFinite(id) && id > 0)
-    .map((id) => TEST_CATALOG_ID_REMAP.get(id) ?? id);
-
-  return Array.from(new Set(ids));
-}
 
 function normalizeTitleKey(input: string): string {
   return input
@@ -54,41 +30,6 @@ const HIDDEN_LOCAL_TITLE_KEYS = new Set([
 
 function isHiddenLocalTitle(title: string): boolean {
   return HIDDEN_LOCAL_TITLE_KEYS.has(normalizeTitleKey(title));
-}
-
-function sanitizeNonLocalUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-      return null;
-    }
-  } catch {
-    // Keep non-URL values unchanged.
-  }
-
-  return url;
-}
-
-function getLocalIllustrationCoverUrl(title: string): string {
-  return `/api/local-image?title=${encodeURIComponent(title)}`;
-}
-
-function applyTestCatalogIllustrationCovers(
-  results: CatalogBookResult[],
-  testCatalogBookIds: number[] | null
-): CatalogBookResult[] {
-  if (!testCatalogBookIds || testCatalogBookIds.length === 0) return results;
-
-  const allowedIds = new Set(testCatalogBookIds);
-  return results.map((book) => {
-    if (!allowedIds.has(book.id)) return book;
-    return {
-      ...book,
-      coverUrl: getLocalIllustrationCoverUrl(book.title),
-    };
-  });
 }
 
 function buildTitleCandidates(rawTitle: string): string[] {
@@ -290,61 +231,6 @@ type CatalogBookResult = {
   isCached: boolean;
 };
 
-const TEST_CATALOG_FALLBACK_BY_ID: Record<number, CatalogBookResult> = {
-  11: {
-    id: 11,
-    title: "Alice's Adventures in Wonderland",
-    authors: 'Carroll, Lewis',
-    subjects: [],
-    coverUrl: null,
-    txtUrl: null,
-    epubUrl: null,
-    downloadCount: null,
-    minutes: null,
-    words: null,
-    isCached: false,
-  },
-  45: {
-    id: 45,
-    title: 'Anne of Green Gables',
-    authors: 'Montgomery, L. M. (Lucy Maud)',
-    subjects: [],
-    coverUrl: null,
-    txtUrl: null,
-    epubUrl: null,
-    downloadCount: null,
-    minutes: null,
-    words: null,
-    isCached: false,
-  },
-  236: {
-    id: 236,
-    title: 'The Jungle Book',
-    authors: 'Kipling, Rudyard',
-    subjects: [],
-    coverUrl: null,
-    txtUrl: null,
-    epubUrl: null,
-    downloadCount: null,
-    minutes: null,
-    words: null,
-    isCached: false,
-  },
-  99002: {
-    id: 99002,
-    title: 'Ashputtel',
-    authors: 'Brothers Grimm',
-    subjects: [],
-    coverUrl: null,
-    txtUrl: null,
-    epubUrl: null,
-    downloadCount: null,
-    minutes: null,
-    words: null,
-    isCached: false,
-  },
-};
-
 async function localizeCatalogResults(results: CatalogBookResult[], locale: ReturnType<typeof resolveRequestLocale>) {
   if (!shouldTranslate(locale) || results.length === 0) return results;
 
@@ -396,9 +282,187 @@ export async function GET(req: NextRequest) {
   try {
     const contentMode = getContentMode();
     const localIds = contentMode === 'local' ? await getLocalBookIdsWithText() : null;
-    const hasLocalDiskCatalog = contentMode === 'local' && Array.isArray(localIds) && localIds.length > 0;
-    const testCatalogBookIds = getTestCatalogBookIds();
-    const hasTestCatalog = Array.isArray(testCatalogBookIds);
+
+    if (contentMode === 'cloud') {
+      const cloudMeta = await loadCloudCatalogMetadata();
+      if (cloudMeta.length === 0) {
+        return NextResponse.json(
+          {
+            error: 'Cloud catalog is empty or unavailable',
+            hint: 'Upload .data/texts/by-title/catalog.json to CloudFront, or set CLOUDFRONT_CATALOG_URL.',
+          },
+          { status: 503 }
+        );
+      }
+
+      const cloudBooks = cloudMeta.map((meta) => ({
+        id: getCloudBookId(meta as CloudBookMetadata),
+        title: meta.book.title,
+        authors: (meta.book.authors || []).join(', ') || 'Unknown',
+        subjects: meta.book.subjects || [],
+        coverUrl: meta.book.links?.coverUrl ?? null,
+        txtUrl: meta.book.links?.txtUrl ?? null,
+        epubUrl: meta.book.links?.epubUrl ?? null,
+        downloadCount: meta.book.downloadCount ?? 0,
+        minutes: meta.book.estimate?.minutes ?? null,
+        words: meta.book.estimate?.words ?? null,
+        isCached: true,
+        languages: (meta.book.languages || []).length ? (meta.book.languages || []) : ['en'],
+      }));
+
+      if (idsParam) {
+        const rawIds = idsParam
+          .split(',')
+          .map((s) => parseInt(s.trim()))
+          .filter((n) => Number.isFinite(n) && n > 0);
+        const uniqueIds = Array.from(new Set(rawIds)).slice(0, MAX_ITEMS_PER_PAGE);
+
+        if (uniqueIds.length === 0) {
+          return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
+        }
+
+        const byId = new Map<number, (typeof cloudBooks)[number]>();
+        for (const b of cloudBooks) byId.set(b.id, b);
+
+        const ordered = uniqueIds
+          .map((id) => byId.get(id))
+          .filter(Boolean)
+          .map((book) => ({
+            id: book!.id,
+            title: book!.title,
+            authors: book!.authors,
+            subjects: book!.subjects,
+            coverUrl: book!.coverUrl,
+            txtUrl: book!.txtUrl,
+            epubUrl: book!.epubUrl,
+            downloadCount: book!.downloadCount,
+            minutes: book!.minutes,
+            words: book!.words,
+            isCached: book!.isCached,
+          })) as CatalogBookResult[];
+
+        const localized = await localizeCatalogResults(ordered, locale);
+        return NextResponse.json({ count: localized.length, next: null, previous: null, results: localized });
+      }
+
+      if (bookId) {
+        const parsedId = parseInt(bookId);
+        const found = cloudBooks.find((b) => b.id === parsedId);
+        if (!found) {
+          return NextResponse.json({ error: 'Book not found' }, { status: 404 });
+        }
+
+        const localizedSingle = await localizeCatalogResults(
+          [{
+            id: found.id,
+            title: found.title,
+            authors: found.authors,
+            subjects: found.subjects,
+            coverUrl: found.coverUrl,
+            txtUrl: found.txtUrl,
+            epubUrl: found.epubUrl,
+            downloadCount: found.downloadCount,
+            minutes: found.minutes,
+            words: found.words,
+            isCached: found.isCached,
+          }],
+          locale
+        );
+
+        return NextResponse.json({ count: 1, next: null, previous: null, results: localizedSingle });
+      }
+
+      let filtered = cloudBooks;
+
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter((book) =>
+          book.title.toLowerCase().includes(q) || book.authors.toLowerCase().includes(q)
+        );
+      }
+
+      if (languages.length > 0) {
+        const wanted = new Set(languages.map((l) => l.toLowerCase()));
+        filtered = filtered.filter((book) => book.languages.some((l) => wanted.has(l.toLowerCase())));
+      }
+
+      if (ageCategories.length > 0) {
+        const AGE_KEYWORDS: Record<string, string[]> = {
+          'early-readers': ['Nursery rhymes', 'Picture books'],
+          'beginning-readers': ['Fairy tales', 'Fables', "Children's stories", 'Juvenile fiction'],
+          'middle-grade': ['Adventure', 'Fantasy', 'Bildungsromans', 'Pirates', 'Treasure'],
+          'young-adult': ['Young adult', 'Romance', 'Psychological'],
+        };
+
+        const keywords = ageCategories.flatMap((category) => AGE_KEYWORDS[category] || []);
+        if (keywords.length > 0) {
+          filtered = filtered.filter((book) =>
+            keywords.some((keyword) => book.subjects.some((subject) => subject.includes(keyword)))
+          );
+        }
+      }
+
+      if (durations.length > 0) {
+        filtered = filtered.filter((book) => {
+          if (!book.minutes) return false;
+          return durations.some((duration) => {
+            if (duration === 'short') return book.minutes! < 10;
+            if (duration === 'medium') return book.minutes! >= 10 && book.minutes! <= 25;
+            if (duration === 'long') return book.minutes! > 25;
+            return true;
+          });
+        });
+      }
+
+      if (offlineOnly) {
+        filtered = filtered.filter((book) => book.isCached);
+      }
+
+      switch (sortBy) {
+        case 'title':
+          filtered.sort((a, b) => a.title.localeCompare(b.title));
+          break;
+        case 'author':
+          filtered.sort((a, b) => a.authors.localeCompare(b.authors));
+          break;
+        case 'length':
+          filtered.sort((a, b) => (a.minutes ?? Number.MAX_SAFE_INTEGER) - (b.minutes ?? Number.MAX_SAFE_INTEGER));
+          break;
+        case 'popularity':
+        default:
+          filtered.sort((a, b) => (b.downloadCount ?? 0) - (a.downloadCount ?? 0));
+          break;
+      }
+
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / limit);
+      const offset = (page - 1) * limit;
+      const paged = filtered.slice(offset, offset + limit);
+
+      const localizedResults = await localizeCatalogResults(
+        paged.map((book) => ({
+          id: book.id,
+          title: book.title,
+          authors: book.authors,
+          subjects: book.subjects,
+          coverUrl: book.coverUrl,
+          txtUrl: book.txtUrl,
+          epubUrl: book.epubUrl,
+          downloadCount: book.downloadCount,
+          minutes: book.minutes,
+          words: book.words,
+          isCached: book.isCached,
+        })),
+        locale
+      );
+
+      return NextResponse.json({
+        count: total,
+        next: page < totalPages ? `?page=${page + 1}` : null,
+        previous: page > 1 ? `?page=${page - 1}` : null,
+        results: localizedResults,
+      });
+    }
 
     // If ids are provided, return those books (batch fetch) in the same order.
     if (idsParam) {
@@ -412,13 +476,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
       }
 
-      let allowedIds = hasLocalDiskCatalog && localIds
-        ? uniqueIds.filter((id) => localIds.includes(id))
-        : uniqueIds;
-
-      if (hasTestCatalog && testCatalogBookIds) {
-        allowedIds = allowedIds.filter((id) => testCatalogBookIds.includes(id));
-      }
+      const allowedIds =
+        contentMode === 'local' && localIds ? uniqueIds.filter((id) => localIds.includes(id)) : uniqueIds;
 
       if (allowedIds.length === 0) {
         return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
@@ -453,19 +512,18 @@ export async function GET(req: NextRequest) {
         .map((result) => ({
           id: result!.id,
           title: result!.title,
-          authors: result!.authors ?? 'Unknown',
+          authors: result!.authors || '',
           subjects: result!.subjects ? JSON.parse(result!.subjects) : [],
-          coverUrl: sanitizeNonLocalUrl(result!.coverUrl),
-          txtUrl: sanitizeNonLocalUrl(result!.txtUrl),
-          epubUrl: sanitizeNonLocalUrl(result!.epubUrl),
+          coverUrl: result!.coverUrl,
+          txtUrl: result!.txtUrl,
+          epubUrl: result!.epubUrl,
           downloadCount: result!.downloadCount,
           minutes: result!.minutes,
           words: result!.words,
           isCached: Boolean(result!.isCached),
         })) as CatalogBookResult[];
 
-      const withTestCatalogCovers = applyTestCatalogIllustrationCovers(ordered, testCatalogBookIds);
-      const localized = await localizeCatalogResults(withTestCatalogCovers, locale);
+      const localized = await localizeCatalogResults(ordered, locale);
 
       return NextResponse.json({
         count: localized.length,
@@ -478,14 +536,7 @@ export async function GET(req: NextRequest) {
     // If bookId is provided, return single book
     if (bookId) {
       const parsedId = parseInt(bookId);
-      if (hasTestCatalog && testCatalogBookIds && !testCatalogBookIds.includes(parsedId)) {
-        return NextResponse.json(
-          { error: 'Book not found (outside test catalog)' },
-          { status: 404 }
-        );
-      }
-
-      if (hasLocalDiskCatalog && localIds && !localIds.includes(parsedId)) {
+      if (contentMode === 'local' && localIds && !localIds.includes(parsedId)) {
         return NextResponse.json(
           { error: 'Book not found (no local text file)' },
           { status: 404 }
@@ -520,22 +571,22 @@ export async function GET(req: NextRequest) {
       }
 
       const result = book[0];
-      const singleResult = [{
+      const localizedSingle = await localizeCatalogResults(
+        [{
           id: result.id,
           title: result.title,
-          authors: result.authors ?? 'Unknown',
+          authors: result.authors || '',
           subjects: result.subjects ? JSON.parse(result.subjects) : [],
-          coverUrl: sanitizeNonLocalUrl(result.coverUrl),
-          txtUrl: sanitizeNonLocalUrl(result.txtUrl),
-          epubUrl: sanitizeNonLocalUrl(result.epubUrl),
+          coverUrl: result.coverUrl,
+          txtUrl: result.txtUrl,
+          epubUrl: result.epubUrl,
           downloadCount: result.downloadCount,
           minutes: result.minutes,
           words: result.words,
           isCached: !!result.isCached,
-        }] as CatalogBookResult[];
-
-      const withTestCatalogCovers = applyTestCatalogIllustrationCovers(singleResult, testCatalogBookIds);
-      const localizedSingle = await localizeCatalogResults(withTestCatalogCovers, locale);
+        }],
+        locale
+      );
 
       return NextResponse.json({
         count: 1,
@@ -595,17 +646,11 @@ export async function GET(req: NextRequest) {
     let whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Local mode: only return books that have local text present on disk.
-    if (hasLocalDiskCatalog && localIds) {
-      whereClause = whereClause ? and(whereClause, inArray(books.id, localIds)) : inArray(books.id, localIds);
-    }
-
-    if (hasTestCatalog) {
-      if (!testCatalogBookIds || testCatalogBookIds.length === 0) {
+    if (contentMode === 'local') {
+      if (!localIds || localIds.length === 0) {
         return NextResponse.json({ count: 0, next: null, previous: null, results: [] });
       }
-      whereClause = whereClause
-        ? and(whereClause, inArray(books.id, testCatalogBookIds))
-        : inArray(books.id, testCatalogBookIds);
+      whereClause = whereClause ? and(whereClause, inArray(books.id, localIds)) : inArray(books.id, localIds);
     }
 
     // Determine sort order
@@ -680,23 +725,22 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Format response in the public catalog shape
+    // Format response similar to Gutendex
     const results = filteredBooks.map((book) => ({
       id: book.id,
       title: book.title,
-      authors: book.authors ?? 'Unknown',
+      authors: book.authors || '',
       subjects: book.subjects ? JSON.parse(book.subjects) : [],
-      coverUrl: sanitizeNonLocalUrl(book.coverUrl),
-      txtUrl: sanitizeNonLocalUrl(book.txtUrl),
-      epubUrl: sanitizeNonLocalUrl(book.epubUrl),
+      coverUrl: book.coverUrl,
+      txtUrl: book.txtUrl,
+      epubUrl: book.epubUrl,
       downloadCount: book.downloadCount,
       minutes: book.minutes,
       words: book.words,
       isCached: !!book.isCached,
     })) as CatalogBookResult[];
 
-    const withTestCatalogCovers = applyTestCatalogIllustrationCovers(results, testCatalogBookIds);
-    const localizedResults = await localizeCatalogResults(withTestCatalogCovers, locale);
+    const localizedResults = await localizeCatalogResults(results, locale);
 
     return NextResponse.json({
       count: total,
@@ -706,40 +750,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Catalog API error:', error);
-    const fallbackTestIds = getTestCatalogBookIds() ?? DEFAULT_TEST_CATALOG_BOOK_IDS;
-    let requestedIds = fallbackTestIds;
-
-    if (idsParam) {
-      const requestedFromParam = idsParam
-        .split(',')
-        .map((s) => parseInt(s.trim(), 10))
-        .filter((n) => Number.isFinite(n) && n > 0);
-      requestedIds = requestedFromParam.filter((id) => fallbackTestIds.includes(id));
-    } else if (bookId) {
-      const single = parseInt(bookId, 10);
-      requestedIds = fallbackTestIds.includes(single) ? [single] : [];
-    }
-
-    const fallbackResults = requestedIds
-      .map((id) => TEST_CATALOG_FALLBACK_BY_ID[id])
-      .filter(Boolean)
-      .map((book) => ({
-        ...book,
-        coverUrl: sanitizeNonLocalUrl(book.coverUrl),
-        txtUrl: sanitizeNonLocalUrl(book.txtUrl),
-        epubUrl: sanitizeNonLocalUrl(book.epubUrl),
-      }));
-
-    const fallbackWithTestCatalogCovers = applyTestCatalogIllustrationCovers(
-      fallbackResults,
-      fallbackTestIds
+    return NextResponse.json(
+      { error: 'Failed to fetch catalog' },
+      { status: 500 }
     );
-
-    return NextResponse.json({
-      count: fallbackWithTestCatalogCovers.length,
-      next: null,
-      previous: null,
-      results: fallbackWithTestCatalogCovers,
-    });
   }
 }

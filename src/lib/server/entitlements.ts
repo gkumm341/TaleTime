@@ -1,13 +1,12 @@
 import { and, desc, eq, gt } from 'drizzle-orm';
 import { NextRequest } from 'next/server';
-import { db, isDatabaseEnabled } from '@/db';
+import { db } from '@/db';
 import { premiumEntitlements, premiumPurchaseEvents } from '@/db/schema';
 import { SESSION_COOKIE, getUserFromSessionId } from '@/lib/server/auth';
 import type { PremiumEntitlement, PurchaseSource } from '@/lib/entitlements';
 import { isPremiumActive } from '@/lib/entitlements';
 
 export async function getPremiumEntitlementForUserId(userId: string): Promise<PremiumEntitlement | null> {
-  if (!isDatabaseEnabled()) return null;
   const now = Date.now();
   try {
     const rows = await db
@@ -75,7 +74,6 @@ export async function recordPremiumPurchaseEvent(params: {
   providerTransactionId?: string | null;
   rawReceipt?: string | null;
 }) {
-  if (!isDatabaseEnabled()) return;
   const now = Date.now();
 
   await db
@@ -99,7 +97,6 @@ export async function upsertPremiumEntitlement(params: {
   expiresAt: number;
   providerRef?: string | null;
 }) {
-  if (!isDatabaseEnabled()) return;
   const now = Date.now();
 
   const existing = await db

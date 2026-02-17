@@ -26,6 +26,7 @@ const TIME_SELECTION_KEY = 'taletime-time-selection';
 interface Book {
   id: number;
   title: string;
+  localFolderName?: string;
   authors: string;
   coverUrl?: string;
   epubUrl?: string;
@@ -38,6 +39,8 @@ interface Book {
 
 export function HomeContent() {
   const { t, locale } = useI18n();
+  const contentMode = process.env.NEXT_PUBLIC_CONTENT_MODE;
+  const isLocalContent = contentMode === 'local' || contentMode === 'cloud';
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +99,7 @@ export function HomeContent() {
         const transformedResults: Book[] = data.results.map((r: any) => ({
           id: r.id,
           title: r.title,
+          localFolderName: r.localFolderName,
           authors: r.authors,
           coverUrl: r.coverUrl,
           minutes: r.minutes,
@@ -151,7 +155,8 @@ export function HomeContent() {
           params.set('offlineOnly', 'true');
         }
 
-        const response = await fetch(`/api/catalog?${params.toString()}`, {
+        const endpoint = isLocalContent ? '/api/local-books' : '/api/catalog';
+        const response = await fetch(`${endpoint}?${params.toString()}`, {
           cache: 'no-store'
         });
 
@@ -170,7 +175,7 @@ export function HomeContent() {
     };
 
     fetchBooks();
-  }, [itemsPerPage, sortBy, filters, locale]);
+  }, [itemsPerPage, sortBy, filters, locale, isLocalContent]);
 
   const handleRemoveFilter = (type: 'age' | 'duration' | 'language' | 'offline', value: string) => {
     setFilters(prev => {

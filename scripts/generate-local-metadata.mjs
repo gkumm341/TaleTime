@@ -177,6 +177,7 @@ async function main() {
   let written = 0;
   let matched = 0;
   const missing = [];
+  const catalogEntries = [];
 
   for (const folderName of folders) {
     const folderPath = path.join(byTitleDir, folderName);
@@ -284,10 +285,20 @@ async function main() {
     };
 
     await fs.writeFile(existingMetaPath, JSON.stringify(meta, null, 2) + '\n', 'utf8');
+    catalogEntries.push(meta);
     written++;
   }
 
+  const catalogPath = path.join(byTitleDir, 'catalog.json');
+  const catalogDoc = {
+    schemaVersion: SCHEMA_VERSION,
+    generatedAt: new Date().toISOString(),
+    books: catalogEntries,
+  };
+  await fs.writeFile(catalogPath, JSON.stringify(catalogDoc, null, 2) + '\n', 'utf8');
+
   console.log(`Wrote metadata.json for ${written} folder(s).`);
+  console.log(`Wrote catalog file: ${catalogPath}`);
   console.log(`Matched to DB rows: ${matched}`);
   if (missing.length) {
     console.log('Folders with no DB match (still wrote metadata using folder name):');

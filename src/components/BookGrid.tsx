@@ -29,6 +29,7 @@ function isMissingAuthor(value: string | null | undefined): boolean {
 interface Book {
   id: number;
   title: string;
+  localFolderName?: string;
   authors: string;
   coverUrl?: string;
   epubUrl?: string;
@@ -52,48 +53,14 @@ export function BookGrid({
   timeSelection?: TimeOptionId | null;
   displayMode?: 'detailed' | 'covers';
 }) {
-  const contentMode = (process.env.NEXT_PUBLIC_CONTENT_MODE || 'cloud').toLowerCase();
-  const isLocalContent = contentMode === 'local';
+  const contentMode = process.env.NEXT_PUBLIC_CONTENT_MODE;
+  const isLocalContent = contentMode === 'local' || contentMode === 'cloud';
   const [books, setBooks] = useState<Book[]>(initialBooks);
   const [loading, setLoading] = useState<Set<number>>(new Set());
-  const [coverSrcById, setCoverSrcById] = useState<Record<number, string | null>>({});
-
-  const getLocalImageSrc = (title: string) => `/api/local-image?title=${encodeURIComponent(title)}`;
-
-  const getPrimaryCoverSrc = (book: Book) => {
-    if (!isLocalContent && book.coverUrl) return book.coverUrl;
-    return getLocalImageSrc(book.title);
-  };
-
-  const getFallbackCoverSrc = (book: Book, currentSrc: string | null) => {
-    const localSrc = getLocalImageSrc(book.title);
-    if (currentSrc === localSrc) {
-      if (book.coverUrl && currentSrc !== book.coverUrl) return book.coverUrl;
-      return null;
-    }
-
-    if (book.coverUrl && currentSrc === book.coverUrl) {
-      if (currentSrc !== localSrc) return localSrc;
-      return null;
-    }
-
-    if (book.coverUrl && currentSrc !== book.coverUrl) return book.coverUrl;
-    if (currentSrc !== localSrc) return localSrc;
-
-    return null;
-  };
 
   useEffect(() => {
     setBooks(initialBooks);
   }, [initialBooks]);
-
-  useEffect(() => {
-    const next: Record<number, string | null> = {};
-    for (const book of initialBooks) {
-      next[book.id] = getPrimaryCoverSrc(book);
-    }
-    setCoverSrcById(next);
-  }, [initialBooks, isLocalContent]);
 
 
   const [authorOverrides, setAuthorOverrides] = useState<Record<number, string>>({});
@@ -245,7 +212,6 @@ export function BookGrid({
         const overrideAuthors = authorOverrides[book.id]?.trim() ?? '';
         const fetchedAuthors = (book.authors ?? '').trim();
         const missingFetchedAuthors = isMissingAuthor(fetchedAuthors);
-        const currentCoverSrc = coverSrcById[book.id] ?? getPrimaryCoverSrc(book);
 
         const displayedAuthors = overrideAuthors || (missingFetchedAuthors ? '' : (displayedAuthorsById.get(book.id) ?? fetchedAuthors));
         const hasAuthors = Boolean(displayedAuthors);
@@ -291,41 +257,18 @@ export function BookGrid({
           >
             {/* Custom book image from .data/texts/by-title/<Title>/<Title>.png */}
             <div className={isCoverOnly ? 'relative w-full aspect-[2/3] bg-tt-surface/60 dark:bg-tt-primary/60 overflow-hidden' : 'relative w-full aspect-[2/3] bg-tt-surface dark:bg-tt-primary overflow-hidden'}>
-              {currentCoverSrc && (
-                <Image
-                  src={currentCoverSrc}
-                  alt={book.title}
-                  fill
-                  className={isCoverOnly ? 'object-cover group-hover:scale-[1.02] transition-transform duration-500' : 'object-contain group-hover:scale-105 transition-transform duration-500'}
-                  sizes={isCoverOnly ? '20vw' : '20vw'}
-                  unoptimized
-                  onError={() => {
-                    setCoverSrcById((prev) => {
-                      const currentSrc = prev[book.id] ?? getPrimaryCoverSrc(book);
-                      const fallbackSrc = getFallbackCoverSrc(book, currentSrc);
-                      if (fallbackSrc === currentSrc) return prev;
-                      return {
-                        ...prev,
-                        [book.id]: fallbackSrc,
-                      };
-                    });
-                  }}
-                  priority={false}
-                />
-              )}
-
-              {!currentCoverSrc && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-tt-surface/70 dark:bg-tt-primary/70">
-                  <p className="text-xs lg:text-sm font-semibold text-tt-primary dark:text-white line-clamp-3">
-                    {book.title}
-                  </p>
-                  {!isCoverOnly && (
-                    <p className="mt-1 text-[11px] text-tt-muted line-clamp-2">
-                      {displayedAuthors || 'Author unknown'}
-                    </p>
-                  )}
-                </div>
-              )}
+              <Image
+                src={`/api/local-image?title=${encodeURIComponent(book.title)}&bookId=${book.id}${book.localFolderName ? `&folder=${encodeURIComponent(book.localFolderName)}` : ''}`}
+                alt={book.title}
+                fill
+                className={isCoverOnly ? 'object-cover group-hover:scale-[1.02] transition-transform duration-500' : 'object-contain group-hover:scale-105 transition-transform duration-500'}
+                sizes={isCoverOnly ? '20vw' : '20vw'}
+                unoptimized
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+                priority={false}
+              />
 
               <div
                 className="absolute bottom-2 right-2 z-20 rounded-full bg-black/45 backdrop-blur-sm ring-1 ring-white/20"
