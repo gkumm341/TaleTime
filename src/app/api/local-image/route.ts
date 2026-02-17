@@ -7,6 +7,41 @@ export const runtime = 'nodejs';
 
 const BY_TITLE_DIR = join(process.cwd(), '.data', 'texts', 'by-title');
 
+function trimSlashes(value: string): string {
+  return value.replace(/^\/+|\/+$/g, '');
+}
+
+function encodePathSegments(pathOrSegments: string | string[]): string {
+  const raw = Array.isArray(pathOrSegments) ? pathOrSegments.join('/') : pathOrSegments;
+  return raw
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+}
+
+function buildCloudDataUrl(pathOrSegments: string | string[]): string | null {
+  const baseUrl = (process.env.CLOUDFRONT_BASE_URL || '').trim();
+  if (!baseUrl) return null;
+
+  const dataPrefix = trimSlashes(process.env.CLOUDFRONT_DATA_PREFIX || '');
+  const encodedPath = encodePathSegments(pathOrSegments);
+  const base = baseUrl.replace(/\/+$/, '');
+
+  if (dataPrefix) {
+    return `${base}/${dataPrefix}/${encodedPath}`;
+  }
+
+  return `${base}/${encodedPath}`;
+}
+
+function buildCloudTextUrl(pathOrSegments: string | string[]): string | null {
+  const relative = Array.isArray(pathOrSegments)
+    ? ['texts', ...pathOrSegments].join('/')
+    : `texts/${pathOrSegments}`;
+  return buildCloudDataUrl(relative);
+}
+
 function escapeXml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -69,6 +104,116 @@ function isSupportedImage(filename: string) {
   );
 }
 
+function buildTitleFolderCandidates(rawTitle: string): string[] {
+  const title = rawTitle.trim();
+  if (!title) return [];
+
+  const candidates = [
+    title,
+    title.replace(/'/g, '’'),
+    title.replace(/’/g, "'"),
+    title.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+    title.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
+    title.split(':')[0]?.trim() || title,
+  ].filter(Boolean);
+
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const key = candidate.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(candidate);
+  }
+  return unique;
+}
+
+function buildCloudImageFilenameCandidates(folderName: string): string[] {
+  const stems = [
+    folderName,
+    folderName.replace(/\s+/g, '_'),
+    folderName.replace(/\s+/g, '-'),
+    folderName.replace(/[’']/g, ''),
+    folderName.replace(/[’']/g, '').replace(/\s+/g, '_'),
+    folderName.replace(/[’']/g, '').replace(/\s+/g, '-'),
+  ];
+
+  const files = [
+    ...stems.map((stem) => `${stem}.png`),
+    ...stems.map((stem) => `${stem}.webp`),
+    ...stems.map((stem) => `${stem}.jpg`),
+    ...stems.map((stem) => `${stem}.jpeg`),
+  ];
+
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const file of files) {
+    const key = file.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(file);
+  }
+  return unique;
+}
+
+async function fetchCloudCoverImage(title: string): Promise<Response | null> {
+  const folderCandidates = buildTitleFolderCandidates(title);
+  if (folderCandidates.length === 0) return null;
+
+  for (const folderName of folderCandidates) {
+    const metadataUrl = buildCloudTextUrl(['by-title', folderName, 'metadata.json']);
+
+    const imageNameCandidates: string[] = [];
+    if (metadataUrl) {
+      try {
+        const metadataRes = await fetch(metadataUrl, { cache: 'no-store' });
+        if (metadataRes.ok) {
+          const metadata = await metadataRes.json().catch(() => null) as {
+            local?: { files?: Array<{ role?: string; filename?: string }> };
+          } | null;
+
+          const files = metadata?.local?.files ?? [];
+          for (const file of files) {
+            if (!file?.filename) continue;
+            if (file.role === 'image' || isSupportedImage(file.filename)) {
+              imageNameCandidates.push(file.filename);
+            }
+          }
+        }
+      } catch {
+      }
+    }
+
+    imageNameCandidates.push(...buildCloudImageFilenameCandidates(folderName));
+
+    const seen = new Set<string>();
+    for (const imageName of imageNameCandidates) {
+      const key = imageName.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const imageUrl = buildCloudTextUrl(['by-title', folderName, imageName]);
+      if (!imageUrl) continue;
+
+      try {
+        const imageRes = await fetch(imageUrl, { cache: 'no-store' });
+        if (!imageRes.ok || !imageRes.body) continue;
+
+        return new Response(imageRes.body, {
+          status: 200,
+          headers: {
+            'Content-Type': imageRes.headers.get('content-type') || guessContentType(imageName),
+            'Cache-Control': 'no-store, max-age=0',
+          },
+        });
+      } catch {
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
   if (!title) {
@@ -99,6 +244,9 @@ export async function GET(req: NextRequest) {
   }
 
   if (!matchedFolderName) {
+    const cloudCover = await fetchCloudCoverImage(title);
+    if (cloudCover) return cloudCover;
+
     return new Response(fallbackSvg, {
       status: 200,
       headers: {
@@ -130,6 +278,9 @@ export async function GET(req: NextRequest) {
   }
 
   if (!imageName) {
+    const cloudCover = await fetchCloudCoverImage(title);
+    if (cloudCover) return cloudCover;
+
     return new Response(fallbackSvg, {
       status: 200,
       headers: {
