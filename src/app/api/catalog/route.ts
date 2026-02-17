@@ -71,6 +71,26 @@ function sanitizeNonLocalUrl(url: string | null | undefined): string | null {
   return url;
 }
 
+function getLocalIllustrationCoverUrl(title: string): string {
+  return `/api/local-image?title=${encodeURIComponent(title)}`;
+}
+
+function applyTestCatalogIllustrationCovers(
+  results: CatalogBookResult[],
+  testCatalogBookIds: number[] | null
+): CatalogBookResult[] {
+  if (!testCatalogBookIds || testCatalogBookIds.length === 0) return results;
+
+  const allowedIds = new Set(testCatalogBookIds);
+  return results.map((book) => {
+    if (!allowedIds.has(book.id)) return book;
+    return {
+      ...book,
+      coverUrl: getLocalIllustrationCoverUrl(book.title),
+    };
+  });
+}
+
 function buildTitleCandidates(rawTitle: string): string[] {
   const candidates = [
     rawTitle,
@@ -444,7 +464,8 @@ export async function GET(req: NextRequest) {
           isCached: Boolean(result!.isCached),
         })) as CatalogBookResult[];
 
-      const localized = await localizeCatalogResults(ordered, locale);
+      const withTestCatalogCovers = applyTestCatalogIllustrationCovers(ordered, testCatalogBookIds);
+      const localized = await localizeCatalogResults(withTestCatalogCovers, locale);
 
       return NextResponse.json({
         count: localized.length,
@@ -499,8 +520,7 @@ export async function GET(req: NextRequest) {
       }
 
       const result = book[0];
-      const localizedSingle = await localizeCatalogResults(
-        [{
+      const singleResult = [{
           id: result.id,
           title: result.title,
           authors: result.authors ?? 'Unknown',
@@ -512,9 +532,10 @@ export async function GET(req: NextRequest) {
           minutes: result.minutes,
           words: result.words,
           isCached: !!result.isCached,
-        }],
-        locale
-      );
+        }] as CatalogBookResult[];
+
+      const withTestCatalogCovers = applyTestCatalogIllustrationCovers(singleResult, testCatalogBookIds);
+      const localizedSingle = await localizeCatalogResults(withTestCatalogCovers, locale);
 
       return NextResponse.json({
         count: 1,
@@ -674,7 +695,8 @@ export async function GET(req: NextRequest) {
       isCached: !!book.isCached,
     })) as CatalogBookResult[];
 
-    const localizedResults = await localizeCatalogResults(results, locale);
+    const withTestCatalogCovers = applyTestCatalogIllustrationCovers(results, testCatalogBookIds);
+    const localizedResults = await localizeCatalogResults(withTestCatalogCovers, locale);
 
     return NextResponse.json({
       count: total,
@@ -708,11 +730,16 @@ export async function GET(req: NextRequest) {
         epubUrl: sanitizeNonLocalUrl(book.epubUrl),
       }));
 
+    const fallbackWithTestCatalogCovers = applyTestCatalogIllustrationCovers(
+      fallbackResults,
+      fallbackTestIds
+    );
+
     return NextResponse.json({
-      count: fallbackResults.length,
+      count: fallbackWithTestCatalogCovers.length,
       next: null,
       previous: null,
-      results: fallbackResults,
+      results: fallbackWithTestCatalogCovers,
     });
   }
 }
