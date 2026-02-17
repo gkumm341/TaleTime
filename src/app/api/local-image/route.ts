@@ -2,17 +2,41 @@ import { NextRequest } from 'next/server';
 import { createReadStream } from 'fs';
 import { readdirSync } from 'fs';
 import { join } from 'path';
-import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs';
 
 const BY_TITLE_DIR = join(process.cwd(), '.data', 'texts', 'by-title');
 
-// 1x1 transparent PNG
-const TRANSPARENT_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/6X9m7QAAAAASUVORK5CYII=',
-  'base64'
-);
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function createFallbackCoverSvg(title: string): string {
+  const trimmed = title.trim();
+  const safeTitle = escapeXml(trimmed || 'Story');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900" role="img" aria-label="${safeTitle} cover placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e2a47"/>
+      <stop offset="100%" stop-color="#344f84"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="900" fill="url(#bg)"/>
+  <rect x="34" y="34" width="532" height="832" rx="24" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2"/>
+  <text x="300" y="220" text-anchor="middle" fill="rgba(255,255,255,0.78)" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="34" font-weight="600">TaleTime</text>
+  <foreignObject x="70" y="280" width="460" height="430">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;justify-content:center;height:100%;text-align:center;color:#fff;font-size:42px;line-height:1.2;font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;font-weight:700;word-break:break-word;">
+      ${safeTitle}
+    </div>
+  </foreignObject>
+</svg>`;
+}
 
 function normalizeKey(input: string) {
   return input
@@ -45,103 +69,13 @@ function isSupportedImage(filename: string) {
   );
 }
 
-function buildTitleCandidates(rawTitle: string): string[] {
-  const candidates = [
-    rawTitle,
-    rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
-    rawTitle.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
-    rawTitle.split(':')[0]?.trim() || rawTitle,
-  ].filter(Boolean);
-
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const candidate of candidates) {
-    const key = normalizeKey(candidate);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    out.push(candidate);
-  }
-  return out;
-}
-
-function buildFileStemCandidates(folderName: string): string[] {
-  const stems = [
-    folderName,
-    folderName.replace(/\s+/g, '_'),
-    folderName.replace(/\s+/g, '-'),
-    folderName.replace(/[^\p{L}\p{N}\s_-]+/gu, '').replace(/\s+/g, '_'),
-    folderName.replace(/[^\p{L}\p{N}\s_-]+/gu, '').replace(/\s+/g, '-'),
-  ];
-
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const stem of stems) {
-    const normalized = stem.trim();
-    if (!normalized || seen.has(normalized)) continue;
-    seen.add(normalized);
-    out.push(normalized);
-  }
-  return out;
-}
-
-async function fetchCloudImageByTitle(title: string): Promise<Response | null> {
-  const titleCandidates = buildTitleCandidates(title);
-
-  for (const folderName of titleCandidates) {
-    const stems = buildFileStemCandidates(folderName);
-    const imageCandidates = [
-      ...stems.map((stem) => `${stem}.png`),
-      ...stems.map((stem) => `${stem}.webp`),
-      ...stems.map((stem) => `${stem}.jpg`),
-      ...stems.map((stem) => `${stem}.jpeg`),
-      'cover.png',
-      'cover.webp',
-      'cover.jpg',
-      'cover.jpeg',
-    ];
-
-    for (const imageName of imageCandidates) {
-      const url = buildCloudTextUrl(['by-title', folderName, imageName]);
-      if (!url) continue;
-
-      try {
-        const upstream = await fetch(url, { cache: 'no-store' });
-        if (!upstream.ok || !upstream.body) continue;
-
-        return new Response(upstream.body, {
-          status: 200,
-          headers: {
-            'Content-Type': upstream.headers.get('content-type') || guessContentType(imageName),
-            'Cache-Control': 'no-store, max-age=0',
-          },
-        });
-      } catch {
-        // try next candidate
-      }
-    }
-  }
-
-  return null;
-}
-
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('title');
   if (!title) {
     return new Response('Missing title', { status: 400 });
   }
 
-  if (getContentMode() === 'cloud') {
-    const cloudResponse = await fetchCloudImageByTitle(title);
-    if (cloudResponse) return cloudResponse;
-
-    return new Response(TRANSPARENT_PNG, {
-      status: 200,
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'no-store, max-age=0',
-      },
-    });
-  }
+  const fallbackSvg = createFallbackCoverSvg(title);
 
   const requestedKey = normalizeKey(title);
 
@@ -165,10 +99,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (!matchedFolderName) {
-    return new Response(TRANSPARENT_PNG, {
+    return new Response(fallbackSvg, {
       status: 200,
       headers: {
-        'Content-Type': 'image/png',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': 'no-store, max-age=0',
       },
     });
@@ -196,10 +130,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (!imageName) {
-    return new Response(TRANSPARENT_PNG, {
+    return new Response(fallbackSvg, {
       status: 200,
       headers: {
-        'Content-Type': 'image/png',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': 'no-store, max-age=0',
       },
     });
