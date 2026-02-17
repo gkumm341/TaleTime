@@ -82,8 +82,9 @@ LIBRETRANSLATE_URL=http://localhost:5000
 
 ### Development-only
 
-- `ENFORCE_PREMIUM_IN_DEV` - Set to `1` to keep premium paywalls enabled in dev.
-- `BYPASS_PREMIUM` - Set to `1` to bypass premium checks (useful for local testing). In `NODE_ENV=development`, the abridged bedtime/timed paywall is bypassed by default unless `ENFORCE_PREMIUM_IN_DEV` is set.
+- `ENFORCE_PREMIUM_GATE` - Set to `1` to require sign-in + premium checks for abridged bedtime/timed variants.
+- `ENFORCE_PREMIUM_IN_DEV` - Legacy flag; also enforces the premium gate when set to `1`.
+- `BYPASS_PREMIUM` - Optional override (`0` disables bypass, `1` enables bypass). Current default is bypass enabled for UX testing.
 ```
 
 ## Getting Started

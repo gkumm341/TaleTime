@@ -1844,28 +1844,6 @@ export default function AbridgedBookPage() {
             <div className="font-semibold text-rose-800 dark:text-rose-200">{error}</div>
             <div className="mt-4">
               <div className="flex flex-wrap gap-2 justify-center">
-                {error.includes('/signin') && (
-                  <Button
-                    onClick={() => router.push(`/signin?next=${encodeURIComponent(`/book/${id}/abridged?variant=${variant}`)}`)}
-                  >
-                    Sign in
-                  </Button>
-                )}
-                {error.includes('/signin') && (
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push(`/register?next=${encodeURIComponent(`/book/${id}/abridged?variant=${variant}`)}`)}
-                  >
-                    Register
-                  </Button>
-                )}
-                {error.includes('/account') && (
-                  <Button
-                    onClick={() => router.push(`/account?next=${encodeURIComponent(`/book/${id}/abridged?variant=${variant}`)}`)}
-                  >
-                    Go to Account
-                  </Button>
-                )}
                 <Button variant="ghost" onClick={() => window.location.reload()}>
                   Try again
                 </Button>
