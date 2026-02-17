@@ -56,6 +56,22 @@ function isHiddenLocalTitle(title: string): boolean {
   return HIDDEN_LOCAL_TITLE_KEYS.has(normalizeTitleKey(title));
 }
 
+function sanitizeCoverUrl(coverUrl: string | null | undefined): string | null {
+  if (!coverUrl) return null;
+
+  try {
+    const parsed = new URL(coverUrl);
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'gutenberg.org' || host.endsWith('.gutenberg.org')) {
+      return null;
+    }
+  } catch {
+    // Keep non-URL values unchanged.
+  }
+
+  return coverUrl;
+}
+
 function buildTitleCandidates(rawTitle: string): string[] {
   const candidates = [
     rawTitle,
@@ -261,7 +277,7 @@ const TEST_CATALOG_FALLBACK_BY_ID: Record<number, CatalogBookResult> = {
     title: "Alice's Adventures in Wonderland",
     authors: 'Carroll, Lewis',
     subjects: [],
-    coverUrl: 'https://www.gutenberg.org/cache/epub/11/pg11.cover.medium.jpg',
+    coverUrl: null,
     txtUrl: 'https://www.gutenberg.org/ebooks/11.txt.utf-8',
     epubUrl: 'https://www.gutenberg.org/ebooks/11.epub3.images',
     downloadCount: null,
@@ -274,7 +290,7 @@ const TEST_CATALOG_FALLBACK_BY_ID: Record<number, CatalogBookResult> = {
     title: 'Anne of Green Gables',
     authors: 'Montgomery, L. M. (Lucy Maud)',
     subjects: [],
-    coverUrl: 'https://www.gutenberg.org/cache/epub/45/pg45.cover.medium.jpg',
+    coverUrl: null,
     txtUrl: 'https://www.gutenberg.org/ebooks/45.txt.utf-8',
     epubUrl: 'https://www.gutenberg.org/ebooks/45.epub3.images',
     downloadCount: null,
@@ -287,7 +303,7 @@ const TEST_CATALOG_FALLBACK_BY_ID: Record<number, CatalogBookResult> = {
     title: 'The Jungle Book',
     authors: 'Kipling, Rudyard',
     subjects: [],
-    coverUrl: 'https://www.gutenberg.org/cache/epub/236/pg236.cover.medium.jpg',
+    coverUrl: null,
     txtUrl: 'https://www.gutenberg.org/ebooks/236.txt.utf-8',
     epubUrl: 'https://www.gutenberg.org/ebooks/236.epub3.images',
     downloadCount: null,
@@ -420,7 +436,7 @@ export async function GET(req: NextRequest) {
           title: result!.title,
           authors: result!.authors ?? 'Unknown',
           subjects: result!.subjects ? JSON.parse(result!.subjects) : [],
-          coverUrl: result!.coverUrl,
+          coverUrl: sanitizeCoverUrl(result!.coverUrl),
           txtUrl: result!.txtUrl,
           epubUrl: result!.epubUrl,
           downloadCount: result!.downloadCount,
@@ -490,7 +506,7 @@ export async function GET(req: NextRequest) {
           title: result.title,
           authors: result.authors ?? 'Unknown',
           subjects: result.subjects ? JSON.parse(result.subjects) : [],
-          coverUrl: result.coverUrl,
+          coverUrl: sanitizeCoverUrl(result.coverUrl),
           txtUrl: result.txtUrl,
           epubUrl: result.epubUrl,
           downloadCount: result.downloadCount,
@@ -650,7 +666,7 @@ export async function GET(req: NextRequest) {
       title: book.title,
       authors: book.authors ?? 'Unknown',
       subjects: book.subjects ? JSON.parse(book.subjects) : [],
-      coverUrl: book.coverUrl,
+      coverUrl: sanitizeCoverUrl(book.coverUrl),
       txtUrl: book.txtUrl,
       epubUrl: book.epubUrl,
       downloadCount: book.downloadCount,
@@ -685,7 +701,11 @@ export async function GET(req: NextRequest) {
 
     const fallbackResults = requestedIds
       .map((id) => TEST_CATALOG_FALLBACK_BY_ID[id])
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((book) => ({
+        ...book,
+        coverUrl: sanitizeCoverUrl(book.coverUrl),
+      }));
 
     return NextResponse.json({
       count: fallbackResults.length,

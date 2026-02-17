@@ -7,6 +7,22 @@ export const runtime = 'nodejs';
 
 const USER_ID = 'default'; // For now, single-user mode
 
+function sanitizeCoverUrl(coverUrl: string | null | undefined): string | null {
+  if (!coverUrl) return null;
+
+  try {
+    const parsed = new URL(coverUrl);
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'gutenberg.org' || host.endsWith('.gutenberg.org')) {
+      return null;
+    }
+  } catch {
+    // Keep non-URL values unchanged.
+  }
+
+  return coverUrl;
+}
+
 // POST /api/history/update - Update reading progress
 export async function POST(req: NextRequest) {
   try {
@@ -108,7 +124,7 @@ export async function GET(req: NextRequest) {
         title: item.title,
         authors: item.authors,
         subjects: item.subjects ? JSON.parse(item.subjects) : [],
-        coverUrl: item.coverUrl,
+        coverUrl: sanitizeCoverUrl(item.coverUrl),
         epubUrl: item.epubUrl,
         lastReadAt: item.lastReadAt,
         currentCfi: item.currentCfi,
