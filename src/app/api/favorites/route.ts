@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
+import { db, getDatabaseDisabledReason, isDatabaseEnabled } from '@/db';
 import { favorites, books, estimates } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 
@@ -7,23 +7,19 @@ export const runtime = 'nodejs';
 
 const USER_ID = 'default'; // For now, single-user mode
 
-function sanitizeNonLocalUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-      return null;
-    }
-  } catch {
-    // Keep non-URL values unchanged.
-  }
-
-  return url;
+function dbUnavailableResponse() {
+  return NextResponse.json(
+    {
+      error: 'Favorites are unavailable in cloud-only mode',
+      reason: getDatabaseDisabledReason(),
+    },
+    { status: 503 }
+  );
 }
 
 // GET /api/favorites - List all favorites
 export async function GET(req: NextRequest) {
+  if (!isDatabaseEnabled()) return dbUnavailableResponse();
   try {
     const searchParams = req.nextUrl.searchParams;
     const sortBy = searchParams.get('sortBy') || 'recent'; // recent, title, author
@@ -69,7 +65,7 @@ export async function GET(req: NextRequest) {
       title: fav.title,
       authors: fav.authors,
       subjects: fav.subjects ? JSON.parse(fav.subjects) : [],
-      coverUrl: sanitizeNonLocalUrl(fav.coverUrl),
+      coverUrl: fav.coverUrl,
       epubUrl: fav.epubUrl,
       downloadCount: fav.downloadCount,
       minutes: fav.minutes,
@@ -93,6 +89,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/favorites - Add to favorites
 export async function POST(req: NextRequest) {
+  if (!isDatabaseEnabled()) return dbUnavailableResponse();
   try {
     const { bookId, notes } = await req.json();
 
@@ -145,6 +142,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/favorites?bookId=123 - Remove from favorites
 export async function DELETE(req: NextRequest) {
+  if (!isDatabaseEnabled()) return dbUnavailableResponse();
   try {
     const searchParams = req.nextUrl.searchParams;
     const bookId = searchParams.get('bookId');

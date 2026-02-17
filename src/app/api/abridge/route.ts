@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
+import { db, isDatabaseEnabled } from '@/db';
 import { books } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { promises as fs } from 'node:fs';
@@ -534,7 +534,7 @@ export async function POST(req: NextRequest) {
 
     // Bedtime/timed variants are paid-only.
     // In development mode, bypass auth check to allow testing without login.
-    if (variant !== 'full' && !shouldBypassPremiumPaywall()) {
+    if (variant !== 'full' && !shouldBypassPremiumPaywall() && isDatabaseEnabled()) {
       const sessionId = req.cookies.get('taletime_session')?.value;
       const user = await getUserFromSessionId(sessionId);
       if (!user) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
+import { db, getDatabaseDisabledReason, isDatabaseEnabled } from '@/db';
 import { readingHistory, books, estimates } from '@/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 
@@ -7,23 +7,19 @@ export const runtime = 'nodejs';
 
 const USER_ID = 'default'; // For now, single-user mode
 
-function sanitizeNonLocalUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-      return null;
-    }
-  } catch {
-    // Keep non-URL values unchanged.
-  }
-
-  return url;
+function dbUnavailableResponse() {
+  return NextResponse.json(
+    {
+      error: 'Reading history is unavailable in cloud-only mode',
+      reason: getDatabaseDisabledReason(),
+    },
+    { status: 503 }
+  );
 }
 
 // POST /api/history/update - Update reading progress
 export async function POST(req: NextRequest) {
+  if (!isDatabaseEnabled()) return dbUnavailableResponse();
   try {
     const { bookId, currentCfi, progressPercent, totalReadingTime } = await req.json();
 
@@ -81,6 +77,13 @@ export async function POST(req: NextRequest) {
 
 // GET /api/history - Get reading history
 export async function GET(req: NextRequest) {
+  if (!isDatabaseEnabled()) {
+    return NextResponse.json({
+      total: 0,
+      grouped: { today: [], lastWeek: [], earlier: [] },
+      warning: getDatabaseDisabledReason(),
+    });
+  }
   try {
     const historyItems = await db
       .select({
@@ -123,7 +126,7 @@ export async function GET(req: NextRequest) {
         title: item.title,
         authors: item.authors,
         subjects: item.subjects ? JSON.parse(item.subjects) : [],
-        coverUrl: sanitizeNonLocalUrl(item.coverUrl),
+        coverUrl: item.coverUrl,
         epubUrl: item.epubUrl,
         lastReadAt: item.lastReadAt,
         currentCfi: item.currentCfi,
@@ -157,6 +160,7 @@ export async function GET(req: NextRequest) {
 
 // DELETE /api/history?bookId=123 - Remove from history
 export async function DELETE(req: NextRequest) {
+  if (!isDatabaseEnabled()) return dbUnavailableResponse();
   try {
     const searchParams = req.nextUrl.searchParams;
     const clearAll = searchParams.get('clearAll') === 'true';

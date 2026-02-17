@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
+import { db, getDatabaseDisabledReason, isDatabaseEnabled } from '@/db';
 import { books, estimates } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -73,6 +73,16 @@ async function estimateFromUrl(url: string): Promise<
 }
 
 export async function GET(req: NextRequest) {
+  if (!isDatabaseEnabled()) {
+    return NextResponse.json(
+      {
+        error: 'Estimate cache is unavailable in cloud-only mode',
+        reason: getDatabaseDisabledReason(),
+      },
+      { status: 503 }
+    );
+  }
+
   const bookId = parseInt(req.nextUrl.searchParams.get('bookId') || '');
   
   if (!bookId || isNaN(bookId)) {

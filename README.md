@@ -61,12 +61,17 @@ Create a `.env.local` file:
 ```env
 SQLITE_PATH=.data/app.db
 READ_ALOUD_WPM=160
-ALLOW_HOSTS=
+ALLOW_HOSTS=gutenberg.org,standardebooks.org
 CONTENT_MODE=local
-# Required when CONTENT_MODE=cloud:
-# CLOUDFRONT_BASE_URL=https://dxxxxxxxxxxxx.cloudfront.net
-# Optional prefix if your S3 objects are under a subfolder (example: .data):
-# CLOUDFRONT_DATA_PREFIX=.data
+NEXT_PUBLIC_CONTENT_MODE=local
+# For CONTENT_MODE=cloud, point to your CDN base URL that serves the .data directory.
+# Example: https://d123456abcdef8.cloudfront.net
+CLOUDFRONT_BASE_URL=
+# Optional prefix between base URL and .data files (no leading/trailing slash required).
+# Example: ".data" if files are served as https://.../.data/texts/by-title/...
+CLOUDFRONT_DATA_PREFIX=
+# Optional explicit catalog URL override. If empty, app uses /texts/by-title/catalog.json under CloudFront base.
+CLOUDFRONT_CATALOG_URL=
 TRANSLATION_PROVIDER=libretranslate
 LIBRETRANSLATE_URL=http://localhost:5000
 # LIBRETRANSLATE_API_KEY=optional_if_your_server_requires_it
@@ -79,19 +84,6 @@ LIBRETRANSLATE_URL=http://localhost:5000
 
 - `ENFORCE_PREMIUM_IN_DEV` - Set to `1` to keep premium paywalls enabled in dev.
 - `BYPASS_PREMIUM` - Set to `1` to bypass premium checks (useful for local testing). In `NODE_ENV=development`, the abridged bedtime/timed paywall is bypassed by default unless `ENFORCE_PREMIUM_IN_DEV` is set.
-
-### Local vs Cloud content
-
-- `CONTENT_MODE=local` (default): reads story/image/audio assets from local `.data/texts`.
-- `CONTENT_MODE=cloud`: reads those assets from CloudFront (`CLOUDFRONT_BASE_URL`) and keeps API paths unchanged (`/api/local-image`, `/api/local-audio`, `/api/illustration`, `/api/story-pages`, `/api/abridge`).
-- Use `CLOUDFRONT_DATA_PREFIX` if your bucket keeps files under a folder (for example `.data`), otherwise leave it unset.
-
-### Vercel deployment notes
-
-- For Vercel, set `SQLITE_PATH=/tmp/app.db` (ephemeral per deployment/cold start).
-- Keep `CONTENT_MODE=cloud` and set `CLOUDFRONT_BASE_URL` to your distribution domain.
-- If CloudFront origin path is already `/.data`, leave `CLOUDFRONT_DATA_PREFIX` unset.
-- Set `NEXT_PUBLIC_BASE_URL` to your deployed URL (for custom domain, `https://www.spectra-usa.com`).
 ```
 
 ## Getting Started
@@ -106,9 +98,9 @@ yarn install
 yarn drizzle-kit migrate
 ```
 
-3. **Populate the database** (optional):
+3. **Populate the database** (optional but recommended):
 
-If you have a metadata source or import script for your own books:
+To pre-populate the database with children's books:
 
 ```bash
 # Using the provided script (requires Node 18+ for fetch)
@@ -117,9 +109,10 @@ node scripts/populate-books.mjs
 # Or browse to http://localhost:3000 and wait for initial data sync
 ```
 
-The populate script can:
-- Save book metadata to SQLite database
-- Prepare records for local/cloud story assets
+The populate script will:
+- Fetch all children's books from Gutendex (~200+ books)
+- Save metadata to SQLite database
+- Take about 2-3 minutes to complete
 - Reading time estimates are calculated on-demand when browsing
 
 4. **Start the development server**:
@@ -132,7 +125,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 ## API Routes
 
 ### GET /api/catalog
-Fetch books from SQLite and return catalog entries with available estimates.
+Fetch books from Gutendex, upsert to SQLite, return with estimates if available.
 
 Query params:
 - `topic` - Filter by topic (e.g., "Children")
@@ -159,9 +152,83 @@ Query params:
 - `yarn drizzle-kit generate` - Generate migrations
 - `yarn drizzle-kit migrate` - Apply migrations
 
+## Cloud Catalog (no SQLite in cloud mode)
+
+- Run `node scripts/generate-local-metadata.mjs` to generate `metadata.json` files and `.data/texts/by-title/catalog.json`.
+- Upload `.data/` to S3 so CloudFront serves `texts/by-title/catalog.json` and per-book metadata/files.
+- Set `CONTENT_MODE=cloud`, `NEXT_PUBLIC_CONTENT_MODE=cloud`, and `CLOUDFRONT_*` env vars.
+
+## Vercel Cloud-Only Deploy (no local .data / SQLite)
+
+The app supports a cloud-only runtime on Vercel where book assets come from CloudFront and SQLite is disabled.
+
+Set these environment variables in Vercel:
+
+```env
+CONTENT_MODE=cloud
+NEXT_PUBLIC_CONTENT_MODE=cloud
+CLOUDFRONT_BASE_URL=https://your-cloudfront-domain
+# Optional if your CloudFront path includes a prefix before texts/
+CLOUDFRONT_DATA_PREFIX=
+# Optional explicit override for catalog URL
+CLOUDFRONT_CATALOG_URL=
+# Optional hard disable (recommended for cloud-only deploys)
+DISABLE_SQLITE=1
+```
+
+Cloud-only behavior:
+
+- Works: catalog from cloud metadata, abridged/full reading from cloud text files, local-image/local-audio API proxying from CloudFront.
+- Degraded without hosted DB: account/session persistence, favorites, reading history, estimate caching, premium entitlement persistence.
+
+If you need full persistence in production, use a hosted database (for example Turso/Postgres) and keep CloudFront for book assets.
+
+### Vercel Env Quick Setup (copy/paste)
+
+Use these values in Vercel Project Settings → Environment Variables.
+
+Production:
+
+```env
+CONTENT_MODE=cloud
+NEXT_PUBLIC_CONTENT_MODE=cloud
+CLOUDFRONT_BASE_URL=https://your-cloudfront-domain
+CLOUDFRONT_DATA_PREFIX=
+CLOUDFRONT_CATALOG_URL=
+DISABLE_SQLITE=1
+READ_ALOUD_WPM=160
+ALLOW_HOSTS=gutenberg.org,standardebooks.org
+```
+
+Preview:
+
+```env
+CONTENT_MODE=cloud
+NEXT_PUBLIC_CONTENT_MODE=cloud
+CLOUDFRONT_BASE_URL=https://your-cloudfront-domain
+CLOUDFRONT_DATA_PREFIX=
+CLOUDFRONT_CATALOG_URL=
+DISABLE_SQLITE=1
+READ_ALOUD_WPM=160
+ALLOW_HOSTS=gutenberg.org,standardebooks.org
+```
+
+Development (Vercel-managed dev env; local .env.local can differ):
+
+```env
+CONTENT_MODE=cloud
+NEXT_PUBLIC_CONTENT_MODE=cloud
+CLOUDFRONT_BASE_URL=https://your-cloudfront-domain
+CLOUDFRONT_DATA_PREFIX=
+CLOUDFRONT_CATALOG_URL=
+DISABLE_SQLITE=1
+READ_ALOUD_WPM=160
+ALLOW_HOSTS=gutenberg.org,standardebooks.org
+```
+
 ## How It Works
 
-1. **Book Discovery**: Home page fetches from `/api/catalog`, which reads your catalog metadata from SQLite
+1. **Book Discovery**: Home page fetches from `/api/catalog`, which queries Gutendex and stores metadata in SQLite
 2. **Lazy Estimates**: BookGrid component loads reading-time estimates in batches of 4 (to avoid server overload)
 3. **EPUB Caching**: When opening a book, reader checks IndexedDB first, then downloads via `/api/proxy` and caches
 4. **Position Persistence**: epub.js CFI positions saved to IndexedDB on each page turn
