@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { and, eq, gt } from 'drizzle-orm';
-import { db } from '@/db';
+import { db, getDatabaseDisabledReason, isDatabaseEnabled } from '@/db';
 import { userSessions, users } from '@/db/schema';
 
 export const SESSION_COOKIE = 'taletime_session';
@@ -12,6 +12,12 @@ export type SessionUser = {
   email: string;
   isPaid: boolean;
 };
+
+function assertDatabaseEnabled() {
+  if (isDatabaseEnabled()) return;
+  const reason = getDatabaseDisabledReason() || 'SQLite is disabled';
+  throw new Error(`Database unavailable: ${reason}`);
+}
 
 export function normalizeEmail(input: string): string {
   return input.trim().toLowerCase();
@@ -35,6 +41,7 @@ export function verifyPassword(password: string, passwordHash: string): boolean 
 }
 
 export async function createUser(params: { email: string; passwordHash: string }) {
+  assertDatabaseEnabled();
   const id = randomUUID();
   const now = Date.now();
 
@@ -53,6 +60,7 @@ export async function createUser(params: { email: string; passwordHash: string }
 }
 
 export async function createSession(params: { userId: string }) {
+  assertDatabaseEnabled();
   const id = randomUUID();
   const now = Date.now();
   const expiresAt = now + SESSION_TTL_SECONDS * 1000;
@@ -71,15 +79,18 @@ export async function createSession(params: { userId: string }) {
 }
 
 export async function deleteSession(sessionId: string) {
+  assertDatabaseEnabled();
   await db.delete(userSessions).where(eq(userSessions.id, sessionId)).run();
 }
 
 export async function getUserByEmail(email: string) {
+  assertDatabaseEnabled();
   const user = await db.query.users.findFirst({ where: eq(users.email, email) });
   return user ?? null;
 }
 
 export async function getUserFromSessionId(sessionId: string | null | undefined): Promise<SessionUser | null> {
+  if (!isDatabaseEnabled()) return null;
   if (!sessionId) return null;
 
   const now = Date.now();
@@ -100,5 +111,6 @@ export async function getUserFromSessionId(sessionId: string | null | undefined)
 }
 
 export async function markUserPaid(userId: string) {
+  assertDatabaseEnabled();
   await db.update(users).set({ isPaid: 1 }).where(eq(users.id, userId)).run();
 }

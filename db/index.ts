@@ -1,37 +1,63 @@
-import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { createRequire } from 'node:module';
 import * as schema from './schema';
-import fs from 'node:fs';
-import path from 'node:path';
 
-function resolveSqlitePath(): string {
-	if (process.env.SQLITE_PATH && process.env.SQLITE_PATH.trim()) {
-		return process.env.SQLITE_PATH.trim();
-	}
+const require = createRequire(import.meta.url);
 
-	if (process.env.VERCEL === '1') {
-		return '/tmp/app.db';
-	}
-
-	return '.data/app.db';
+function getContentMode(): 'local' | 'cloud' {
+	const mode = (process.env.CONTENT_MODE || '').trim().toLowerCase();
+	if (mode === 'cloud') return 'cloud';
+	if (mode === 'local') return 'local';
+	return process.env.VERCEL === '1' ? 'cloud' : 'local';
 }
 
-function ensureVercelSqliteSeed(targetPath: string): void {
-	if (process.env.VERCEL !== '1') return;
-	if (targetPath !== '/tmp/app.db') return;
-	if (fs.existsSync(targetPath)) return;
+const shouldDisableDb =
+	process.env.DISABLE_SQLITE === '1' ||
+	process.env.DISABLE_SQLITE === 'true' ||
+	getContentMode() === 'cloud';
 
-	const sourcePath = path.resolve(process.cwd(), '.data', 'app.db');
-	if (!fs.existsSync(sourcePath)) return;
+let disabledReason: string | null = null;
 
-	fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-	fs.copyFileSync(sourcePath, targetPath);
+function disabledDbProxy<T extends object>(reason: string): T {
+	return new Proxy(
+		{},
+		{
+			get() {
+				throw new Error(reason);
+			},
+		}
+	) as T;
 }
 
-const sqlitePath = resolveSqlitePath();
-ensureVercelSqliteSeed(sqlitePath);
+type DrizzleDb = ReturnType<typeof drizzle<typeof schema>>;
 
-const sqlite = new Database(sqlitePath);
-sqlite.pragma('journal_mode = WAL');
+function createDb(): DrizzleDb {
+	if (shouldDisableDb) {
+		disabledReason = 'SQLite is disabled in cloud mode. Use cloud metadata endpoints or configure a hosted database.';
+		return disabledDbProxy<DrizzleDb>(disabledReason);
+	}
 
-export const db = drizzle(sqlite, { schema });
+	try {
+		const BetterSqlite3 = require('better-sqlite3') as {
+			new (path: string): { pragma: (sql: string) => void };
+		};
+
+		const sqlite = new BetterSqlite3(process.env.SQLITE_PATH || '.data/app.db');
+		sqlite.pragma('journal_mode = WAL');
+		return drizzle(sqlite as never, { schema });
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		disabledReason = `SQLite initialization failed: ${message}`;
+		return disabledDbProxy<DrizzleDb>(disabledReason);
+	}
+}
+
+export const db = createDb();
+
+export function isDatabaseEnabled(): boolean {
+	return disabledReason == null;
+}
+
+export function getDatabaseDisabledReason(): string | null {
+	return disabledReason;
+}
