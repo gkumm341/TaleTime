@@ -52,7 +52,8 @@ export function BookGrid({
   timeSelection?: TimeOptionId | null;
   displayMode?: 'detailed' | 'covers';
 }) {
-  const isLocalContent = process.env.NEXT_PUBLIC_CONTENT_MODE === 'local';
+  const contentMode = (process.env.NEXT_PUBLIC_CONTENT_MODE || 'cloud').toLowerCase();
+  const isLocalContent = contentMode === 'local';
   const [books, setBooks] = useState<Book[]>(initialBooks);
   const [loading, setLoading] = useState<Set<number>>(new Set());
   const [coverSrcById, setCoverSrcById] = useState<Record<number, string | null>>({});
@@ -66,11 +67,18 @@ export function BookGrid({
 
   const getFallbackCoverSrc = (book: Book, currentSrc: string | null) => {
     const localSrc = getLocalImageSrc(book.title);
-    if (currentSrc !== localSrc) return localSrc;
-
-    if (!isLocalContent && book.coverUrl && currentSrc !== book.coverUrl) {
-      return book.coverUrl;
+    if (currentSrc === localSrc) {
+      if (book.coverUrl && currentSrc !== book.coverUrl) return book.coverUrl;
+      return null;
     }
+
+    if (book.coverUrl && currentSrc === book.coverUrl) {
+      if (currentSrc !== localSrc) return localSrc;
+      return null;
+    }
+
+    if (book.coverUrl && currentSrc !== book.coverUrl) return book.coverUrl;
+    if (currentSrc !== localSrc) return localSrc;
 
     return null;
   };
@@ -303,6 +311,19 @@ export function BookGrid({
                   }}
                   priority={false}
                 />
+              )}
+
+              {coverSrcById[book.id] === null && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-tt-surface/70 dark:bg-tt-primary/70">
+                  <p className="text-xs lg:text-sm font-semibold text-tt-primary dark:text-white line-clamp-3">
+                    {book.title}
+                  </p>
+                  {!isCoverOnly && (
+                    <p className="mt-1 text-[11px] text-tt-muted line-clamp-2">
+                      {displayedAuthors || 'Author unknown'}
+                    </p>
+                  )}
+                </div>
               )}
 
               <div

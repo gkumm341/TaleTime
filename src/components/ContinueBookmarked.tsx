@@ -39,8 +39,8 @@ function variantIcon(v: AbridgedVariant) {
 }
 
 export default function ContinueBookmarked() {
-  const contentMode = process.env.NEXT_PUBLIC_CONTENT_MODE;
-  const isLocalContent = contentMode === 'local' || contentMode === 'cloud';
+  const contentMode = (process.env.NEXT_PUBLIC_CONTENT_MODE || 'cloud').toLowerCase();
+  const isLocalContent = contentMode === 'local';
   const [items, setItems] = useState<BookmarkedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
