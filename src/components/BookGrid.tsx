@@ -61,15 +61,11 @@ export function BookGrid({
   const getLocalImageSrc = (title: string) => `/api/local-image?title=${encodeURIComponent(title)}`;
 
   const getPrimaryCoverSrc = (book: Book) => {
-    if (isLocalContent) return getLocalImageSrc(book.title);
-    return book.coverUrl ?? null;
+    if (!isLocalContent && book.coverUrl) return book.coverUrl;
+    return getLocalImageSrc(book.title);
   };
 
   const getFallbackCoverSrc = (book: Book, currentSrc: string | null) => {
-    if (!isLocalContent) {
-      return null;
-    }
-
     const localSrc = getLocalImageSrc(book.title);
     if (currentSrc === localSrc) {
       if (book.coverUrl && currentSrc !== book.coverUrl) return book.coverUrl;
