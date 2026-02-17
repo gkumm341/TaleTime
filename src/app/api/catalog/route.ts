@@ -56,20 +56,19 @@ function isHiddenLocalTitle(title: string): boolean {
   return HIDDEN_LOCAL_TITLE_KEYS.has(normalizeTitleKey(title));
 }
 
-function sanitizeCoverUrl(coverUrl: string | null | undefined): string | null {
-  if (!coverUrl) return null;
+function sanitizeNonLocalUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
 
   try {
-    const parsed = new URL(coverUrl);
-    const host = parsed.hostname.toLowerCase();
-    if (host === 'gutenberg.org' || host.endsWith('.gutenberg.org')) {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
       return null;
     }
   } catch {
     // Keep non-URL values unchanged.
   }
 
-  return coverUrl;
+  return url;
 }
 
 function buildTitleCandidates(rawTitle: string): string[] {
@@ -278,8 +277,8 @@ const TEST_CATALOG_FALLBACK_BY_ID: Record<number, CatalogBookResult> = {
     authors: 'Carroll, Lewis',
     subjects: [],
     coverUrl: null,
-    txtUrl: 'https://www.gutenberg.org/ebooks/11.txt.utf-8',
-    epubUrl: 'https://www.gutenberg.org/ebooks/11.epub3.images',
+    txtUrl: null,
+    epubUrl: null,
     downloadCount: null,
     minutes: null,
     words: null,
@@ -291,8 +290,8 @@ const TEST_CATALOG_FALLBACK_BY_ID: Record<number, CatalogBookResult> = {
     authors: 'Montgomery, L. M. (Lucy Maud)',
     subjects: [],
     coverUrl: null,
-    txtUrl: 'https://www.gutenberg.org/ebooks/45.txt.utf-8',
-    epubUrl: 'https://www.gutenberg.org/ebooks/45.epub3.images',
+    txtUrl: null,
+    epubUrl: null,
     downloadCount: null,
     minutes: null,
     words: null,
@@ -304,8 +303,8 @@ const TEST_CATALOG_FALLBACK_BY_ID: Record<number, CatalogBookResult> = {
     authors: 'Kipling, Rudyard',
     subjects: [],
     coverUrl: null,
-    txtUrl: 'https://www.gutenberg.org/ebooks/236.txt.utf-8',
-    epubUrl: 'https://www.gutenberg.org/ebooks/236.epub3.images',
+    txtUrl: null,
+    epubUrl: null,
     downloadCount: null,
     minutes: null,
     words: null,
@@ -436,9 +435,9 @@ export async function GET(req: NextRequest) {
           title: result!.title,
           authors: result!.authors ?? 'Unknown',
           subjects: result!.subjects ? JSON.parse(result!.subjects) : [],
-          coverUrl: sanitizeCoverUrl(result!.coverUrl),
-          txtUrl: result!.txtUrl,
-          epubUrl: result!.epubUrl,
+          coverUrl: sanitizeNonLocalUrl(result!.coverUrl),
+          txtUrl: sanitizeNonLocalUrl(result!.txtUrl),
+          epubUrl: sanitizeNonLocalUrl(result!.epubUrl),
           downloadCount: result!.downloadCount,
           minutes: result!.minutes,
           words: result!.words,
@@ -506,9 +505,9 @@ export async function GET(req: NextRequest) {
           title: result.title,
           authors: result.authors ?? 'Unknown',
           subjects: result.subjects ? JSON.parse(result.subjects) : [],
-          coverUrl: sanitizeCoverUrl(result.coverUrl),
-          txtUrl: result.txtUrl,
-          epubUrl: result.epubUrl,
+          coverUrl: sanitizeNonLocalUrl(result.coverUrl),
+          txtUrl: sanitizeNonLocalUrl(result.txtUrl),
+          epubUrl: sanitizeNonLocalUrl(result.epubUrl),
           downloadCount: result.downloadCount,
           minutes: result.minutes,
           words: result.words,
@@ -666,9 +665,9 @@ export async function GET(req: NextRequest) {
       title: book.title,
       authors: book.authors ?? 'Unknown',
       subjects: book.subjects ? JSON.parse(book.subjects) : [],
-      coverUrl: sanitizeCoverUrl(book.coverUrl),
-      txtUrl: book.txtUrl,
-      epubUrl: book.epubUrl,
+      coverUrl: sanitizeNonLocalUrl(book.coverUrl),
+      txtUrl: sanitizeNonLocalUrl(book.txtUrl),
+      epubUrl: sanitizeNonLocalUrl(book.epubUrl),
       downloadCount: book.downloadCount,
       minutes: book.minutes,
       words: book.words,
@@ -704,7 +703,9 @@ export async function GET(req: NextRequest) {
       .filter(Boolean)
       .map((book) => ({
         ...book,
-        coverUrl: sanitizeCoverUrl(book.coverUrl),
+        coverUrl: sanitizeNonLocalUrl(book.coverUrl),
+        txtUrl: sanitizeNonLocalUrl(book.txtUrl),
+        epubUrl: sanitizeNonLocalUrl(book.epubUrl),
       }));
 
     return NextResponse.json({
