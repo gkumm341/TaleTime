@@ -1,30 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  outputFileTracingExcludes: {
+  outputFileTracingIncludes: {
     '*': [
       '.data/texts/**/*',
-      '.data/**/*.mp3',
-      '.data/**/*.png',
-      '.data/**/*.jpg',
-      '.data/**/*.jpeg',
-      '.data/**/*.webp',
-      '.data/**/Illustrations/**/*',
     ],
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'www.gutenberg.org',
-        pathname: '/cache/epub/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'standardebooks.org',
-        pathname: '/ebooks/**',
-      },
-    ],
+    remotePatterns: [],
     localPatterns: [
       // Allow images from /public (e.g. /hat.png) when using next/image.
       { pathname: '/**' },
