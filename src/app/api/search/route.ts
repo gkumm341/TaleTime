@@ -72,21 +72,6 @@ interface SearchResult {
   score: number;
 }
 
-function sanitizeNonLocalUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-      return null;
-    }
-  } catch {
-    // Keep non-URL values unchanged.
-  }
-
-  return url;
-}
-
 function normalizeForSearch(input: string): string {
   return input
     .toLowerCase()
@@ -313,7 +298,7 @@ export async function GET(req: NextRequest) {
           keywords: meta.book.keywords || [],
           description: meta.book.description,
           subjects: meta.book.subjects || [],
-          coverUrl: sanitizeNonLocalUrl(meta.book.links.coverUrl),
+          coverUrl: meta.book.links.coverUrl,
           minutes: meta.book.estimate?.minutes ?? null,
           words: meta.book.estimate?.words ?? null,
           folderName: meta.local.folderName,

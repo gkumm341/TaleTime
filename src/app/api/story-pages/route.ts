@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { resolveRequestLocale } from '@/lib/server/translation';
 import { translateStoryJson } from '@/lib/story-translations';
-import { buildCloudTextUrl, getContentMode, getLocalTextDir } from '@/lib/server/content-source';
+import { maybeTranslateText } from '@/lib/server/translation';
 
 
 function sanitizeTitleToFolder(title: string) {
@@ -21,29 +21,14 @@ export async function GET(req: NextRequest) {
   const folder = sanitizeTitleToFolder(title);
   if (!folder) return Response.json({ error: 'Invalid title' }, { status: 400 });
 
-  const baseDir = getLocalTextDir();
+  const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
   const filePath = path.resolve(process.cwd(), baseDir, 'by-title', folder, `${safeVariant}.pages.json`);
 
   let raw: string;
-  if (getContentMode() === 'cloud') {
-    const url = buildCloudTextUrl(['by-title', folder, `${safeVariant}.pages.json`]);
-    if (!url) return Response.json({ error: 'Missing CLOUDFRONT_BASE_URL for cloud mode' }, { status: 500 });
-
-    try {
-      const upstream = await fetch(url, { cache: 'no-store' });
-      if (!upstream.ok) {
-        return Response.json({ error: 'Story not found' }, { status: 404 });
-      }
-      raw = await upstream.text();
-    } catch {
-      return Response.json({ error: 'Story not found' }, { status: 404 });
-    }
-  } else {
-    try {
-      raw = await fs.readFile(filePath, 'utf8');
-    } catch {
-      return Response.json({ error: 'Story not found' }, { status: 404 });
-    }
+  try {
+    raw = await fs.readFile(filePath, 'utf8');
+  } catch {
+    return Response.json({ error: 'Story not found' }, { status: 404 });
   }
 
   let story: any;

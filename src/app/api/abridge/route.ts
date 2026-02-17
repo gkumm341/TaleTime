@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, isDatabaseEnabled } from '@/db';
+import { db } from '@/db';
 import { books } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { promises as fs } from 'node:fs';
@@ -22,15 +22,13 @@ import {
   resolveRequestLocale,
   shouldTranslate,
 } from '@/lib/server/translation';
+import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
+import { getCloudBookId, loadCloudCatalogMetadata } from '@/lib/server/cloud-catalog';
 import type { Locale } from '@/i18n/routing';
-import { buildCloudTextUrl, getContentMode, getLocalTextDir } from '@/lib/server/content-source';
 
 export const runtime = 'nodejs';
 
 function shouldBypassPremiumPaywall(): boolean {
-  // Open access for user testing unless explicitly disabled.
-  if (process.env.OPEN_ACCESS_MODE !== 'false') return true;
-
   // Convenience for local development. Set ENFORCE_PREMIUM_IN_DEV=1 to test paywall flows.
   if (process.env.ENFORCE_PREMIUM_IN_DEV === '1' || process.env.ENFORCE_PREMIUM_IN_DEV === 'true') return false;
   if (process.env.BYPASS_PREMIUM === '1' || process.env.BYPASS_PREMIUM === 'true') return true;
@@ -111,7 +109,7 @@ async function loadFirstExistingStoryFile(paths: string[]): Promise<
   return null;
 }
 
-async function loadFirstExistingStoryFileFromCloud(paths: string[]): Promise<
+async function loadFirstExistingStoryUrl(urls: string[]): Promise<
   | {
       filePath: string;
       text: string;
@@ -121,36 +119,33 @@ async function loadFirstExistingStoryFileFromCloud(paths: string[]): Promise<
     }
   | null
 > {
-  for (const p of paths) {
-    const url = buildCloudTextUrl(p);
-    if (!url) return null;
-
+  for (const url of urls) {
     try {
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) continue;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const raw = await res.text();
 
-      const raw = await response.text();
-      const lower = p.toLowerCase();
+      const lower = url.toLowerCase();
 
       if (lower.endsWith('.pages.json')) {
         const parsed = parseStoryPagesJson(raw);
         const pages = parsed.doc.pages;
         const text = storyPagesToLegacyText(pages);
-        return { filePath: p, text, pages, sourceFormat: 'story-pages' };
+        return { filePath: url, text, pages, sourceFormat: 'story-pages' };
       }
 
       if (lower.endsWith('.story.json')) {
         const parsed = parseStoryJson(raw);
         const blocks = parsed.doc.blocks;
         const text = storyBlocksToLegacyText(blocks);
-        return { filePath: p, text, blocks, sourceFormat: 'story-json' };
+        return { filePath: url, text, blocks, sourceFormat: 'story-json' };
       }
 
-      return { filePath: p, text: raw, sourceFormat: 'txt' };
+      return { filePath: url, text: raw, sourceFormat: 'txt' };
     } catch {
+      // ignore
     }
   }
-
   return null;
 }
 
@@ -220,11 +215,23 @@ function uniqueStrings(values: string[]): string[] {
   return out;
 }
 
+function parseAllowHosts(): RegExp[] {
+  return (process.env.ALLOW_HOSTS || 'gutenberg.org,standardebooks.org')
+    .split(',')
+    .map((h) => h.trim())
+    .filter(Boolean)
+    .map((h) => new RegExp(h.replace(/\./g, '\\.') + '$'));
+}
+
+function isAllowedHost(url: URL, allow: RegExp[]): boolean {
+  return allow.some((re) => re.test(url.hostname));
+}
+
 function clampInt(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.trunc(value)));
 }
 
-function stripPublicDomainBoilerplate(raw: string): string {
+function stripGutenbergBoilerplate(raw: string): string {
   const text = raw.replace(/\r\n/g, '\n');
 
   // Try START/END markers first
@@ -252,7 +259,7 @@ function stripFrontMatter(text: string): string {
   let t = text
     // Standalone bracketed stage directions/illustration lines.
     .replace(/^\s*\[(?:illustration|Illustrations?|frontispiece|plate)\b[^\]]*\]\s*$/gim, '')
-    // Common imported-book header crumbs.
+    // Gutenberg/SE eBook header crumbs.
     .replace(/^\s*the millennium fulcrum edition\b.*$/gim, '')
     .replace(/^\s*produced by\b.*$/gim, '')
     .replace(/^\s*\*+\s*$/gm, '');
@@ -275,16 +282,21 @@ function stripFrontMatter(text: string): string {
 }
 
 function stripEndBoilerplate(text: string): string {
-  // Some sources don't include a standard end marker; detect common
-  // license/boilerplate sections and truncate before them.
+  // Some sources don't include the standard "*** END OF" marker; try to detect
+  // common license/boilerplate sections and truncate before them.
   const markers: RegExp[] = [
+    /^\s*end of the project gutenberg ebook\b.*$/im,
+    /^\s*start of (?:the )?project gutenberg(?:\s+license)?\b.*$/im,
     /^\s*start:\s*full license\b.*$/im,
+    /^\s*the full project gutenberg license\b.*$/im,
     /^\s*this ebook is for the use of anyone anywhere\b.*$/im,
-    /^\s*full license\b.*$/im,
+    /^\s*project gutenberg is a registered trademark\b.*$/im,
+    /^\s*www\.gutenberg\.org\b.*$/im,
 
     // Fallback: catch trademark/license paragraphs even if wrapped mid-line.
+    /project gutenberg/i,
+    /gutenberg\s*[™\(]*/i,
     /trademark\s+license/i,
-    /all rights reserved/i,
   ];
 
   let cutIndex: number | null = null;
@@ -534,7 +546,7 @@ export async function POST(req: NextRequest) {
 
     // Bedtime/timed variants are paid-only.
     // In development mode, bypass auth check to allow testing without login.
-    if (variant !== 'full' && !shouldBypassPremiumPaywall() && isDatabaseEnabled()) {
+    if (variant !== 'full' && !shouldBypassPremiumPaywall()) {
       const sessionId = req.cookies.get('taletime_session')?.value;
       const user = await getUserFromSessionId(sessionId);
       if (!user) {
@@ -552,19 +564,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const book = await db.query.books.findFirst({ where: eq(books.id, bookId) });
-    if (!book) {
-      return NextResponse.json({ error: 'Book not found' }, { status: 404 });
-    }
-
-    const bookTitle = book.title;
-    const bookAuthors = book.authors;
-
     const contentMode = getContentMode();
 
-    // Local mode: read provided .txt files from disk (no network requests).
-    if (contentMode === 'local') {
-      const baseDir = getLocalTextDir();
+    let bookTitle = '';
+    let bookAuthor = 'Unknown';
+    let cloudFolderHint: string | null = null;
+
+    if (contentMode === 'cloud') {
+      const cloudMeta = await loadCloudCatalogMetadata();
+      const cloudBook = cloudMeta.find((meta) => getCloudBookId(meta) === bookId);
+      if (!cloudBook) {
+        return NextResponse.json({ error: 'Book not found in cloud catalog' }, { status: 404 });
+      }
+      bookTitle = cloudBook.book.title;
+      bookAuthor = (cloudBook.book.authors || []).join(', ') || 'Unknown';
+      cloudFolderHint = cloudBook.local?.folderName?.trim() || null;
+    } else {
+      const book = await db.query.books.findFirst({ where: eq(books.id, bookId) });
+      if (!book) {
+        return NextResponse.json({ error: 'Book not found' }, { status: 404 });
+      }
+      bookTitle = book.title;
+      bookAuthor = book.authors || 'Unknown';
+    }
+
+    if (contentMode === 'local' || contentMode === 'cloud') {
+      const baseDir = process.env.LOCAL_TEXT_DIR || '.data/texts';
       const rootDir = path.resolve(process.cwd(), baseDir);
       const bookDir = path.join(rootDir, String(bookId));
 
@@ -584,52 +609,111 @@ export async function POST(req: NextRequest) {
         .map(toSafeFilenameBase)
         .filter(Boolean);
 
-      const candidates: string[] = [];
+      let expectedSources: string[] = [];
+      let loaded:
+        | {
+            filePath: string;
+            text: string;
+            blocks?: StoryBlock[];
+            pages?: StoryPageInput[];
+            sourceFormat: 'txt' | 'story-json' | 'story-pages';
+          }
+        | null = null;
 
-      // Preferred layout: ${LOCAL_TEXT_DIR}/by-title/<Title>/bedtime.txt|full.txt
-      const byTitleRoot = path.join(rootDir, 'by-title');
-      const byTitleFolder = await findMatchingSubdir({ parentDir: byTitleRoot, titleCandidates });
-      if (byTitleFolder) {
-        const byTitleDir = path.join(byTitleRoot, byTitleFolder);
-        if (variant === 'full') {
-          candidates.push(path.join(byTitleDir, 'full.pages.json'));
-          candidates.push(path.join(byTitleDir, 'full.story.json'));
-          candidates.push(path.join(byTitleDir, 'full.txt'));
+      if (contentMode === 'local') {
+        const candidates: string[] = [];
+
+        // Preferred layout: ${LOCAL_TEXT_DIR}/by-title/<Title>/bedtime.txt|full.txt
+        const byTitleRoot = path.join(rootDir, 'by-title');
+        const byTitleFolder = await findMatchingSubdir({ parentDir: byTitleRoot, titleCandidates });
+        if (byTitleFolder) {
+          const byTitleDir = path.join(byTitleRoot, byTitleFolder);
+          if (variant === 'full') {
+            candidates.push(path.join(byTitleDir, 'full.pages.json'));
+            candidates.push(path.join(byTitleDir, 'full.story.json'));
+            candidates.push(path.join(byTitleDir, 'full.txt'));
+          } else {
+            candidates.push(path.join(byTitleDir, 'bedtime.pages.json'));
+            candidates.push(path.join(byTitleDir, 'bedtime.story.json'));
+            candidates.push(path.join(byTitleDir, 'bedtime.txt'));
+            candidates.push(path.join(byTitleDir, 'full.pages.json'));
+            candidates.push(path.join(byTitleDir, 'full.story.json'));
+            candidates.push(path.join(byTitleDir, 'full.txt'));
+          }
+        }
+
+        if (variant === 'full' || variant === 'timed') {
+          candidates.push(path.join(bookDir, 'full.pages.json'));
+          candidates.push(path.join(bookDir, 'full.story.json'));
+          candidates.push(path.join(bookDir, 'full.txt'));
         } else {
-          candidates.push(path.join(byTitleDir, 'bedtime.pages.json'));
-          candidates.push(path.join(byTitleDir, 'bedtime.story.json'));
-          candidates.push(path.join(byTitleDir, 'bedtime.txt'));
-          candidates.push(path.join(byTitleDir, 'full.pages.json'));
-          candidates.push(path.join(byTitleDir, 'full.story.json'));
-          candidates.push(path.join(byTitleDir, 'full.txt'));
-        }
-      }
+          candidates.push(path.join(bookDir, 'bedtime.pages.json'));
+          candidates.push(path.join(bookDir, 'bedtime.story.json'));
+          candidates.push(path.join(bookDir, 'bedtime.txt'));
+          candidates.push(path.join(bookDir, 'full.pages.json'));
+          candidates.push(path.join(bookDir, 'full.story.json'));
+          candidates.push(path.join(bookDir, 'full.txt'));
 
-      if (variant === 'full' || variant === 'timed') {
-        candidates.push(path.join(bookDir, 'full.pages.json'));
-        candidates.push(path.join(bookDir, 'full.story.json'));
-        candidates.push(path.join(bookDir, 'full.txt'));
+          // Alternative layout: ${LOCAL_TEXT_DIR}/bookBedtime/<Title> (Bedtime).txt
+          for (const t of titleCandidates) {
+            candidates.push(path.join(rootDir, 'bookBedtime', `${t} (Bedtime).txt`));
+            candidates.push(path.join(rootDir, 'bookBedtime', `${t}.txt`));
+          }
+        }
+
+        expectedSources = candidates;
+        loaded = await loadFirstExistingStoryFile(candidates);
       } else {
-        candidates.push(path.join(bookDir, 'bedtime.pages.json'));
-        candidates.push(path.join(bookDir, 'bedtime.story.json'));
-        candidates.push(path.join(bookDir, 'bedtime.txt'));
-        candidates.push(path.join(bookDir, 'full.pages.json'));
-        candidates.push(path.join(bookDir, 'full.story.json'));
-        candidates.push(path.join(bookDir, 'full.txt'));
+        const cloudCandidates: string[] = [];
+        const byTitleCandidates = uniqueStrings([cloudFolderHint || '', rawTitle, ...titleCandidates]);
 
-        // Alternative layout: ${LOCAL_TEXT_DIR}/bookBedtime/<Title> (Bedtime).txt
-        for (const t of titleCandidates) {
-          candidates.push(path.join(rootDir, 'bookBedtime', `${t} (Bedtime).txt`));
-          candidates.push(path.join(rootDir, 'bookBedtime', `${t}.txt`));
+        const pushCloud = (segments: string[]) => {
+          const url = buildCloudTextUrl(segments);
+          if (url) cloudCandidates.push(url);
+        };
+
+        for (const folder of byTitleCandidates) {
+          if (variant === 'full') {
+            pushCloud(['by-title', folder, 'full.pages.json']);
+            pushCloud(['by-title', folder, 'full.story.json']);
+            pushCloud(['by-title', folder, 'full.txt']);
+          } else {
+            pushCloud(['by-title', folder, 'bedtime.pages.json']);
+            pushCloud(['by-title', folder, 'bedtime.story.json']);
+            pushCloud(['by-title', folder, 'bedtime.txt']);
+            pushCloud(['by-title', folder, 'full.pages.json']);
+            pushCloud(['by-title', folder, 'full.story.json']);
+            pushCloud(['by-title', folder, 'full.txt']);
+          }
         }
+
+        if (variant === 'full' || variant === 'timed') {
+          pushCloud([String(bookId), 'full.pages.json']);
+          pushCloud([String(bookId), 'full.story.json']);
+          pushCloud([String(bookId), 'full.txt']);
+        } else {
+          pushCloud([String(bookId), 'bedtime.pages.json']);
+          pushCloud([String(bookId), 'bedtime.story.json']);
+          pushCloud([String(bookId), 'bedtime.txt']);
+          pushCloud([String(bookId), 'full.pages.json']);
+          pushCloud([String(bookId), 'full.story.json']);
+          pushCloud([String(bookId), 'full.txt']);
+
+          for (const t of titleCandidates) {
+            pushCloud(['bookBedtime', `${t} (Bedtime).txt`]);
+            pushCloud(['bookBedtime', `${t}.txt`]);
+          }
+        }
+
+        expectedSources = cloudCandidates;
+        loaded = await loadFirstExistingStoryUrl(cloudCandidates);
       }
 
-      const loaded = await loadFirstExistingStoryFile(candidates);
       if (!loaded) {
         return NextResponse.json(
           {
-            error: 'Missing local text file for this book',
-            expectedPaths: candidates,
+            error: contentMode === 'cloud' ? 'Missing cloud text file for this book' : 'Missing local text file for this book',
+            expectedPaths: expectedSources,
           },
           { status: 400 }
         );
@@ -642,7 +726,7 @@ export async function POST(req: NextRequest) {
             minutes: 0,
             wpm,
             title: bookTitle,
-            author: bookAuthors || 'Unknown',
+            author: bookAuthor,
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -658,7 +742,7 @@ export async function POST(req: NextRequest) {
             minutes: bedtimeMinutes,
             wpm,
             title: bookTitle,
-            author: bookAuthors || 'Unknown',
+            author: bookAuthor,
             pages: loaded.pages,
             content: '',
             blocks: null,
@@ -673,7 +757,7 @@ export async function POST(req: NextRequest) {
           minutes: effectiveMinutes,
           wpm,
           title: bookTitle,
-          author: bookAuthors || 'Unknown',
+          author: bookAuthor,
           pages: loaded.pages,
           content: '',
           blocks: null,
@@ -683,7 +767,7 @@ export async function POST(req: NextRequest) {
       }
 
       const raw = loaded.text.trim();
-      const cleaned = stripEndBoilerplate(stripFrontMatter(stripPublicDomainBoilerplate(raw)));
+      const cleaned = stripEndBoilerplate(stripFrontMatter(stripGutenbergBoilerplate(raw)));
 
       if (variant === 'full') {
         return NextResponse.json(await localizeAbridgePayload({
@@ -691,7 +775,7 @@ export async function POST(req: NextRequest) {
           minutes: 0,
           wpm,
           title: bookTitle,
-          author: bookAuthors || 'Unknown',
+          author: bookAuthor,
           content: cleaned,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -712,7 +796,7 @@ export async function POST(req: NextRequest) {
           minutes: bedtimeMinutes,
           wpm,
           title: bookTitle,
-          author: bookAuthors || 'Unknown',
+          author: bookAuthor,
           content: bedtimeContent,
           blocks: loaded.blocks ?? null,
           sourceFormat: loaded.sourceFormat,
@@ -729,176 +813,13 @@ export async function POST(req: NextRequest) {
         minutes: effectiveMinutes,
         wpm,
         title: bookTitle,
-        author: bookAuthors || 'Unknown',
+        author: bookAuthor,
         content,
         mode: 'extractive' as Mode,
       }, locale));
     }
 
-    if (contentMode === 'cloud') {
-      const rawTitle = bookTitle;
-      const titleCandidates = uniqueStrings([
-        rawTitle,
-        rawTitle.replace(/\s*\([^)]*\)\s*$/, '').trim(),
-        rawTitle.replace(/\s*\[[^\]]*\]\s*$/, '').trim(),
-        rawTitle.split(':')[0]?.trim() || rawTitle,
-        rawTitle.replace(/\s*:\s*\$[a-z]\b\s*/gi, ' ').trim(),
-        rawTitle.replace(/\$[a-z]\b/gi, ' ').trim(),
-      ])
-        .map((t) => t.replace(/\s*\[[^\]]*\]\s*$/, '').trim())
-        .map(toSafeFilenameBase)
-        .filter(Boolean);
-
-      const candidates: string[] = [];
-
-      for (const titleCandidate of titleCandidates) {
-        if (variant === 'full') {
-          candidates.push(path.posix.join('by-title', titleCandidate, 'full.pages.json'));
-          candidates.push(path.posix.join('by-title', titleCandidate, 'full.story.json'));
-          candidates.push(path.posix.join('by-title', titleCandidate, 'full.txt'));
-        } else {
-          candidates.push(path.posix.join('by-title', titleCandidate, 'bedtime.pages.json'));
-          candidates.push(path.posix.join('by-title', titleCandidate, 'bedtime.story.json'));
-          candidates.push(path.posix.join('by-title', titleCandidate, 'bedtime.txt'));
-          candidates.push(path.posix.join('by-title', titleCandidate, 'full.pages.json'));
-          candidates.push(path.posix.join('by-title', titleCandidate, 'full.story.json'));
-          candidates.push(path.posix.join('by-title', titleCandidate, 'full.txt'));
-        }
-      }
-
-      if (variant === 'full' || variant === 'timed') {
-        candidates.push(path.posix.join(String(bookId), 'full.pages.json'));
-        candidates.push(path.posix.join(String(bookId), 'full.story.json'));
-        candidates.push(path.posix.join(String(bookId), 'full.txt'));
-      } else {
-        candidates.push(path.posix.join(String(bookId), 'bedtime.pages.json'));
-        candidates.push(path.posix.join(String(bookId), 'bedtime.story.json'));
-        candidates.push(path.posix.join(String(bookId), 'bedtime.txt'));
-        candidates.push(path.posix.join(String(bookId), 'full.pages.json'));
-        candidates.push(path.posix.join(String(bookId), 'full.story.json'));
-        candidates.push(path.posix.join(String(bookId), 'full.txt'));
-
-        for (const t of titleCandidates) {
-          candidates.push(path.posix.join('bookBedtime', `${t} (Bedtime).txt`));
-          candidates.push(path.posix.join('bookBedtime', `${t}.txt`));
-        }
-      }
-
-      const loaded = await loadFirstExistingStoryFileFromCloud(candidates);
-      if (!loaded) {
-        return NextResponse.json(
-          {
-            error: 'Missing cloud text file for this book',
-            expectedPaths: candidates,
-          },
-          { status: 400 }
-        );
-      }
-
-      if (loaded.pages && loaded.pages.length > 0) {
-        if (variant === 'full') {
-          return NextResponse.json(await localizeAbridgePayload({
-            bookId,
-            minutes: 0,
-            wpm,
-            title: bookTitle,
-            author: bookAuthors || 'Unknown',
-            pages: loaded.pages,
-            content: '',
-            blocks: null,
-            sourceFormat: loaded.sourceFormat,
-            mode: 'local' as Mode,
-          }, locale));
-        }
-
-        if (variant === 'bedtime') {
-          const bedtimeMinutes = 10;
-          return NextResponse.json(await localizeAbridgePayload({
-            bookId,
-            minutes: bedtimeMinutes,
-            wpm,
-            title: bookTitle,
-            author: bookAuthors || 'Unknown',
-            pages: loaded.pages,
-            content: '',
-            blocks: null,
-            sourceFormat: loaded.sourceFormat,
-            mode: 'local' as Mode,
-          }, locale));
-        }
-
-        const effectiveMinutes = minutes ?? 10;
-        return NextResponse.json(await localizeAbridgePayload({
-          bookId,
-          minutes: effectiveMinutes,
-          wpm,
-          title: bookTitle,
-          author: bookAuthors || 'Unknown',
-          pages: loaded.pages,
-          content: '',
-          blocks: null,
-          sourceFormat: loaded.sourceFormat,
-          mode: 'local' as Mode,
-        }, locale));
-      }
-
-      const raw = loaded.text.trim();
-      const cleaned = stripEndBoilerplate(stripFrontMatter(stripPublicDomainBoilerplate(raw)));
-
-      if (variant === 'full') {
-        return NextResponse.json(await localizeAbridgePayload({
-          bookId,
-          minutes: 0,
-          wpm,
-          title: bookTitle,
-          author: bookAuthors || 'Unknown',
-          content: cleaned,
-          blocks: loaded.blocks ?? null,
-          sourceFormat: loaded.sourceFormat,
-          mode: 'local' as Mode,
-        }, locale));
-      }
-
-      if (variant === 'bedtime') {
-        const bedtimeMinutes = 10;
-        const bedtimeTargetWords = bedtimeMinutes * wpm;
-        const bedtimeContent = loaded.filePath.toLowerCase().endsWith('bedtime.txt') || loaded.filePath.toLowerCase().endsWith('bedtime.story.json')
-          ? cleaned
-          : extractiveAbridge(cleaned, bedtimeTargetWords);
-
-        return NextResponse.json(await localizeAbridgePayload({
-          bookId,
-          minutes: bedtimeMinutes,
-          wpm,
-          title: bookTitle,
-          author: bookAuthors || 'Unknown',
-          content: bedtimeContent,
-          blocks: loaded.blocks ?? null,
-          sourceFormat: loaded.sourceFormat,
-          mode: ((loaded.filePath.toLowerCase().endsWith('bedtime.txt') || loaded.filePath.toLowerCase().endsWith('bedtime.story.json')) ? 'local' : 'extractive') as Mode,
-        }, locale));
-      }
-
-      const effectiveMinutes = minutes ?? 10;
-      const targetWords = effectiveMinutes * wpm;
-      const content = extractiveAbridge(cleaned, targetWords);
-      return NextResponse.json(await localizeAbridgePayload({
-        bookId,
-        minutes: effectiveMinutes,
-        wpm,
-        title: bookTitle,
-        author: bookAuthors || 'Unknown',
-        content,
-        mode: 'extractive' as Mode,
-      }, locale));
-    }
-
-    return NextResponse.json(
-      {
-        error: `Unsupported CONTENT_MODE: ${contentMode}. Supported values: local, cloud.`,
-      },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: `Unsupported CONTENT_MODE: ${contentMode}` }, { status: 400 });
   } catch (error) {
     console.error('Abridge API error:', error);
     return NextResponse.json({ error: 'Failed to abridge book' }, { status: 500 });
