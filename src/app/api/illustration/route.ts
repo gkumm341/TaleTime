@@ -71,14 +71,30 @@ type CloudMetadata = {
   };
 };
 
-function redirectTo(url: string, status = 307) {
-  return new Response(null, {
-    status,
-    headers: {
-      Location: url,
+async function proxyAsset(url: string): Promise<Response | null> {
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok || !res.body) return null;
+
+    const contentType = res.headers.get('content-type') || 'application/octet-stream';
+    const contentLength = res.headers.get('content-length');
+
+    const headers = new Headers({
+      'Content-Type': contentType,
       'Cache-Control': 'no-store, max-age=0',
-    },
-  });
+    });
+
+    if (contentLength) {
+      headers.set('Content-Length', contentLength);
+    }
+
+    return new Response(res.body, {
+      status: 200,
+      headers,
+    });
+  } catch {
+    return null;
+  }
 }
 
 function uniqueStrings(values: string[]): string[] {
@@ -169,13 +185,15 @@ export async function GET(req: NextRequest) {
       const url = buildCloudTextUrl(['by-title', cloudFolder, dir, safeImage]);
       if (!url) continue;
       if (await cloudFileExists(url)) {
-        return redirectTo(url);
+        const proxied = await proxyAsset(url);
+        if (proxied) return proxied;
       }
     }
 
     const directUrl = buildCloudTextUrl(['by-title', cloudFolder, safeImage]);
     if (directUrl && (await cloudFileExists(directUrl))) {
-      return redirectTo(directUrl);
+      const proxied = await proxyAsset(directUrl);
+      if (proxied) return proxied;
     }
 
     return new Response(TRANSPARENT_PNG, {

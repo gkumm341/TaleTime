@@ -1586,7 +1586,7 @@ export default function AbridgedBookPage() {
                 }}
               >
                 <div className="relative flex items-center">
-                  <Image src="/owlFace2.png" alt="TaleTime Logo" width={64} height={64} />
+                  <Image src="/owlFace2.png" alt="TaleTime Logo" width={40} height={40} className="h-10 w-10" />
                   <h2 className="tt-logo font-heading text-3xl">TaleTime</h2>
                 </div>
               </button>
@@ -1915,7 +1915,7 @@ export default function AbridgedBookPage() {
                         <img
                           src="/bookmarktopleft.png"
                           alt=""
-                          className="absolute -top-2 left-[500px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[70px] sm:h-[151px] sm:w-40"
+                          className="absolute -top-2 left-[360px] -translate-x-1/2 h-24 w-24 object-contain sm:-top-[71px] sm:h-[151px] sm:w-40"
                           draggable={false}
                         />
                       )}
@@ -2174,7 +2174,7 @@ export default function AbridgedBookPage() {
                         {!loading && !error && data && <ReaderQuickTips />}
 
         <div className="text-xs text-tt-primary/60 dark:text-gray-400 text-center mt-4">
-          {isMobile
+          {isMobile 
             ? t('reader.hint.mobile')
             : t('reader.hint.desktop')}
         </div>
