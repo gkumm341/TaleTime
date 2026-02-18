@@ -112,7 +112,7 @@ function useIsTouchDevice() {
   return isTouchDevice;
 }
 
-function useFlipDimensions(isMobile: boolean) {
+function useFlipDimensions(isMobile: boolean, isTouchDevice: boolean, isFullscreen: boolean) {
   const [dims, setDims] = useState(() => ({
     width: isMobile ? 360 : 520,
     height: isMobile ? 620 : 720,
@@ -127,12 +127,13 @@ function useFlipDimensions(isMobile: boolean) {
     const compute = () => {
       const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
       const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+      const isTabletTouchFullscreen = !isMobile && isTouchDevice && isFullscreen;
 
       // Leave space for headers/controls around the book.
-      const availableH = Math.max(520, vh - (isMobile ? 160 : 190));
+      const availableH = Math.max(520, vh - (isMobile ? 160 : isTabletTouchFullscreen ? 110 : 190));
       const availableW = Math.max(320, vw - (isMobile ? 48 : 96));
 
-      const height = Math.min(isMobile ? 740 : 880, availableH);
+      const height = Math.min(isMobile ? 740 : isTabletTouchFullscreen ? 940 : 880, availableH);
       const width = Math.min(isMobile ? 420 : 620, availableW);
 
       setDims({
@@ -141,14 +142,14 @@ function useFlipDimensions(isMobile: boolean) {
         minWidth: isMobile ? 340 : 480,
         maxWidth: isMobile ? 460 : 760,
         minHeight: isMobile ? 600 : 700,
-        maxHeight: isMobile ? 820 : 980,
+        maxHeight: isMobile ? 820 : isTabletTouchFullscreen ? 1040 : 980,
       });
     };
 
     compute();
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
-  }, [isMobile]);
+  }, [isMobile, isTouchDevice, isFullscreen]);
 
   return dims;
 }
@@ -163,10 +164,11 @@ export default function AbridgedBookPage() {
   const isMobile = useIsMobile(768);
   const isCompactReaderLayout = useIsMobile(1180);
   const isTouchDevice = useIsTouchDevice();
-  const dims = useFlipDimensions(isMobile);
-  const useSideControls = !isCompactReaderLayout;
   const [canUseFullscreen, setCanUseFullscreen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const isTabletFullscreen = !isMobile && isFullscreen;
+  const dims = useFlipDimensions(isMobile, isTouchDevice, isFullscreen);
+  const useSideControls = !isCompactReaderLayout;
 
   const id = useMemo(() => Number(params.id), [params.id]);
   const minutes = useMemo(() => Number(searchParams.get('minutes') || '0'), [searchParams]);
@@ -1558,7 +1560,7 @@ export default function AbridgedBookPage() {
 
         <div className="absolute inset-0 bg-gradient-to-l from-tt-secondary/25 to-tt-secondary/25 dark:from-gray-950/45 dark:to-gray-950/45" />
       </div>
-      <div className="sticky top-0 z-20  dark:bg-gray-950/80 backdrop-blur border-b border-tt-border/20 dark:border-tt-border/10">
+      <div className={`sticky top-0 z-20 dark:bg-gray-950/80 backdrop-blur border-b border-tt-border/20 dark:border-tt-border/10 ${isTouchDevice && isFullscreen ? 'hidden' : ''}`}>
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="flex items-center justify-start min-w-0">
@@ -1680,6 +1682,17 @@ export default function AbridgedBookPage() {
                     {isStartingOver ? 'Starting over…' : 'Start over'}
                   </Button>
 
+                  {canUseFullscreen ? (
+                    <Button
+                      onClick={toggleFullscreen}
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                    >
+                      {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                    </Button>
+                  ) : null}
+
                   {shouldShowTaleTimeAudio && (
                     <>
                       <audio
@@ -1775,17 +1788,6 @@ export default function AbridgedBookPage() {
                           </Button>
                         </div>
 
-                        {isTouchDevice && canUseFullscreen ? (
-                          <Button 
-                            onClick={toggleFullscreen}
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            type="button"
-                          > 
-                            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                          </Button>
-                        ) : null}
                       </div>
                     </>
                   )}
@@ -1830,7 +1832,7 @@ export default function AbridgedBookPage() {
       </div>
 
       {/* Body */}
-      <main className="max-w-7xl mx-auto px-4 py-6 relative z-10">
+      <main className={`max-w-7xl mx-auto px-4 relative z-10 ${isTabletFullscreen ? 'py-2' : 'py-6'}`}>
   
 
         {loading && (
@@ -1937,6 +1939,7 @@ export default function AbridgedBookPage() {
                     author={data.author}
                     coverImageSrc={coverImageSrc}
                     pages={pages}
+                    fullscreenActive={isFullscreen}
                     flippingTime={rewindFlippingTime}
                     showHeader={false}
                     showTip={false}
@@ -2049,6 +2052,18 @@ export default function AbridgedBookPage() {
                       {isStartingOver ? 'Starting over…' : 'Start over'}
                     </Button>
 
+                    {canUseFullscreen ? (
+                      <Button
+                        onClick={toggleFullscreen}
+                        variant="outline"
+                        size="sm"
+                        className="justify-center shadow-lg"
+                        type="button"
+                      >
+                        {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                      </Button>
+                    ) : null}
+
                     {shouldShowTaleTimeAudio && (
                       <>
                         <audio
@@ -2147,18 +2162,6 @@ export default function AbridgedBookPage() {
                             </div>
                             
                           </div>
-                                                      {isTouchDevice && canUseFullscreen ? (
-                              <Button
-                                onClick={toggleFullscreen}
-                                variant="outline"
-                                size="sm"
-                                className="w-full mt-3"
-                                type="button"
-                              >
-                                {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                              </Button>
-                            ) : null}
-
                         </div>
                       </>
                     )}
@@ -2171,13 +2174,15 @@ export default function AbridgedBookPage() {
             
           </div>
         )}
-                        {!loading && !error && data && <ReaderQuickTips />}
+                        {!loading && !error && data && !isTabletFullscreen && <ReaderQuickTips />}
 
-        <div className="text-xs text-tt-primary/60 dark:text-gray-400 text-center mt-4">
-          {isMobile 
-            ? t('reader.hint.mobile')
-            : t('reader.hint.desktop')}
-        </div>
+        {!isTabletFullscreen && (
+          <div className="text-xs text-tt-primary/60 dark:text-gray-400 text-center mt-4">
+            {isMobile
+              ? t('reader.hint.mobile')
+              : t('reader.hint.desktop')}
+          </div>
+        )}
       </main>
 
     </div>

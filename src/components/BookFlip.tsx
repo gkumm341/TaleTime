@@ -28,6 +28,7 @@ export type BookFlipProps = {
   author?: string;
   coverImageSrc?: string;
   pages: PageData[];
+  fullscreenActive?: boolean;
   flippingTime?: number;
   showHeader?: boolean;
   showTip?: boolean;
@@ -382,7 +383,7 @@ function getFullscreenElement(doc: FullscreenDoc): Element | null {
   return doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
 }
 
-function useFlipDimensions(isMobile: boolean) {
+function useFlipDimensions(isMobile: boolean, isTouchDevice: boolean, isFullscreen: boolean) {
   const [dims, setDims] = React.useState(() => ({
     width: isMobile ? 360 : 520,
     height: isMobile ? 620 : 720,
@@ -397,6 +398,9 @@ function useFlipDimensions(isMobile: boolean) {
     const compute = () => {
       const vh = typeof window !== "undefined" ? window.innerHeight : 800;
       const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+      const isTabletViewport = !isMobile && vw >= 768 && vw <= 1366;
+      const isTabletTouch = isTabletViewport || (!isMobile && isTouchDevice);
+      const isTabletTouchFullscreen = isTabletTouch && isFullscreen;
 
       // react-pageflip's `width` is the width of a *single page*.
       // In landscape mode the book is a 2-page spread, so total width is ~2x.
@@ -407,14 +411,27 @@ function useFlipDimensions(isMobile: boolean) {
 
       // Keep a consistent page shape so typography/layout stays predictable.
       // (Matches the old 620x880-ish page size.)
-      const PAGE_ASPECT = 880 / 620; // height / width
+      const PAGE_ASPECT = isTabletTouchFullscreen ? 1120 / 620 : 880 / 620; // height / width
 
       // Leave space for headers/controls around the book.
-      const availableH = Math.max(520, vh - (usePortrait ? 150 : 190));
+      const verticalChromeOffset = usePortrait
+        ? (isTabletTouchFullscreen ? 24 : 150)
+        : isTabletTouchFullscreen
+          ? 36
+          : 190;
+      const availableH = Math.max(520, vh - verticalChromeOffset);
       const availableW = Math.max(320, vw - (usePortrait ? 32 : 96));
 
-      const minPageW = usePortrait ? 320 : 440;
-      const minPageH = usePortrait ? 560 : 680;
+      const minPageW = usePortrait
+        ? 320
+        : 440;
+      const minPageH = usePortrait
+        ? isTabletTouchFullscreen
+          ? 620
+          : 560
+        : isTabletTouchFullscreen
+          ? 740
+          : 680;
 
       const maxPageW = Math.max(minPageW, Math.floor(availableW / spreadPages));
       const maxPageH = Math.max(minPageH, availableH);
@@ -424,7 +441,17 @@ function useFlipDimensions(isMobile: boolean) {
       const targetH = clamp(
         maxPageH,
         minPageH,
-        usePortrait ? 920 : 1200
+        usePortrait
+          ? isTabletTouch
+            ? isTabletTouchFullscreen
+              ? 1400
+              : 980
+            : 920
+          : isTabletTouch
+            ? isTabletTouchFullscreen
+              ? 1700
+              : 1260
+            : 1200
       );
       const targetWFromH = targetH / PAGE_ASPECT;
       const width = clamp(targetWFromH, minPageW, maxPageW);
@@ -444,7 +471,7 @@ function useFlipDimensions(isMobile: boolean) {
     compute();
     window.addEventListener("resize", compute);
     return () => window.removeEventListener("resize", compute);
-  }, [isMobile]);
+  }, [isMobile, isTouchDevice, isFullscreen]);
 
   return dims;
 }
@@ -649,8 +676,8 @@ export function renderTextWithInlineImages(
             <video
               data-tt-story-video
               src={imageUrl}
-              className="w-full rounded-xl border border-tt-border/20 dark:border-tt-border/10 bg-tt-secondary/30 dark:bg-gray-800"
-              style={{ maxHeight: 'min(200px, 40vh)' }}
+              className="w-full object-contain rounded-xl border border-tt-border/20 dark:border-tt-border/10 bg-tt-secondary/30 dark:bg-gray-800"
+              style={{ maxHeight: 'min(160px, 30vh)' }}
               preload="metadata"
               playsInline
               controls={false}
@@ -928,7 +955,7 @@ function StoryPage({
               ref={videoRef}
               data-tt-story-video
               src={fullPageMediaUrl}
-              className="w-auto h-full rounded-xl border border-tt-border/20 dark:border-tt-border/10 bg-transparent"
+              className="block w-full h-full object-cover rounded-xl"
               preload="metadata"
               playsInline
               poster={shouldHidePoster ? undefined : imageSrc}
@@ -1027,6 +1054,7 @@ export default function BookFlip({
   author,
   coverImageSrc,
   pages,
+  fullscreenActive,
   flippingTime = 700,
   showHeader = true,
   showTip = true,
@@ -1040,7 +1068,8 @@ export default function BookFlip({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFullscreenHint, setShowFullscreenHint] = useState(true);
   const [pageIndex, setPageIndex] = useState(0);
-  const dims = useFlipDimensions(isMobile);
+  const effectiveFullscreen = fullscreenActive ?? isFullscreen;
+  const dims = useFlipDimensions(isMobile, isTouchDevice, effectiveFullscreen);
   const usePortrait = dims.usePortrait;
 
   const [paginatedPages, setPaginatedPages] = React.useState<PageData[] | null>(
@@ -1082,6 +1111,8 @@ export default function BookFlip({
     const bookTitleDivider = document.createElement("div");
     bookTitleDivider.className =
       "border-b-4 border-tt-accent mt-1 lg:mt-4 dark:border-tt-border/10";
+    const bookTitleTextNode = document.createTextNode("");
+    bookTitleEl.appendChild(bookTitleTextNode);
     bookTitleEl.appendChild(bookTitleDivider);
     measureShell.appendChild(bookTitleEl);
 
@@ -1131,20 +1162,10 @@ export default function BookFlip({
 
       if (opts.bookTitle && opts.bookTitle.trim().length > 0) {
         bookTitleEl.style.display = "";
-        // Preserve divider child; set only the text node.
-        bookTitleEl.childNodes.forEach((node) => {
-          if (node.nodeType === Node.TEXT_NODE) bookTitleEl.removeChild(node);
-        });
-        bookTitleEl.insertBefore(
-          document.createTextNode(opts.bookTitle),
-          bookTitleDivider
-        );
+        bookTitleTextNode.textContent = opts.bookTitle;
       } else {
         bookTitleEl.style.display = "none";
-        // Ensure we don't accumulate text nodes.
-        bookTitleEl.childNodes.forEach((node) => {
-          if (node.nodeType === Node.TEXT_NODE) bookTitleEl.removeChild(node);
-        });
+        bookTitleTextNode.textContent = "";
       }
 
       if (opts.title && opts.title.trim().length > 0) {
@@ -1352,6 +1373,13 @@ export default function BookFlip({
 
   const width = dims.width;
   const height = dims.height;
+  const flipbookRenderKey = useMemo(
+    () =>
+      `${effectiveFullscreen ? "fs" : "win"}-${usePortrait ? "p" : "s"}-${width}x${height}-${storyPages
+        .map((p) => p.id)
+        .join("|")}`,
+    [effectiveFullscreen, usePortrait, width, height, storyPages]
+  );
 
   const getFlipApi = (): FlipBookApi | null => {
     const ref = bookRef.current as FlipBookRef | null;
@@ -1459,10 +1487,10 @@ export default function BookFlip({
     setShowFullscreenHint(false);
   }, []);
 
-  const shouldShowFullscreenHint = isTouchDevice && canUseFullscreen && !isFullscreen && showFullscreenHint;
+  const shouldShowFullscreenHint = isTouchDevice && canUseFullscreen && !effectiveFullscreen && showFullscreenHint;
 
   return (
-    <div className="py-4">
+    <div className={effectiveFullscreen ? "py-1" : "py-4"}>
       {showHeader ? (
         <>
           <div className="w-full max-w-5xl flex items-center justify-between px-4">
@@ -1522,6 +1550,7 @@ export default function BookFlip({
 
       <div className="w-full flex items-center justify-center">
         <HTMLFlipBook
+          key={flipbookRenderKey}
           style={{}}
           width={width}
           height={height}
