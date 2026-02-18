@@ -36,7 +36,7 @@ export function ReaderQuickTips() {
           title={t('reader.tips.show')}
           className="fixed bottom-4 right-4 z-[2147483640] rounded-full border border-tt-border/20 bg-tt-surface/90 p-2 shadow-sm hover:bg-tt-surface"
         >
-          {t('reader.tips.show')}
+          <HelpCircle className="h-5 w-5 text-tt-primary" aria-hidden="true" />
 
         </button>,
         document.body
