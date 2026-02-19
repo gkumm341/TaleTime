@@ -44,3 +44,7 @@ next-env.d.ts
 .data/app.db
 .data/app.db-*
 .data/texts/by-title/**/Illustration/
+
+# local content (do not commit generated/imported local books/translations)
+.data/texts/
+.data/translations/

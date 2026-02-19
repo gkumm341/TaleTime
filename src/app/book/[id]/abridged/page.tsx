@@ -24,6 +24,46 @@ import {
   type AbridgedBookmark,
   type BookmarkSide,
 } from '@/lib/bookmarks';
+import FullStoryReader from '@/components/full-reader/FullStoryReader';
+import FullBlockFlip from '@/components/full-reader/FullBlockFlip';
+
+function chunkIntoBlocks(text: string, opts?: { maxChars?: number; minParas?: number; maxParas?: number }) {
+  const maxChars = opts?.maxChars ?? 1800;     // tune this
+  const minParas = opts?.minParas ?? 2;
+  const maxParas = opts?.maxParas ?? 6;
+
+  const paras = text
+    .replace(/\r\n?/g, "\n")
+    .split(/\n{2,}/g)
+    .map(p => p.trim())
+    .filter(Boolean);
+
+  const blocks: Array<{ id: string; text: string }> = [];
+  let buf: string[] = [];
+
+  const flush = () => {
+    if (!buf.length) return;
+    blocks.push({ id: `b${blocks.length + 1}`, text: buf.join("\n\n") });
+    buf = [];
+  };
+
+  for (const p of paras) {
+    const next = buf.length ? `${buf.join("\n\n")}\n\n${p}` : p;
+
+    // if adding this paragraph makes it too big AND we already have enough paragraphs, flush first
+    if ((next.length > maxChars && buf.length >= minParas) || buf.length >= maxParas) {
+      flush();
+      buf.push(p);
+      continue;
+    }
+
+    buf.push(p);
+  }
+
+  flush();
+  return blocks;
+}
+
 
 const TIME_OPTIONS = [
   { id: 'bedtime', label: 'Bedtime' },
@@ -33,6 +73,14 @@ const TIME_OPTIONS = [
 export type TimeOptionId = (typeof TIME_OPTIONS)[number]['id'];
 
 const TIME_SELECTION_KEY = 'taletime-time-selection';
+const MANUAL_PAGE_BREAK_REGEX = /\{\{\s*page[\s_-]*break\s*\}\}/i;
+
+function splitOnManualPageBreaks(text: string): string[] {
+  return text
+    .split(MANUAL_PAGE_BREAK_REGEX)
+    .map((section) => section.trim())
+    .filter((section) => section.length > 0);
+}
 
 interface Book {
   id: number;
@@ -58,6 +106,12 @@ interface AbridgedResponse {
   pages?: PageData[] | null;
   sourceFormat?: 'txt' | 'story-json' | 'story-pages';
   mode: 'llm' | 'extractive' | 'local';
+}
+
+interface AuthMeResponse {
+  user: {
+    isPaid?: boolean;
+  } | null;
 }
 
 function isAbortLikeError(error: unknown): boolean {
@@ -184,8 +238,8 @@ export default function AbridgedBookPage() {
   const selectedTimeOptionId: TimeOptionId = variant;
 
   const showDebugInfo = useMemo(() => {
-    // Always show in dev; allow opt-in via ?debug=1 for other envs.
-    return process.env.NODE_ENV !== 'production' || searchParams.get('debug') === '1';
+    // Debug metadata is opt-in only via query param.
+    return searchParams.get('debug') === '1';
   }, [searchParams]);
 
   const showDebugCounters = useMemo(() => searchParams.get('debug') === '1', [searchParams]);
@@ -193,6 +247,8 @@ export default function AbridgedBookPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AbridgedResponse | null>(null);
+  const [isPaidUser, setIsPaidUser] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const [pages, setPages] = useState<PageData[]>([]);
   const [orphanStats, setOrphanStats] = useState<{ fixes: number; removed: number }>({ fixes: 0, removed: 0 });
@@ -256,14 +312,109 @@ export default function AbridgedBookPage() {
     });
   }, [data?.pages, data?.title]);
 
+
+
   const rawText = useMemo(() => {
-    if (pagedPages && pagedPages.length > 0) return '';
+    if (variant === 'bedtime' && pagedPages && pagedPages.length > 0) return '';
     return (
       (data?.blocks && Array.isArray(data.blocks)
         ? storyBlocksToLegacyText(data.blocks)
         : data?.content ?? '')
     ).trim();
-  }, [data?.blocks, data?.content, pagedPages]);
+  }, [data?.blocks, data?.content, pagedPages, variant]);
+
+  const fullBlocks = useMemo(() => {
+    if (variant !== 'full') return [];
+
+    // Prefer canonical blocks if the API gave them to us
+    if (Array.isArray(data?.blocks) && data.blocks.length > 0) return data.blocks;
+
+    const manualSections = splitOnManualPageBreaks(rawText);
+
+    const sectionInputs = manualSections.length > 0 ? manualSections : [rawText];
+
+    let nextBlockId = 1;
+    const blocks = sectionInputs.flatMap((section) =>
+      chunkIntoBlocks(section, { maxChars: 1600, minParas: 2, maxParas: 5 }).map((chunk) => ({
+        ...chunk,
+        id: `b${nextBlockId++}`,
+      }))
+    );
+
+    return blocks.map<StoryBlock>((b) => {
+      const paragraphs = b.text
+        .split(/\n{2,}/g)
+        .map((p) => p.trim())
+        .filter(Boolean);
+
+      return {
+        type: 'paragraph',
+        id: b.id,
+        paragraphs,
+        text: paragraphs.join('\n\n'),
+      };
+    });
+  }, [data?.blocks, rawText, variant]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const res = await fetch('/api/auth/me', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load account');
+        const json = (await res.json()) as AuthMeResponse;
+        if (cancelled) return;
+        setIsPaidUser(Boolean(json.user?.isPaid));
+      } catch {
+        if (cancelled) return;
+        setIsPaidUser(false);
+      } finally {
+        if (!cancelled) setAuthChecked(true);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const openPremium = useCallback(() => {
+    const next = `/book/${id}/abridged?variant=full`;
+    router.push(`/premium?next=${encodeURIComponent(next)}`);
+  }, [id, router]);
+
+  const fullStoryIntroCard = useMemo(() => {
+    if (variant !== 'full' || !authChecked || isPaidUser) return null;
+
+    return (
+      <div className="rounded-tt border border-tt-border/30 dark:border-tt-border/20 bg-gradient-to-br from-tt-secondary/45 via-white/85 to-tt-secondary/20 dark:from-gray-900/70 dark:via-gray-900/55 dark:to-gray-800/60 p-4 shadow-lg">
+        <div className="text-center text-xs font-bold tracking-wide uppercase text-tt-tertiary dark:text-tt-secondary">
+          Unlock More with Premium
+        </div>
+
+        <div className="mt-2 text-center text-sm text-tt-primary/85 dark:text-gray-200">
+          Keep story time magical with extra features.
+        </div>
+
+        <ul className="mt-3 space-y-1 text-sm text-tt-primary/90 dark:text-gray-200">
+          <li>• Full library access</li>
+          <li>• Bedtime adaptations</li>
+          <li>• Audio read-aloud tools</li>
+          <li>• Early premium updates</li>
+        </ul>
+
+        <div className="mt-4">
+          <Button type="button" className="w-full" onClick={openPremium}>
+            Try Premium
+          </Button>
+        </div>
+      </div>
+    );
+  }, [authChecked, isPaidUser, openPremium, variant]);
+
+
 
   const debugPreview = useMemo(() => rawText.slice(0, 300), [rawText]);
   const debugPlaceholderCount = useMemo(
@@ -918,6 +1069,8 @@ export default function AbridgedBookPage() {
   }, [id, locale, minutes, variant, preferences?.defaultWpm]);
 
   useLayoutEffect(() => {
+    if (variant === 'full') return;
+
     if (pagedPages && pagedPages.length > 0) {
       setPages(pagedPages);
       return;
@@ -1515,13 +1668,50 @@ export default function AbridgedBookPage() {
         inlineImages: Object.keys(imageMap).length > 0 ? imageMap : undefined,
       }))
     );
-  }, [rawText, pagedPages, data?.title, preferences?.fontSize, preferences?.lineHeight, dims.width, dims.height, showDebugCounters]);
+  }, [rawText, pagedPages, data?.title, preferences?.fontSize, preferences?.lineHeight, dims.width, dims.height, showDebugCounters, variant]);
+
+const fullFlipPages = useMemo<PageData[]>(() => {
+  if (variant !== "full") return [];
+
+  const expandedTexts = fullBlocks.flatMap((b) => {
+    const text =
+      typeof b.text === "string"
+        ? b.text
+        : Array.isArray(b.paragraphs)
+          ? b.paragraphs.join("\n\n")
+          : "";
+
+    const segments = splitOnManualPageBreaks(text);
+
+    if (segments.length === 0) return [text];
+    return segments;
+  });
+
+  const textPages: PageData[] = expandedTexts.map((text, idx) => {
+
+    return {
+      id: `full-${idx + 1}`,
+      text,
+      lockLayout: true, // treat each block as a "page"
+    };
+  });
+
+  // 1) Add a cover page so BookFlip opens like a real book
+  const cover: PageData = {
+    id: "full-cover",
+    title: data?.title ?? "",
+    text: "", // optional: you can add intro text here if you want
+    lockLayout: true,
+  };
+
+  return [cover, ...textPages];
+}, [fullBlocks, variant, data?.title]);
+
 
   return (
     <div
-      className={`min-h-screen flex flex-col bg-cover bg-center relative overflow-x-hidden ${
-        isCompactReaderLayout ? 'bg-scroll overflow-y-visible' : 'bg-fixed overflow-y-hidden'
-      }`}
+      className={`min-h-screen flex flex-col bg-cover bg-center relative overflow-x-hidden ${isCompactReaderLayout ? 'bg-scroll overflow-y-visible' : 'bg-fixed overflow-y-hidden'
+        }`}
       style={{ backgroundImage: "url('/abridgeBacground.png')" }}
     >
       {/* Offscreen measuring box used to paginate text precisely (no clipped/missing content). */}
@@ -1833,7 +2023,7 @@ export default function AbridgedBookPage() {
 
       {/* Body */}
       <main className={`max-w-7xl mx-auto px-4 relative z-10 ${isTabletFullscreen ? 'py-2' : 'py-6'}`}>
-  
+
 
         {loading && (
           <div className="py-16 text-center text-tt-muted dark:text-gray-400">
@@ -1938,7 +2128,10 @@ export default function AbridgedBookPage() {
                     storyTitle={data.title}
                     author={data.author}
                     coverImageSrc={coverImageSrc}
-                    pages={pages}
+                    pages={variant === "full" ? fullFlipPages : pages}
+                    showEndPages={variant !== 'full'}
+                    storyTextOffsetPx={variant === 'full' ? 18 : 0}
+                    fullStoryIntroCard={fullStoryIntroCard}
                     fullscreenActive={isFullscreen}
                     flippingTime={rewindFlippingTime}
                     showHeader={false}
@@ -1946,6 +2139,7 @@ export default function AbridgedBookPage() {
                     onNavigationReady={handleFlipNavReady}
                     onPageChange={handleFlipPageChange}
                   />
+
                 </div>
               </div>
 
@@ -1977,133 +2171,149 @@ export default function AbridgedBookPage() {
                     <div className="h-56 w-40" aria-hidden="true" />
                   )}
 
-                  <div className="flex flex-col gap-2 w-40">
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => flipNav?.prev()}
-                        variant="outline"
-                        size="sm"
-                        disabled={!flipNav || flipMeta.pageIndex <= 0 || isStartingOver}
-                        type="button"
-                        className="flex-1 shadow-lg"
-                      >
-                        Prev
-                      </Button>
-                      <Button
-                        onClick={() => flipNav?.next()}
-                        size="sm"
-                        disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1 || isStartingOver}
-                        type="button"
-                        className="flex-1 shadow-lg"
-                      >
-                        Next
-                      </Button>
-                    </div>
+     <div className="flex flex-col gap-2 w-40">
+  {/* Bedtime-only controls */}
+  {variant === "bedtime" && (
+    <>
+      <div className="flex gap-2">
+        <Button
+          onClick={() => flipNav?.prev()}
+          variant="outline"
+          size="sm"
+          disabled={!flipNav || flipMeta.pageIndex <= 0 || isStartingOver}
+          type="button"
+          className="flex-1 shadow-lg"
+        >
+          Prev
+        </Button>
 
-                    <Button
-                      variant={bookmark ? 'outline' : 'default'}
-                      size="sm"
-                      className="gap-2 justify-center shadow-lg"
-                      disabled={!flipNav || !bookmarkHydrated || isStartingOver}
-                      title={
-                        bookmark
-                          ? (bookmark.pageIndex === flipMeta.pageIndex ? 'Remove bookmark' : 'Update bookmark to this page')
-                          : 'Bookmark this page'
-                      }
-                      aria-pressed={Boolean(bookmark)}
-                      onClick={async () => {
-                        if (!flipNav) return;
-                        const current = flipMeta.pageIndex;
+        <Button
+          onClick={() => flipNav?.next()}
+          size="sm"
+          disabled={!flipNav || flipMeta.pageIndex >= flipMeta.pageCount - 1 || isStartingOver}
+          type="button"
+          className="flex-1 shadow-lg"
+        >
+          Next
+        </Button>
+      </div>
 
-                        // Prevent bookmarking cover/invalid pages.
-                        if (!Number.isFinite(current) || current < 1) {
-                          return;
-                        }
+      {/* Audio is bedtime-only already, keep it inside this block */}
+      {shouldShowTaleTimeAudio && (
+        <>
+          <audio
+            ref={audioRef}
+            preload="none"
+            src={taleTimeAudioSrc}
+            onLoadedMetadata={() => {
+              const audio = audioRef.current;
+              if (!audio) return;
+              const t = readStoredResumeTime();
+              if (t > 0.25 && audio.currentTime < 0.25) {
+                try {
+                  audio.currentTime = t;
+                } catch {
+                  // ignore
+                }
+              }
+            }}
+            onPlay={() => setIsAudioPlaying(true)}
+            onPause={() => {
+              const audio = audioRef.current;
+              if (audio) writeStoredResumeTime(audio.currentTime);
+              setIsAudioPlaying(false);
+            }}
+            onTimeUpdate={() => {
+              const audio = audioRef.current;
+              if (!audio) return;
+              const sec = Math.floor(audio.currentTime);
+              if (sec > 0 && sec !== lastStoredAudioSecondRef.current) {
+                lastStoredAudioSecondRef.current = sec;
+                writeStoredResumeTime(sec);
+              }
+            }}
+            onEnded={() => {
+              writeStoredResumeTime(0);
+              setIsAudioPlaying(false);
+            }}
+          />
+          {/* your audio UI buttons go here (play/stop etc.) */}
+        </>
+      )}
+    </>
+  )}
 
-                        try {
-                          if (bookmark && bookmark.pageIndex === current) {
-                            await clearAbridgedBookmark(id, variant);
-                            setBookmark(null);
-                          } else {
-                            const next = await setAbridgedBookmark(id, variant, current);
-                            setBookmark(next);
-                          }
-                        } catch {
-                          // ignore
-                        }
-                      }}
-                      type="button"
-                    >
-                      <BookmarkPng alt="Bookmark" className="h-7 w-7 object-contain" />
-                      {bookmark ? 'Bookmarked' : 'Bookmark'}
-                    </Button>
+  <Button
+    variant={bookmark ? "outline" : "default"}
+    size="sm"
+    className="gap-2 justify-center shadow-lg"
+    disabled={!flipNav || !bookmarkHydrated || isStartingOver}
+    title={
+      bookmark
+        ? bookmark.pageIndex === flipMeta.pageIndex
+          ? "Remove bookmark"
+          : "Update bookmark to this page"
+        : "Bookmark this page"
+    }
+    aria-pressed={Boolean(bookmark)}
+    onClick={async () => {
+      if (!flipNav) return;
+      const current = flipMeta.pageIndex;
+      if (!Number.isFinite(current) || current < 1) return;
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 justify-center shadow-lg"
-                      disabled={!flipNav || flipMeta.pageIndex <= 0 || isStartingOver}
-                      onClick={handleStartOver}
-                      title="Flip quickly back to the cover"
-                      aria-label="Start over from the cover"
-                      type="button"
-                    >
-                      <RotateCcw className={isStartingOver ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} aria-hidden="true" />
-                      {isStartingOver ? 'Starting over…' : 'Start over'}
-                    </Button>
+      try {
+        if (bookmark && bookmark.pageIndex === current) {
+          await clearAbridgedBookmark(id, variant);
+          setBookmark(null);
+        } else {
+          const next = await setAbridgedBookmark(id, variant, current);
+          setBookmark(next);
+        }
+      } catch {
+        // ignore
+      }
+    }}
+    type="button"
+  >
+    <BookmarkPng alt="Bookmark" className="h-7 w-7 object-contain" />
+    {bookmark ? "Bookmarked" : "Bookmark"}
+  </Button>
 
-                    {canUseFullscreen ? (
-                      <Button
-                        onClick={toggleFullscreen}
-                        variant="outline"
-                        size="sm"
-                        className="justify-center shadow-lg"
-                        type="button"
-                      >
-                        {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                      </Button>
-                    ) : null}
+  <Button
+    variant="outline"
+    size="sm"
+    className="gap-2 justify-center shadow-lg"
+    disabled={!flipNav || flipMeta.pageIndex <= 0 || isStartingOver}
+    onClick={handleStartOver}
+    title="Flip quickly back to the cover"
+    aria-label="Start over from the cover"
+    type="button"
+  >
+    <RotateCcw
+      className={isStartingOver ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+      aria-hidden="true"
+    />
+    {isStartingOver ? "Starting over…" : "Start over"}
+  </Button>
 
-                    {shouldShowTaleTimeAudio && (
-                      <>
-                        <audio
-                          ref={audioRef}
-                          preload="none"
-                          src={taleTimeAudioSrc}
-                          onLoadedMetadata={() => {
-                            const audio = audioRef.current;
-                            if (!audio) return;
-                            const t = readStoredResumeTime();
-                            // Only apply if we're at the start; avoids jumping while already listening.
-                            if (t > 0.25 && audio.currentTime < 0.25) {
-                              try {
-                                audio.currentTime = t;
-                              } catch {
-                                // ignore seek failures
-                              }
-                            }
-                          }}
-                          onPlay={() => setIsAudioPlaying(true)}
-                          onPause={() => {
-                            const audio = audioRef.current;
-                            if (audio) writeStoredResumeTime(audio.currentTime);
-                            setIsAudioPlaying(false);
-                          }}
-                          onTimeUpdate={() => {
-                            const audio = audioRef.current;
-                            if (!audio) return;
-                            // Throttle-ish via coarse rounding to reduce storage churn.
-                            const sec = Math.floor(audio.currentTime);
-                            if (sec > 0 && sec !== lastStoredAudioSecondRef.current) {
-                              lastStoredAudioSecondRef.current = sec;
-                              writeStoredResumeTime(sec);
-                            }
-                          }}
-                          onEnded={() => {
-                            writeStoredResumeTime(0);
-                            setIsAudioPlaying(false);
-                          }}
-                        />
+  {/* Fullscreen available in BOTH modes */}
+  {canUseFullscreen ? (
+    <Button
+      onClick={toggleFullscreen}
+      variant="outline"
+      size="sm"
+      className="justify-center shadow-lg"
+      type="button"
+    >
+      {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+    </Button>
+  ) : null}
+</div>
+
+                          
+
+                        {shouldShowTaleTimeAudio && (
+                          <>
 
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center justify-center mt-10 -ml-1">
@@ -2160,21 +2370,19 @@ export default function AbridgedBookPage() {
                                 <FaStop className="h-5 w-5 shadow-lg" aria-hidden="true" />
                               </Button>
                             </div>
-                            
+
                           </div>
                         </div>
                       </>
                     )}
-                  </div>
-
                 </div>
               )}
-              
+
             </div>
-            
+
           </div>
         )}
-                        {!loading && !error && data && !isTabletFullscreen && <ReaderQuickTips />}
+        {!loading && !error && data && !isTabletFullscreen && variant !== 'full' && <ReaderQuickTips />}
 
         {!isTabletFullscreen && (
           <div className="text-xs text-tt-primary/60 dark:text-gray-400 text-center mt-4">

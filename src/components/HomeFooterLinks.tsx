@@ -1417,10 +1417,26 @@ export function HomeFooterLinks() {
 
   return (
     <>
-      <footer className="tt-surface mt-8 px-4 py-5 sm:px-6">
+      <footer className="tt-surface mt-6 px-3 py-4 sm:mt-8 sm:px-6 sm:py-5">
+        
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-sm text-tt-muted">
-            <Shield className="h-4 w-4 text-tt-tertiary" />
+  
+
+          <nav aria-label={uiText.navLabel} className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {LINK_ITEMS.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setActiveKey(item)}
+                className="text-xs sm:text-sm font-medium text-tt-primary hover:text-tt-accent hover:underline underline-offset-4"
+              >
+                {uiText.linkLabels[item]}
+              </button>
+            ))}
+          </nav>
+        </div>
+          <div className="flex items-center gap-2 text-xs sm:text-sm mt-4 text-tt-muted">
+            <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-tt-tertiary" />
             <span>
               © {year} TaleTime · {uiText.footerPrefix}{' '}
               <a
@@ -1434,20 +1450,6 @@ export function HomeFooterLinks() {
               {uiText.footerSuffix}
             </span>
           </div>
-
-          <nav aria-label={uiText.navLabel} className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {LINK_ITEMS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setActiveKey(item)}
-                className="text-sm font-medium text-tt-primary hover:text-tt-accent hover:underline underline-offset-4"
-              >
-                {uiText.linkLabels[item]}
-              </button>
-            ))}
-          </nav>
-        </div>
       </footer>
 
       {activeKey && typeof document !== 'undefined'
@@ -1467,15 +1469,15 @@ export function HomeFooterLinks() {
               />
 
               <div
-                className="relative w-full max-w-4xl rounded-tt bg-tt-surface border border-tt-border/30 shadow-tt flex flex-col overflow-hidden"
-                style={{ maxHeight: 'calc(100vh - 2rem)' }}
+                className="relative w-full max-w-[95vw] sm:max-w-2xl lg:max-w-4xl rounded-tt bg-tt-surface border border-tt-border/30 shadow-tt flex flex-col overflow-hidden"
+                style={{ maxHeight: 'calc(100vh - 1.25rem)' }}
               >
-                <div className="flex items-start justify-between gap-3 border-b border-tt-border/20 p-5">
+                <div className="flex items-start justify-between gap-3 border-b border-tt-border/20 p-3 sm:p-4 lg:p-5">
                   <div>
-                    <h2 id={titleId} className="text-xl font-black text-tt-tertiary">
+                    <h2 id={titleId} className="text-base sm:text-lg lg:text-xl font-black text-tt-tertiary">
                       {activeContent[activeKey].title}
                     </h2>
-                    <p id={descriptionId} className="mt-1 text-sm text-tt-muted">
+                    <p id={descriptionId} className="mt-1 text-xs sm:text-sm text-tt-muted">
                       {uiText.modalSubtitle}
                     </p>
                   </div>
@@ -1483,16 +1485,16 @@ export function HomeFooterLinks() {
                     ref={closeButtonRef}
                     type="button"
                     onClick={() => setActiveKey(null)}
-                    className="rounded-full p-2 text-tt-muted hover:bg-tt-tertiary/10"
+                    className="rounded-full p-1.5 sm:p-2 text-tt-muted hover:bg-tt-tertiary/10"
                     aria-label="Close"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                 </div>
 
-                <div className="space-y-4 overflow-y-auto p-5">
-                  <div className="rounded-tt border border-tt-border/20 bg-tt-secondary/20 p-3 text-xs text-tt-muted flex items-center gap-2">
-                    <LifeBuoy className="h-4 w-4 text-tt-tertiary" />
+                <div className="space-y-3 sm:space-y-4 overflow-y-auto p-3 sm:p-4 lg:p-5 [&_.text-sm]:text-xs sm:[&_.text-sm]:text-sm">
+                  <div className="rounded-tt border border-tt-border/20 bg-tt-secondary/20 p-2.5 sm:p-3 text-[11px] sm:text-xs text-tt-muted flex items-center gap-2">
+                    <LifeBuoy className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-tt-tertiary" />
                     <span>{uiText.quickReference}</span>
                   </div>
 

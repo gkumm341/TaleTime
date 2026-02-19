@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { BookGrid } from '@/components/BookGrid';
 import { BookFilters, FilterState } from '@/components/BookFilters';
 import { ActiveFilters } from '@/components/ActiveFilters';
@@ -22,6 +22,35 @@ const TIME_OPTIONS = [
 export type TimeOptionId = (typeof TIME_OPTIONS)[number]['id'];
 
 const TIME_SELECTION_KEY = 'taletime-time-selection';
+
+function normalizeTitleForRestriction(input: string): string {
+  return input
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[’']/g, "'")
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+const BEDTIME_ONLY_TITLE_KEYS = new Set([
+  normalizeTitleForRestriction('ashputtel'),
+  normalizeTitleForRestriction('briar rose'),
+  normalizeTitleForRestriction('rapunzel'),
+  normalizeTitleForRestriction('rumpelstiltskin'),
+  normalizeTitleForRestriction('the bell'),
+  normalizeTitleForRestriction('the fisherman & his wife'),
+  normalizeTitleForRestriction('the fisherman and his wife'),
+  normalizeTitleForRestriction('the shadow'),
+  normalizeTitleForRestriction('the shoes of fortune'),
+  normalizeTitleForRestriction('the twelve dancing princesses'),
+  normalizeTitleForRestriction('tom thumb'),
+]);
+
+function isBedtimeOnlyRestrictedTitle(title: string): boolean {
+  return BEDTIME_ONLY_TITLE_KEYS.has(normalizeTitleForRestriction(title));
+}
 
 interface Book {
   id: number;
@@ -47,6 +76,7 @@ export function HomeContent() {
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [sortBy, setSortBy] = useState('popularity');
   const [selectedTimeOptionId, setSelectedTimeOptionId] = useState<TimeOptionId>('full');
+  const [isPaidUser, setIsPaidUser] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     ageCategories: [],
     durations: [],
@@ -69,6 +99,28 @@ export function HomeContent() {
     update();
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load auth state');
+        const data = (await res.json()) as { user: { isPaid?: boolean } | null };
+        if (cancelled) return;
+        setIsPaidUser(Boolean(data.user?.isPaid));
+      } catch {
+        if (cancelled) return;
+        setIsPaidUser(false);
+      }
+    };
+
+    loadAuth();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Load persisted selection (client only)
@@ -191,6 +243,19 @@ export function HomeContent() {
       return prev;
     });
   };
+
+  const hideBedtimeOnlyInFullForUnpaid = selectedTimeOptionId === 'full' && !isPaidUser;
+
+  const visibleBooks = useMemo(() => {
+    if (!hideBedtimeOnlyInFullForUnpaid) return books;
+    return books.filter((book) => !isBedtimeOnlyRestrictedTitle(book.title));
+  }, [books, hideBedtimeOnlyInFullForUnpaid]);
+
+  const visibleSearchResults = useMemo(() => {
+    if (searchResults === null) return null;
+    if (!hideBedtimeOnlyInFullForUnpaid) return searchResults;
+    return searchResults.filter((book) => !isBedtimeOnlyRestrictedTitle(book.title));
+  }, [searchResults, hideBedtimeOnlyInFullForUnpaid]);
 
   return (
     <div className="min-h-screen relative tt-gradient-soft dark:bg-tt-primary overflow-x-hidden">
@@ -383,13 +448,13 @@ export function HomeContent() {
             </button>
           </form>
 
-          {searchResults !== null && (
+          {visibleSearchResults !== null && (
             <div className="mt-2 text-sm text-tt-muted">
-              {searchResults.length > 0 ? (
+              {visibleSearchResults.length > 0 ? (
                 <span>
                   {t('result.found', {
-                    count: searchResults.length,
-                    plural: searchResults.length !== 1 ? 's' : '',
+                    count: visibleSearchResults.length,
+                    plural: visibleSearchResults.length !== 1 ? 's' : '',
                     query: searchQuery,
                   })}
                 </span>
@@ -419,35 +484,35 @@ export function HomeContent() {
             )}
 
             {/* Loading State */}
-            {loading && !searchResults && <BookGridSkeleton count={itemsPerPage} />}
+            {loading && !visibleSearchResults && <BookGridSkeleton count={itemsPerPage} />}
 
             {/* Search Results */}
-            {searchResults !== null && searchResults.length > 0 && (
+            {visibleSearchResults !== null && visibleSearchResults.length > 0 && (
               <>
                 <div className="">
-                  <BookGrid initialBooks={searchResults} timeSelection={selectedTimeOptionId} displayMode="covers" />
+                  <BookGrid initialBooks={visibleSearchResults} timeSelection={selectedTimeOptionId} displayMode="covers" />
                 </div>
               </>
             )}
 
             {/* Book Grid (when not searching) */}
-            {!loading && !error && books.length > 0 && searchResults === null && (
+            {!loading && !error && visibleBooks.length > 0 && visibleSearchResults === null && (
               <>
                 {/* Background image */}
 
                 <div className="">
-                  <BookGrid initialBooks={books} timeSelection={selectedTimeOptionId} displayMode="covers" />
+                  <BookGrid initialBooks={visibleBooks} timeSelection={selectedTimeOptionId} displayMode="covers" />
                 </div>
 
                 {/* Book Count */}
                 <div className="text-center text-sm text-tt-muted">
-                  Showing {books.length} book{books.length !== 1 ? 's' : ''}
+                  Showing {visibleBooks.length} book{visibleBooks.length !== 1 ? 's' : ''}
                 </div>
               </>
             )}
 
             {/* Empty State */}
-            {!loading && !error && books.length === 0 && searchResults === null && (
+            {!loading && !error && visibleBooks.length === 0 && visibleSearchResults === null && (
               <div className="tt-card p-12 text-center shadow-lg rounded-tt-xl">
                 <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-tt bg-gradient-to-br from-tt-secondary to-tt-accent ring-1 ring-tt-border/10">
                   <BookOpen className="h-7 w-7 text-tt-accent" />

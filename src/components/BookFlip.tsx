@@ -28,6 +28,9 @@ export type BookFlipProps = {
   author?: string;
   coverImageSrc?: string;
   pages: PageData[];
+  showEndPages?: boolean;
+  storyTextOffsetPx?: number;
+  fullStoryIntroCard?: React.ReactNode;
   fullscreenActive?: boolean;
   flippingTime?: number;
   showHeader?: boolean;
@@ -53,6 +56,10 @@ const MAX_TEXT_LINES_PER_PAGE = 22;
 const STORY_TEXT_TOP_OFFSET_COMPACT = -8;
 const STORY_TEXT_TOP_OFFSET_DEFAULT = -16;
 const STORY_TEXT_TOP_OFFSET_AFTER_SECOND_PAGE_DELTA = 10;
+const MANUAL_PAGE_BREAK_REGEX = /\{\{\s*page[\s_-]*break\s*\}\}/i;
+const MANUAL_SPACE_TOKEN_REGEX = /^\{\{\s*(?:double[\s_-]*)?space\s*\}\}$/i;
+const MANUAL_SPACE_GLOBAL_REGEX = /\{\{\s*(?:double[\s_-]*)?space\s*\}\}/gi;
+const MANUAL_SPACE_SENTINEL = "__TT_MANUAL_DOUBLE_SPACE__";
 
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg'];
 
@@ -599,8 +606,13 @@ export function renderTextWithInlineImages(
   text: string,
   inlineImages?: InlineImageMap
 ): React.ReactNode {
+  const isManualSpaceToken = (token: string) => MANUAL_SPACE_TOKEN_REGEX.test(token.trim());
+
   const normalizeProse = (raw: string) => {
-    const cleaned = raw.replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ");
+    const cleaned = raw
+      .replace(/\r\n?/g, "\n")
+      .replace(/\u00a0/g, " ")
+      .replace(MANUAL_SPACE_GLOBAL_REGEX, `\n\n${MANUAL_SPACE_SENTINEL}\n\n`);
     const paras = cleaned
       .split(/(?:\n\s*\n+|\u2029)+/g)
       .map((p) => p.replace(/\s*\n\s*/g, " ").replace(/[ \t]+/g, " ").trim())
@@ -616,9 +628,15 @@ export function renderTextWithInlineImages(
     const { paragraphs } = normalizeProse(raw);
     if (paragraphs.length === 0) return null;
     return paragraphs.map((p, idx) => (
-      <p key={idx} className="tt-storybook-paragraph">
-        {p}
-      </p>
+      p === MANUAL_SPACE_SENTINEL ? (
+        <p key={idx} className="tt-storybook-paragraph" aria-hidden="true">
+          {"\u00A0"}
+        </p>
+      ) : (
+        <p key={idx} className="tt-storybook-paragraph">
+          {p}
+        </p>
+      )
     ));
   };
 
@@ -667,6 +685,14 @@ export function renderTextWithInlineImages(
 
     // Add the image
     const placeholderExpr = match[1].trim();
+    if (isManualSpaceToken(placeholderExpr)) {
+      parts.push(
+        <span key={`space-${keyIndex++}`} className="block h-5" aria-hidden="true" />
+      );
+      lastIndex = match.index + match[0].length;
+      continue;
+    }
+
     const imageName = extractImageFileName(placeholderExpr) ?? placeholderExpr;
     const imageUrl = inlineImages[imageName];
     if (imageUrl) {
@@ -748,6 +774,8 @@ function StoryPage({
   isActive,
   compactTopSpacing,
   lowerTopMargin,
+  extraTopOffsetPx,
+  introCard,
 }: {
   title?: string;
   bookTitle?: string;
@@ -759,6 +787,8 @@ function StoryPage({
   isActive?: boolean;
   compactTopSpacing?: boolean;
   lowerTopMargin?: boolean;
+  extraTopOffsetPx?: number;
+  introCard?: React.ReactNode;
 }) {
   const singlePlaceholderName = useMemo(() => getSinglePlaceholderName(text ?? ''), [text]);
   const fullPageMediaUrl = singlePlaceholderName ? inlineImages?.[singlePlaceholderName] : undefined;
@@ -982,11 +1012,15 @@ function StoryPage({
   }
 
   // Detect if this is a "continuation" chunk (no header elements at all).
+  const normalizedPageTitle = (title ?? "").trim().toLowerCase();
+  const normalizedBookTitle = (bookTitle ?? "").trim().toLowerCase();
+  const shouldRenderPageTitle = Boolean(title) && normalizedPageTitle !== normalizedBookTitle;
   const hasHeader = Boolean(bookTitle || title || isSpreadStart);
   const baseTopOffset = compactTopSpacing ? STORY_TEXT_TOP_OFFSET_COMPACT : STORY_TEXT_TOP_OFFSET_DEFAULT;
   const topOffset = lowerTopMargin
     ? baseTopOffset + STORY_TEXT_TOP_OFFSET_AFTER_SECOND_PAGE_DELTA
     : baseTopOffset;
+  const effectiveTopOffset = topOffset + (extraTopOffsetPx ?? 0);
 
   return (
     <div
@@ -1010,7 +1044,7 @@ function StoryPage({
 
         </h1>
       ) : null}
-      {title ? (
+      {shouldRenderPageTitle ? (
         <h2
           className="tt-storybook-title font-bold m-0 mt-1 lg:mt-2"
           style={{ fontSize: "clamp(0.65rem, 1.2vw, 1.25rem)", lineHeight: 1.2 }}
@@ -1032,10 +1066,12 @@ function StoryPage({
         </div>
       ) : null}
 
+      {introCard ? <div className="mt-4">{introCard}</div> : null}
+
       <div
         className="flex-1 overflow-hidden"
         style={{
-          marginTop: `${topOffset}px`,
+          marginTop: `${effectiveTopOffset}px`,
         }}
       >
         <div className="h-full overflow-y-auto pr-4 pb-6 box-border">
@@ -1054,6 +1090,9 @@ export default function BookFlip({
   author,
   coverImageSrc,
   pages,
+  showEndPages = true,
+  storyTextOffsetPx = 0,
+  fullStoryIntroCard,
   fullscreenActive,
   flippingTime = 700,
   showHeader = true,
@@ -1202,7 +1241,10 @@ export default function BookFlip({
     };
 
     const normalizeProseForPagination = (raw: string) => {
-      const cleaned = raw.replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ");
+      const cleaned = raw
+        .replace(/\r\n?/g, "\n")
+        .replace(/\u00a0/g, " ")
+        .replace(MANUAL_SPACE_GLOBAL_REGEX, `\n\n${MANUAL_SPACE_SENTINEL}\n\n`);
       const paras = cleaned
         .split(/\n\s*\n+/g)
         .map((p) => p.replace(/\s*\n\s*/g, " ").replace(/[ \t]+/g, " ").trim())
@@ -1226,7 +1268,7 @@ export default function BookFlip({
       for (let i = 0; i < paras.length; i++) {
         const p = document.createElement("p");
         p.className = "tt-storybook-paragraph";
-        p.textContent = paras[i];
+        p.textContent = paras[i] === MANUAL_SPACE_SENTINEL ? "\u00A0" : paras[i];
         frag.appendChild(p);
       }
       measureEl.replaceChildren(frag);
@@ -1237,63 +1279,114 @@ export default function BookFlip({
       return measureEl.scrollHeight;
     };
 
-    const makeFindChunk = (maxHeight: number) => {
-      const fits = (candidate: string) => measureHeight(candidate) <= maxHeight;
+const makeFindChunk = (maxHeight: number) => {
+  const fits = (candidate: string) => measureHeight(candidate) <= maxHeight;
 
-      // Fast path
-      return (text: string) => {
-        if (fits(text)) return { head: text, tail: "" };
+  const STOPWORDS = new Set([
+    "a","an","the","and","or","but","so","to","of","in","on","at","for","from","with","by",
+    "as","is","are","was","were","be","been","being",
+    "he","she","it","they","we","you","i",
+    "his","her","their","our","your","my",
+    "who","whom","which","that","this","these","those",
+  ]);
 
-        // First, find the maximum fitting index (hard limit).
-        let low = 1;
-        let high = text.length;
-        let maxFit = 1;
-        while (low <= high) {
-          const mid = Math.floor((low + high) / 2);
-          const candidate = text.slice(0, mid);
-          if (fits(candidate)) {
-            maxFit = mid;
-            low = mid + 1;
-          } else {
-            high = mid - 1;
-          }
-        }
+const getLastWord = (s: string) => {
+  // last “word-ish” token (letters/apostrophes) before end
+  const m = s.trimEnd().match(/([\p{L}']+)\s*$/u);
+  return m?.[1]?.toLowerCase() ?? "";
+};
 
-        // Prefer breaking on whitespace so we don't split words.
-        let breakIndex = maxFit;
-        const before = text.slice(0, breakIndex);
-        const lastWs = Math.max(
-          before.lastIndexOf(" "),
-          before.lastIndexOf("\n"),
-          before.lastIndexOf("\t"),
-          before.lastIndexOf("\u2029")
-        );
-        // Only snap to whitespace if it's reasonably close; otherwise we would
-        // leave too much unused space on the page. Even when close, avoid
-        // snapping if it would under-fill the page by a lot (common with short
-        // paragraphs at the start of the next page).
-        if (lastWs > 0 && breakIndex - lastWs <= 80) {
-          const candidateMax = text.slice(0, maxFit);
-          const candidateWs = text.slice(0, lastWs);
-          const hMax = measureHeight(candidateMax);
-          const hWs = measureHeight(candidateWs);
 
-          // Keep the whitespace snap if it leaves at most ~1 line unused or
-          // still fills most of the page.
-          const nearFull = hWs >= maxHeight - lineHeightPx * 1.2;
-          const mostlyFull = hWs / maxHeight >= 0.92;
-          const isBetterFit = hWs >= hMax - lineHeightPx * 0.6;
-          if (nearFull || mostlyFull || isBetterFit) breakIndex = lastWs;
-        }
+  const startsLikeContinuation = (s: string) => {
+    const t = s.trimStart();
+    // lowercase letter usually means mid-sentence continuation
+    return /^[a-z]/.test(t);
+  };
 
-        const head = text.slice(0, breakIndex).trimEnd();
-        const tail = text.slice(breakIndex).trimStart();
-        return {
-          head: head.length > 0 ? head : text.slice(0, maxFit).trimEnd(),
-          tail,
-        };
-      };
+const moveBreakBackOneWord = (full: string, idx: number) => {
+  const before = full.slice(0, idx).replace(/\s+$/u, "");
+
+  // Find start of last token (token = non-whitespace, and whitespace includes \u2029)
+  const m = before.match(/^(.*?)(?:[\s\u2029]+)([^\s\u2029]+)$/u);
+  if (!m?.[1]) return idx;
+
+  // Return index right before the whitespace that precedes the last token
+  return m[1].length;
+};
+
+
+  return (text: string) => {
+    if (fits(text)) return { head: text, tail: "" };
+
+    // First, find the maximum fitting index (hard limit).
+    let low = 1;
+    let high = text.length;
+    let maxFit = 1;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = text.slice(0, mid);
+      if (fits(candidate)) {
+        maxFit = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    let breakIndex = maxFit;
+
+    // Prefer breaking on whitespace so we don't split words.
+    const before = text.slice(0, breakIndex);
+    const lastWs = Math.max(
+      before.lastIndexOf(" "),
+      before.lastIndexOf("\n"),
+      before.lastIndexOf("\t"),
+      before.lastIndexOf("\u2029")
+    );
+
+    if (lastWs > 0 && breakIndex - lastWs <= 80) {
+      const candidateMax = text.slice(0, maxFit);
+      const candidateWs = text.slice(0, lastWs);
+      const hMax = measureHeight(candidateMax);
+      const hWs = measureHeight(candidateWs);
+
+      const nearFull = hWs >= maxHeight - lineHeightPx * 1.2;
+      const mostlyFull = hWs / maxHeight >= 0.92;
+      const isBetterFit = hWs >= hMax - lineHeightPx * 0.6;
+      if (nearFull || mostlyFull || isBetterFit) breakIndex = lastWs;
+    }
+
+    // ✅ ORPHAN WORD GUARD (moves "who" / "and" / etc. off the bottom of the page)
+    // Do this only a couple times so we don’t create overly short pages.
+for (let tries = 0; tries < 6; tries++) {
+      const headTry = text.slice(0, breakIndex).trimEnd();
+      const tailTry = text.slice(breakIndex).trimStart();
+      if (!headTry || !tailTry) break;
+
+      const lastWord = getLastWord(headTry);
+      if (!lastWord) break;
+
+      const isOrphanish = (lastWord.length <= 3) || STOPWORDS.has(lastWord);
+      if (!isOrphanish) break;
+
+      if (!startsLikeContinuation(tailTry)) break;
+
+      const moved = moveBreakBackOneWord(text, breakIndex);
+      if (moved === breakIndex) break;
+
+      breakIndex = moved;
+    }
+
+    const head = text.slice(0, breakIndex).trimEnd();
+    const tail = text.slice(breakIndex).trimStart();
+
+    return {
+      head: head.length > 0 ? head : text.slice(0, maxFit).trimEnd(),
+      tail,
     };
+  };
+};
+
 
     const paginateTextOnlyPage = (p: PageData, pageIdx: number): PageData[] => {
       const text = p.text ?? "";
@@ -1354,8 +1447,30 @@ export default function BookFlip({
       return out.length > 0 ? out : [p];
     };
 
+    const expandManualPageBreaks = (p: PageData): PageData[] => {
+      const text = p.text;
+      if (typeof text !== "string" || text.length === 0) return [p];
+
+      const parts = text
+        .split(MANUAL_PAGE_BREAK_REGEX)
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0);
+
+      if (parts.length <= 1) return [p];
+
+      return parts.map((part, idx) => ({
+        ...p,
+        id: `${p.id}-manual-break-${idx + 1}`,
+        title: idx === 0 ? p.title : undefined,
+        imageSrc: idx === 0 ? p.imageSrc : undefined,
+        inlineImages: idx === 0 ? p.inlineImages : undefined,
+        text: part,
+      }));
+    };
+
     try {
-      const next = pages.flatMap((p, idx) => paginateTextOnlyPage(p, idx));
+      const pagesWithManualBreaks = pages.flatMap((p) => expandManualPageBreaks(p));
+      const next = pagesWithManualBreaks.flatMap((p, idx) => paginateTextOnlyPage(p, idx));
       setPaginatedPages(next);
     } finally {
       measureShell.remove();
@@ -1364,11 +1479,11 @@ export default function BookFlip({
 
   const storyPages = paginatedPages ?? pages;
 
-  const endPageCount = 2; // blank end page + closed book image page
+  const endPageCount = showEndPages ? 2 : 0; // blank end page + closed book image page
   const frontBlankPageCount = 0; // start story on the left page
   const pageCount = useMemo(
     () => storyPages.length + 1 + frontBlankPageCount + endPageCount,
-    [storyPages.length]
+    [storyPages.length, endPageCount]
   );
 
   const width = dims.width;
@@ -1602,9 +1717,11 @@ export default function BookFlip({
                   text={p.text}
                   imageSrc={p.imageSrc}
                   inlineImages={p.inlineImages}
+                  introCard={idx === 0 ? fullStoryIntroCard : undefined}
                   isSpreadStart={usePortrait || idx % 2 === 0}
                   compactTopSpacing={isTouchDevice}
                   lowerTopMargin={idx > 1}
+                  extraTopOffsetPx={storyTextOffsetPx}
                   isActive={
                     usePortrait
                       ? pageIndex === idx + 1 + frontBlankPageCount
@@ -1617,22 +1734,26 @@ export default function BookFlip({
                 </div>
               </Page>
             )),
-            <Page key="end-blank">
-              <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-tt-tertiary dark:text-gray-400">
-                THE END!
-              </div>
-              <div className="h-full w-full" />
-            </Page>,
-            <Page key="end-closed-book">
-              <div className="flex items-center justify-center w-[750px] -ml-[86px] -mt-9">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/closedBook2.png"
-                  alt="Closed book"
-                  className="h-[935px] w-[650px]"
-                />
-              </div>
-            </Page>,
+            ...(showEndPages
+              ? [
+                  <Page key="end-blank">
+                    <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-tt-tertiary dark:text-gray-400">
+                      THE END!
+                    </div>
+                    <div className="h-full w-full" />
+                  </Page>,
+                  <Page key="end-closed-book">
+                    <div className="flex items-center justify-center w-[750px] -ml-[86px] -mt-9">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/closedBook2.png"
+                        alt="Closed book"
+                        className="h-[935px] w-[650px]"
+                      />
+                    </div>
+                  </Page>,
+                ]
+              : []),
           ]}
         </HTMLFlipBook>
       </div>
