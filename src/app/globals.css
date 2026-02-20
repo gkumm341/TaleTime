@@ -305,8 +305,8 @@
     hyphens: auto;
     font-kerning: normal;
     text-rendering: optimizeLegibility;
-    font-size: 0.85rem;
-    line-height: 1.5;
+    font-size: var(--tt-storybook-font-size, 0.85rem);
+    line-height: var(--tt-storybook-line-height, 1.5);
   }
 
   @media (max-width: 1280px) {
@@ -325,9 +325,37 @@
     }
   }
 
+  @media (max-width: 480px) {
+    .tt-storybook-prose.tt-storybook-prose-book.leading-snug,
+    .tt-storybook-prose-book.leading-snug,
+    .tt-storybook-prose.tt-storybook-prose-book,
+    .tt-storybook-prose-book {
+      font-size: var(--tt-storybook-font-size, 0.78rem) !important;
+      line-height: var(--tt-storybook-line-height, 1.28) !important;
+    }
+
+    .tt-storybook-prose.tt-storybook-prose-book .tt-storybook-paragraph,
+    .tt-storybook-prose-book .tt-storybook-paragraph,
+    .tt-storybook-paragraph {
+      margin-bottom: var(--tt-storybook-para-gap, 0.35em) !important;
+    }
+
+    .tt-storybook-prose.tt-storybook-prose-book .tt-storybook-paragraph + .tt-storybook-paragraph,
+    .tt-storybook-prose-book .tt-storybook-paragraph + .tt-storybook-paragraph,
+    .tt-storybook-paragraph + .tt-storybook-paragraph {
+      text-indent: var(--tt-storybook-indent, 0.85em) !important;
+    }
+  }
+
   .tt-storybook-paragraph {
     margin: 0;
-    margin-bottom: 0.62em;
+    margin-bottom: var(--tt-storybook-para-gap, 0.62em);
+  }
+
+  .tt-storybook-prose.tt-storybook-prose-book p,
+  .tt-storybook-prose-book p {
+    font-size: inherit !important;
+    line-height: inherit !important;
   }
 
   .tt-storybook-paragraph:last-child {
@@ -335,7 +363,7 @@
   }
 
   .tt-storybook-paragraph + .tt-storybook-paragraph {
-    text-indent: 1.2em;
+    text-indent: var(--tt-storybook-indent, 1.2em);
   }
 
   .tt-storybook-dropcap {

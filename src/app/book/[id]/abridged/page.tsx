@@ -7,7 +7,7 @@ import { useI18n } from '@/components/LanguageProvider';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import BookFlip, { type PageData, type InlineImageMap } from '@/components/BookFlip';
 import { storyBlocksToLegacyText, type StoryBlock } from '@/lib/story-blocks';
-import { ChevronLeft, Clock, Loader2, RotateCcw, Home } from 'lucide-react';
+import { ChevronLeft, Clock, Loader2, RotateCcw, Home, Menu, Trash2, X } from 'lucide-react';
 import Image from 'next/image';
 import { PiSpeakerHighDuotone } from "react-icons/pi";
 import { TbPlayerStop } from "react-icons/tb";
@@ -439,16 +439,20 @@ export default function AbridgedBookPage() {
   const flipNavRef = useRef<typeof flipNav>(null);
   const flipMetaRef = useRef(flipMeta);
   const startOverTimerRef = useRef<number | null>(null);
+  const startOverWatchdogRef = useRef<number | null>(null);
   const startOverRunningRef = useRef(false);
   const [isStartingOver, setIsStartingOver] = useState(false);
-  const rewindFlippingTime = isStartingOver ? 100 : 700;
+  const rewindFlippingTime = isStartingOver ? (isMobile ? 220 : 100) : 700;
 
   const [bookmark, setBookmark] = useState<AbridgedBookmark | null>(null);
   const [bookmarkHydrated, setBookmarkHydrated] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [bookmarkDragOrigin, setBookmarkDragOrigin] = useState<'menu' | 'book' | null>(null);
   const didRestoreBookmarkRef = useRef(false);
 
   const bookAreaRef = useRef<HTMLDivElement | null>(null);
-  const bookmarkDragRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const activeBookmarkDragElRef = useRef<HTMLDivElement | null>(null);
   const bookmarkDragStateRef = useRef<{
     pointerId: number | null;
     startX: number;
@@ -504,19 +508,25 @@ export default function AbridgedBookPage() {
   }, [bookmarkPageIndex, shouldShowTopMarkers, visibleSpread.left, visibleSpread.right]);
 
   const applyBookmarkDragTransform = useCallback((dx: number, dy: number) => {
-    const el = bookmarkDragRef.current;
+    const el = activeBookmarkDragElRef.current;
     if (!el) return;
     el.style.transform = `translate3d(${dx}px, ${dy}px, 0px) rotate(6deg)`;
   }, []);
 
   const resetBookmarkDragTransform = useCallback(() => {
-    const el = bookmarkDragRef.current;
+    const el = activeBookmarkDragElRef.current;
     if (!el) return;
     el.style.transform = 'translate3d(0px, 0px, 0px) rotate(6deg)';
   }, []);
 
   const isPointInBookArea = useCallback((clientX: number, clientY: number) => {
     const r = bookAreaRef.current?.getBoundingClientRect();
+    if (!r) return false;
+    return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
+  }, []);
+
+  const isPointInMobileMenuTrigger = useCallback((clientX: number, clientY: number) => {
+    const r = mobileMenuTriggerRef.current?.getBoundingClientRect();
     if (!r) return false;
     return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
   }, []);
@@ -531,6 +541,7 @@ export default function AbridgedBookPage() {
       }
 
       const droppedOnBook = isPointInBookArea(clientX, clientY);
+      const droppedOnMenuTrigger = isMobile && isPointInMobileMenuTrigger(clientX, clientY);
 
       try {
         if (droppedOnBook) {
@@ -546,7 +557,12 @@ export default function AbridgedBookPage() {
           if (bookmark?.pageIndex === targetPageIndex) return;
           const next = await setAbridgedBookmark(id, variant, targetPageIndex, side);
           setBookmark(next);
-        } else {
+        } else if (droppedOnMenuTrigger) {
+          if (!bookmark) return;
+          await clearAbridgedBookmark(id, variant);
+          setBookmark(null);
+          setIsMobileMenuOpen(false);
+        } else if (!isMobile) {
           if (!bookmark) return;
           await clearAbridgedBookmark(id, variant);
           setBookmark(null);
@@ -555,7 +571,7 @@ export default function AbridgedBookPage() {
         // ignore
       }
     },
-    [bookmark, bookmarkHydrated, flipMeta.pageIndex, getVisibleSpread, id, isPointInBookArea, variant]
+    [bookmark, bookmarkHydrated, flipMeta.pageIndex, getVisibleSpread, id, isMobile, isPointInBookArea, isPointInMobileMenuTrigger, variant]
   );
 
   const onBookmarkPointerDown = useCallback(
@@ -563,8 +579,10 @@ export default function AbridgedBookPage() {
       if (!bookmarkHydrated) return;
       if (e.button !== 0) return;
 
-      const el = bookmarkDragRef.current;
+      const el = e.currentTarget as HTMLDivElement;
       if (!el) return;
+      activeBookmarkDragElRef.current = el;
+      setBookmarkDragOrigin(el.dataset.bookmarkSource === 'menu' ? 'menu' : 'book');
 
       bookmarkDragStateRef.current = {
         pointerId: e.pointerId,
@@ -616,7 +634,9 @@ export default function AbridgedBookPage() {
 
       bookmarkDragStateRef.current.pointerId = null;
       setIsDraggingBookmark(false);
+      setBookmarkDragOrigin(null);
       resetBookmarkDragTransform();
+      activeBookmarkDragElRef.current = null;
 
       // Only treat as a drag-drop interaction if the user actually moved it.
       if (!state.moved) return;
@@ -635,7 +655,9 @@ export default function AbridgedBookPage() {
       if (state.pointerId !== e.pointerId) return;
       bookmarkDragStateRef.current.pointerId = null;
       setIsDraggingBookmark(false);
+      setBookmarkDragOrigin(null);
       resetBookmarkDragTransform();
+      activeBookmarkDragElRef.current = null;
     },
     [resetBookmarkDragTransform]
   );
@@ -655,7 +677,36 @@ export default function AbridgedBookPage() {
       window.clearTimeout(startOverTimerRef.current);
       startOverTimerRef.current = null;
     }
+    if (startOverWatchdogRef.current !== null) {
+      window.clearTimeout(startOverWatchdogRef.current);
+      startOverWatchdogRef.current = null;
+    }
   }, []);
+
+  const armStartOverWatchdog = useCallback(
+    (timeoutMs: number) => {
+      if (startOverWatchdogRef.current !== null) {
+        window.clearTimeout(startOverWatchdogRef.current);
+      }
+
+      startOverWatchdogRef.current = window.setTimeout(() => {
+        startOverWatchdogRef.current = null;
+        if (!startOverRunningRef.current) return;
+
+        const current = flipMetaRef.current.pageIndex;
+        if (current <= 0) {
+          stopStartOver();
+          return;
+        }
+
+        // Only bail out if rewind appears stalled (no page-change events for a while).
+        const nav = flipNavRef.current;
+        if (nav) nav.goTo(0);
+        stopStartOver();
+      }, timeoutMs);
+    },
+    [stopStartOver]
+  );
 
   const queueStartOverStep = useCallback(
     (delayMs: number) => {
@@ -675,7 +726,6 @@ export default function AbridgedBookPage() {
           stopStartOver();
           return;
         }
-
         nav.prev();
       }, delayMs);
     },
@@ -690,8 +740,10 @@ export default function AbridgedBookPage() {
 
     startOverRunningRef.current = true;
     setIsStartingOver(true);
+
+    armStartOverWatchdog(2500);
     queueStartOverStep(0);
-  }, [queueStartOverStep]);
+  }, [armStartOverWatchdog, queueStartOverStep]);
 
   const handleFlipNavReady = useCallback(
     (nav: { next: () => void; prev: () => void; goTo: (pageIndex: number) => void; getPageIndex: () => number; getPageCount: () => number }) => {
@@ -705,18 +757,23 @@ export default function AbridgedBookPage() {
 
     if (!startOverRunningRef.current) return;
 
+    armStartOverWatchdog(1600);
+
     if (pageIndex <= 0) {
       stopStartOver();
       return;
     }
 
     queueStartOverStep(0);
-  }, [queueStartOverStep, stopStartOver]);
+  }, [armStartOverWatchdog, queueStartOverStep, stopStartOver]);
 
   useEffect(() => {
     return () => {
       if (startOverTimerRef.current !== null) {
         window.clearTimeout(startOverTimerRef.current);
+      }
+      if (startOverWatchdogRef.current !== null) {
+        window.clearTimeout(startOverWatchdogRef.current);
       }
     };
   }, []);
@@ -1707,6 +1764,204 @@ const fullFlipPages = useMemo<PageData[]>(() => {
   return [cover, ...textPages];
 }, [fullBlocks, variant, data?.title]);
 
+  const closeMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
+
+  const renderMobileMenuPanel = () => (
+    <>
+      {isMobileMenuOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          onClick={closeMobileMenu}
+          className="fixed inset-0 z-20 cursor-default"
+        />
+      )}
+      <div
+        className={
+          isMobileMenuOpen
+            ? 'absolute right-0 top-full mt-2 z-30 w-64 rounded-tt border border-tt-border/30 dark:border-tt-border/20 bg-white/95 dark:bg-gray-950/95 backdrop-blur p-2 shadow-xl'
+            : 'absolute right-0 top-full mt-2 z-30'
+        }
+      >
+        <div className="flex flex-col gap-2">
+        <div className={isMobileMenuOpen ? 'rounded-tt border border-tt-border/30 dark:border-tt-border/20 p-2' : ''}>
+          {isMobileMenuOpen && (
+            <p className="text-[11px] text-tt-primary/70 dark:text-gray-300">
+              Drag bookmark onto the page to set it. Drag off the book to remove.
+            </p>
+          )}
+          <div
+            data-bookmark-source="menu"
+            className={
+              isDraggingBookmark
+                ? `${isMobileMenuOpen ? 'mt-1' : ''} mx-auto w-fit cursor-grabbing`
+                : `${isMobileMenuOpen ? 'mt-1' : ''} mx-auto w-fit cursor-grab`
+            }
+            style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
+            role="img"
+            aria-label="Bookmark (drag onto book to add)"
+            title="Drag onto the book to add bookmark"
+            onPointerDown={(e) => {
+              onBookmarkPointerDown(e);
+              closeMobileMenu();
+            }}
+            onPointerMove={onBookmarkPointerMove}
+            onPointerUp={onBookmarkPointerUp}
+            onPointerCancel={onBookmarkPointerCancel}
+          >
+            <BookmarkPng alt="Bookmark" className="h-24 w-16 object-contain" />
+          </div>
+        </div>
+
+        {isMobileMenuOpen && (
+          <>
+
+        <Button
+          variant={bookmark ? 'outline' : 'default'}
+          size="sm"
+          className="gap-2 justify-start"
+          disabled={!flipNav || !bookmarkHydrated || isStartingOver}
+          title={
+            bookmark
+              ? (bookmark.pageIndex === flipMeta.pageIndex ? 'Remove bookmark' : 'Update bookmark to this page')
+              : 'Bookmark this page'
+          }
+          aria-pressed={Boolean(bookmark)}
+          onClick={async () => {
+            if (!flipNav) return;
+            const current = flipMeta.pageIndex;
+            if (!Number.isFinite(current) || current < 1) return;
+
+            try {
+              if (bookmark && bookmark.pageIndex === current) {
+                await clearAbridgedBookmark(id, variant);
+                setBookmark(null);
+              } else {
+                const next = await setAbridgedBookmark(id, variant, current);
+                setBookmark(next);
+              }
+            } catch {
+              // ignore
+            }
+
+            closeMobileMenu();
+          }}
+          type="button"
+        >
+          <BookmarkPng alt="Bookmark" className="h-6 w-6 object-contain" />
+          {bookmark ? 'Bookmarked' : 'Bookmark'}
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 justify-start"
+          disabled={!flipNav || flipMeta.pageIndex <= 0 || isStartingOver}
+          onClick={() => {
+            closeMobileMenu();
+            window.setTimeout(() => {
+              handleStartOver();
+            }, 120);
+          }}
+          title="Flip quickly back to the cover"
+          aria-label="Start over from the cover"
+          type="button"
+        >
+          <RotateCcw className={isStartingOver ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} aria-hidden="true" />
+          {isStartingOver ? 'Starting over…' : 'Start over'}
+        </Button>
+
+        {canUseFullscreen ? (
+          <Button
+            onClick={() => {
+              closeMobileMenu();
+              void toggleFullscreen();
+            }}
+            variant="outline"
+            size="sm"
+            className="justify-start"
+            type="button"
+          >
+            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          </Button>
+        ) : null}
+
+        {shouldShowTaleTimeAudio && (
+          <>
+            <div className="rounded-tt border border-tt-border/30 dark:border-tt-border/20 p-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-semibold text-tt-muted dark:text-gray-200">Audio</span>
+                {isCheckingAudio && <Loader2 className="w-4 h-4 animate-spin text-gray-500" aria-hidden="true" />}
+              </div>
+              <div className="mt-2 flex items-center justify-start gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={
+                    isAudioPlaying
+                      ? 'border-0 rounded-tt bg-sky-100 text-sky-800 hover:bg-sky-200 hover:text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 dark:hover:bg-sky-900/45'
+                      : 'border-0 rounded-tt bg-emerald-100 text-emerald-800 hover:bg-emerald-200 hover:text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:bg-emerald-900/45'
+                  }
+                  disabled={isCheckingAudio || !hasTaleTimeAudio}
+                  title={
+                    isAudioPlaying
+                      ? 'Pause audio'
+                      : hasAudioResumePoint
+                        ? 'Resume audio'
+                        : 'Play audio'
+                  }
+                  aria-label={
+                    isAudioPlaying
+                      ? 'Pause audio'
+                      : hasAudioResumePoint
+                        ? 'Resume audio'
+                        : 'Play audio'
+                  }
+                  onClick={() => {
+                    if (isAudioPlaying) {
+                      handleAudioPause();
+                    } else {
+                      void handleAudioPlay();
+                    }
+                    closeMobileMenu();
+                  }}
+                  type="button"
+                >
+                  {isAudioPlaying ? (
+                    <FaPauseCircle className="h-6 w-6" aria-hidden="true" />
+                  ) : (
+                    <FaPlayCircle className="h-6 w-6" aria-hidden="true" />
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="border-0 rounded-tt bg-rose-100 text-rose-800 hover:bg-rose-200 hover:text-rose-900 dark:bg-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-900/45"
+                  disabled={isCheckingAudio || !hasTaleTimeAudio}
+                  title="Stop audio and reset to the beginning"
+                  aria-label="Stop audio and reset to the beginning"
+                  onClick={() => {
+                    handleAudioStop();
+                    closeMobileMenu();
+                  }}
+                  type="button"
+                >
+                  <FaStopCircle className="h-6 w-6" aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+        </>
+        )}
+        </div>
+      </div>
+    </>
+  );
+
 
   return (
     <div
@@ -1750,10 +2005,50 @@ const fullFlipPages = useMemo<PageData[]>(() => {
 
         <div className="absolute inset-0 bg-gradient-to-l from-tt-secondary/25 to-tt-secondary/25 dark:from-gray-950/45 dark:to-gray-950/45" />
       </div>
+
+      {shouldShowTaleTimeAudio && (
+        <audio
+          ref={audioRef}
+          preload="none"
+          src={taleTimeAudioSrc}
+          onLoadedMetadata={() => {
+            const audio = audioRef.current;
+            if (!audio) return;
+            const t = readStoredResumeTime();
+            if (t > 0.25 && audio.currentTime < 0.25) {
+              try {
+                audio.currentTime = t;
+              } catch {
+                // ignore seek failures
+              }
+            }
+          }}
+          onPlay={() => setIsAudioPlaying(true)}
+          onPause={() => {
+            const audio = audioRef.current;
+            if (audio) writeStoredResumeTime(audio.currentTime);
+            setIsAudioPlaying(false);
+          }}
+          onTimeUpdate={() => {
+            const audio = audioRef.current;
+            if (!audio) return;
+            const sec = Math.floor(audio.currentTime);
+            if (sec > 0 && sec !== lastStoredAudioSecondRef.current) {
+              lastStoredAudioSecondRef.current = sec;
+              writeStoredResumeTime(sec);
+            }
+          }}
+          onEnded={() => {
+            writeStoredResumeTime(0);
+            setIsAudioPlaying(false);
+          }}
+        />
+      )}
+
       <div className={`sticky top-0 z-20 dark:bg-gray-950/80 backdrop-blur border-b border-tt-border/20 dark:border-tt-border/10 ${isTouchDevice && isFullscreen ? 'hidden' : ''}`}>
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <div className="flex items-center justify-start min-w-0">
+        <div className={`max-w-7xl mx-auto py-3 ${isMobile ? 'px-3' : 'px-4'}`}>
+          <div className={isMobile ? 'flex flex-col gap-2' : 'grid grid-cols-[1fr_auto_1fr] items-center gap-3'}>
+            <div className={`min-w-0 ${isMobile ? 'relative flex items-center justify-between' : 'flex items-center justify-start'}`}>
               <button
                 type="button"
                 onClick={async () => {
@@ -1782,11 +2077,36 @@ const fullFlipPages = useMemo<PageData[]>(() => {
                   <h2 className="tt-logo font-heading text-3xl">TaleTime</h2>
                 </div>
               </button>
+
+              {isMobile && !isFullscreen && (
+                <div className="relative">
+                  <Button
+                    ref={mobileMenuTriggerRef}
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    aria-label={isMobileMenuOpen ? 'Close reader controls' : 'Open reader controls'}
+                    aria-expanded={isMobileMenuOpen}
+                    onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                  >
+                    {isDraggingBookmark ? (
+                      <Trash2 className="h-5 w-5 text-rose-600" aria-hidden="true" />
+                    ) : isMobileMenuOpen ? (
+                      <X className="h-5 w-5" aria-hidden="true" />
+                    ) : (
+                      <Menu className="h-5 w-5" aria-hidden="true" />
+                    )}
+                  </Button>
+
+                  {(isMobileMenuOpen || (isDraggingBookmark && bookmarkDragOrigin === 'menu')) && renderMobileMenuPanel()}
+                </div>
+              )}
             </div>
 
 
-            <div className="min-w-0 flex flex-col items-center justify-center">
-              <div className="min-w-0 text-2xl font-semibold text-tt-tertiary dark:text-white truncate">
+            <div className={`min-w-0 flex flex-col ${isMobile ? 'items-start justify-start' : 'items-center justify-center'}`}>
+              <div className={`min-w-0 font-semibold text-tt-tertiary dark:text-white truncate ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                 {data?.title ?? 'Preparing story…'}
               </div>
               {showDebugInfo && data && (
@@ -1798,9 +2118,9 @@ const fullFlipPages = useMemo<PageData[]>(() => {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 overflow-x-auto whitespace-nowrap">
+            <div className={`flex items-center gap-2 overflow-x-auto whitespace-nowrap ${isMobile ? 'justify-start' : 'justify-end'}`}>
               {/* On desktop, these controls move to the right-side blank area under the bookmark. */}
-              {!useSideControls && (
+              {!isMobile && !useSideControls && (
                 <>
                   {/* <Button
                     onClick={() => flipNav?.prev()}
@@ -1984,7 +2304,7 @@ const fullFlipPages = useMemo<PageData[]>(() => {
                 </>
               )}
               {/* Version segmented control */}
-              <div className="inline-flex rounded-tt border border-black/10 dark:border-white/10 bg-tt-surface/70 dark:bg-gray-950/40 p-1 shadow-sm shrink-0">
+              <div className={`inline-flex rounded-tt border border-black/10 dark:border-white/10 bg-tt-surface/70 dark:bg-gray-950/40 shadow-sm ${isMobile ? 'w-full p-0.5' : 'p-1 shrink-0'}`}>
                 {TIME_OPTIONS.map((opt) => {
                   const isSelected = selectedTimeOptionId === opt.id;
                   const label = opt.id === 'full' ? 'Full story' : 'Bedtime adaptation';
@@ -2003,13 +2323,13 @@ const fullFlipPages = useMemo<PageData[]>(() => {
                       }}
                       className={
                         isSelected
-                          ? 'px-4 py-2 rounded-lg bg-tt-accent text-white text-sm font-semibold shadow'
-                          : 'px-4 py-2 rounded-lg text-sm font-semibold text-tt-muted dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60'
+                          ? `${isMobile ? 'flex-1 px-1.5 py-1 text-[11px]' : 'px-4 py-2 text-sm'} rounded-lg bg-tt-accent text-white font-semibold shadow`
+                          : `${isMobile ? 'flex-1 px-1.5 py-1 text-[11px]' : 'px-4 py-2 text-sm'} rounded-lg font-semibold text-tt-muted dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60`
                       }
                     >
-                      <span className="inline-flex items-center gap-2">
-                        {opt.id === 'bedtime' && <BsMoonStarsFill className="h-4 w-4" aria-hidden="true" />}
-                        {opt.id === 'full' && <GiBookCover className="h-6 w-6" aria-hidden="true" />}
+                      <span className={`inline-flex items-center ${isMobile ? 'justify-center gap-1.5 w-full' : 'gap-2'}`}>
+                        {opt.id === 'bedtime' && <BsMoonStarsFill className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} aria-hidden="true" />}
+                        {opt.id === 'full' && <GiBookCover className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} aria-hidden="true" />}
                         {label}
                       </span>
                     </button>
@@ -2021,8 +2341,34 @@ const fullFlipPages = useMemo<PageData[]>(() => {
         </div>
       </div>
 
+      {isMobile && isFullscreen && (
+        <div className="fixed top-3 right-3 z-30">
+          <div className="relative">
+            <Button
+              ref={mobileMenuTriggerRef}
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 bg-white/95 dark:bg-gray-950/95"
+              aria-label={isMobileMenuOpen ? 'Close reader controls' : 'Open reader controls'}
+              aria-expanded={isMobileMenuOpen}
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            >
+              {isDraggingBookmark ? (
+                <Trash2 className="h-5 w-5 text-rose-600" aria-hidden="true" />
+              ) : isMobileMenuOpen ? (
+                <X className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Menu className="h-5 w-5" aria-hidden="true" />
+              )}
+            </Button>
+            {(isMobileMenuOpen || (isDraggingBookmark && bookmarkDragOrigin === 'menu')) && renderMobileMenuPanel()}
+          </div>
+        </div>
+      )}
+
       {/* Body */}
-      <main className={`max-w-7xl mx-auto px-4 relative z-10 ${isTabletFullscreen ? 'py-2' : 'py-6'}`}>
+      <main className={`max-w-7xl mx-auto px-4 relative z-10 ${isTabletFullscreen ? 'py-2' : 'py-6'} ${isMobile && isFullscreen ? 'pt-14' : ''}`}>
 
 
         {loading && (
@@ -2068,13 +2414,13 @@ const fullFlipPages = useMemo<PageData[]>(() => {
                 </div>
               </div>
             )} */}
-            <div className="flex items-start justify-center gap-6 mr-36 xl:gap-12">
+            <div className={`flex items-start justify-center gap-3 sm:gap-6 ${isMobile ? 'mr-0' : 'mr-36'} xl:gap-12`}>
               {useSideControls && <div className="w-40 shrink-0" aria-hidden="true" />}
-              <div className="relative overflow-visible">
+              <div className={`relative overflow-visible max-w-full ${isMobile && isFullscreen ? '-translate-x-2' : ''}`}>
                 {/* Draggable bookmark: drop ON the book to activate/update; drop OFF to deactivate. */}
                 {shouldShowBigBookmark && (
                   <div
-                    ref={bookmarkDragRef}
+                    data-bookmark-source="book"
                     className={
                       bookmarkSide === 'right'
                         ? 'absolute -top-28 left-[54%] z-30 drop-shadow-2xl sm:-top-36 sm:left-[52%]'
@@ -2148,7 +2494,7 @@ const fullFlipPages = useMemo<PageData[]>(() => {
                 <div className="flex flex-col items-center gap-4 shrink-0 w-40">
                   {shouldShowDockedBookmark ? (
                     <div
-                      ref={bookmarkDragRef}
+                      data-bookmark-source="book"
                       className="drop-shadow-xl opacity-80 scale-90"
                       style={{ touchAction: 'none', transform: 'translate3d(0px, 0px, 0px) rotate(6deg)' }}
                       role="img"
