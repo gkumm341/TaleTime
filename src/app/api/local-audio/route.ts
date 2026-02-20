@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { createReadStream, readdirSync, statSync } from 'fs';
 import { join } from 'path';
-import { Readable } from 'stream';
 import { buildCloudTextUrl, getContentMode } from '@/lib/server/content-source';
 import { getCloudBookId, loadCloudCatalogMetadata } from '@/lib/server/cloud-catalog';
+import { nodeStreamToWeb } from '@/lib/server/node-stream-to-web';
 
 export const runtime = 'nodejs';
 
@@ -301,7 +301,7 @@ export async function GET(req: NextRequest) {
 
     const chunkSize = end - start + 1;
     const stream = createReadStream(resolved.absPath, { start, end });
-    const body = Readable.toWeb(stream) as ReadableStream;
+    const body = nodeStreamToWeb(stream);
     return new Response(body, {
       status: 206,
       headers: {
@@ -315,7 +315,7 @@ export async function GET(req: NextRequest) {
   }
 
   const stream = createReadStream(resolved.absPath);
-  const body = Readable.toWeb(stream) as ReadableStream;
+  const body = nodeStreamToWeb(stream);
   return new Response(body, {
     status: 200,
     headers: {

@@ -363,6 +363,19 @@ function useIsMobile(breakpointPx = 768) {
   return isMobile;
 }
 
+function useViewportWidth() {
+  const [viewportWidth, setViewportWidth] = React.useState(0);
+
+  React.useEffect(() => {
+    const update = () => setViewportWidth(window.innerWidth);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return viewportWidth;
+}
+
 function useIsTouchDevice() {
   const [isTouchDevice, setIsTouchDevice] = React.useState(false);
 
@@ -629,11 +642,20 @@ export function renderTextWithInlineImages(
     if (paragraphs.length === 0) return null;
     return paragraphs.map((p, idx) => (
       p === MANUAL_SPACE_SENTINEL ? (
-        <p key={idx} className="tt-storybook-paragraph" aria-hidden="true">
+        <p
+          key={idx}
+          className="tt-storybook-paragraph"
+          style={{ lineHeight: 'var(--tt-storybook-line-height, 1.5)', marginBottom: 'var(--tt-storybook-para-gap, 0.62em)' }}
+          aria-hidden="true"
+        >
           {"\u00A0"}
         </p>
       ) : (
-        <p key={idx} className="tt-storybook-paragraph">
+        <p
+          key={idx}
+          className="tt-storybook-paragraph"
+          style={{ lineHeight: 'var(--tt-storybook-line-height, 1.5)', marginBottom: 'var(--tt-storybook-para-gap, 0.62em)' }}
+        >
           {p}
         </p>
       )
@@ -677,7 +699,7 @@ export function renderTextWithInlineImages(
       const textBefore = text.slice(lastIndex, match.index);
       // Preserve whitespace/newlines exactly (important for child-book flow).
       parts.push(
-        <span key={`text-${keyIndex++}`} className="whitespace-pre-wrap">
+        <span key={`text-${keyIndex++}`} className="whitespace-pre-wrap" style={{ lineHeight: 'var(--tt-storybook-line-height, 1.5)' }}>
           {textBefore}
         </span>
       );
@@ -729,7 +751,7 @@ export function renderTextWithInlineImages(
     } else {
       // If we don't have a URL for this placeholder, keep it as text so it's debuggable.
       parts.push(
-        <span key={`ph-${keyIndex++}`} className="whitespace-pre-wrap">
+        <span key={`ph-${keyIndex++}`} className="whitespace-pre-wrap" style={{ lineHeight: 'var(--tt-storybook-line-height, 1.5)' }}>
           {match[0]}
         </span>
       );
@@ -742,7 +764,7 @@ export function renderTextWithInlineImages(
   if (lastIndex < text.length) {
     const textAfter = text.slice(lastIndex);
     parts.push(
-      <span key={`text-${keyIndex++}`} className="whitespace-pre-wrap">
+      <span key={`text-${keyIndex++}`} className="whitespace-pre-wrap" style={{ lineHeight: 'var(--tt-storybook-line-height, 1.5)' }}>
         {textAfter}
       </span>
     );
@@ -776,6 +798,8 @@ function StoryPage({
   lowerTopMargin,
   extraTopOffsetPx,
   introCard,
+  isMobileViewport,
+  isDesktopViewport,
 }: {
   title?: string;
   bookTitle?: string;
@@ -789,6 +813,8 @@ function StoryPage({
   lowerTopMargin?: boolean;
   extraTopOffsetPx?: number;
   introCard?: React.ReactNode;
+  isMobileViewport?: boolean;
+  isDesktopViewport?: boolean;
 }) {
   const singlePlaceholderName = useMemo(() => getSinglePlaceholderName(text ?? ''), [text]);
   const fullPageMediaUrl = singlePlaceholderName ? inlineImages?.[singlePlaceholderName] : undefined;
@@ -1020,7 +1046,36 @@ function StoryPage({
   const topOffset = lowerTopMargin
     ? baseTopOffset + STORY_TEXT_TOP_OFFSET_AFTER_SECOND_PAGE_DELTA
     : baseTopOffset;
-  const effectiveTopOffset = topOffset + (extraTopOffsetPx ?? 0);
+  const mobileTextTopNudge = isMobileViewport ? 58 : 0;
+  const mobileFirstPageBodyLift = isMobileViewport && Boolean(bookTitle) ? -20 : 0;
+  const desktopTextTopNudge = isDesktopViewport ? 30 : 0;
+  const effectiveTopOffset =
+    topOffset +
+    (extraTopOffsetPx ?? 0) +
+    desktopTextTopNudge +
+    mobileTextTopNudge +
+    mobileFirstPageBodyLift;
+  const bookTitleStyle = isMobileViewport
+    ? ({ fontSize: '1.08rem', lineHeight: 1.22, marginTop: '3.7rem' } as React.CSSProperties)
+    : ({ fontSize: 'clamp(0.72rem, 1.75vw, 2rem)', lineHeight: 1.15 } as React.CSSProperties);
+  const proseStyle = isMobileViewport
+    ? ({
+        fontSize: '0.74rem',
+        lineHeight: 1.56,
+        ['--tt-storybook-font-size' as string]: '0.74rem',
+        ['--tt-storybook-line-height' as string]: '1.56',
+        ['--tt-storybook-para-gap' as string]: '1.08em',
+        ['--tt-storybook-indent' as string]: '0.72em',
+      } as React.CSSProperties)
+    : isDesktopViewport
+      ? ({
+          ['--tt-storybook-font-size' as string]: '.98rem',
+          ['--tt-storybook-line-height' as string]: '1.9',
+          ['--tt-storybook-para-gap' as string]: '1.08em',
+        } as React.CSSProperties)
+      : ({
+          ['--tt-storybook-para-gap' as string]: '1.08em',
+        } as React.CSSProperties);
 
   return (
     <div
@@ -1037,7 +1092,7 @@ function StoryPage({
       {bookTitle ? (
         <h1
           className="text-tt-tertiary w-full text-center font-extrabold tracking-tight m-0 mt-2 lg:mt-6"
-          style={{ fontSize: "clamp(0.72rem, 1.75vw, 2rem)", lineHeight: 1.15 }}
+          style={bookTitleStyle}
         >
           {bookTitle}
           <div className="border-b-4 border-tt-accent mt-1 lg:mt-4 dark:border-tt-border/10" />
@@ -1075,7 +1130,7 @@ function StoryPage({
         }}
       >
         <div className="h-full overflow-y-auto pr-4 pb-6 box-border">
-          <div className="tt-storybook-prose tt-storybook-prose-book leading-snug" lang="en">
+          <div className="tt-storybook-prose tt-storybook-prose-book leading-snug" style={proseStyle} lang="en">
             {renderTextWithInlineImages(text ?? "", inlineImages)}
           </div>
         </div>
@@ -1101,6 +1156,7 @@ export default function BookFlip({
   onNavigationReady,
 }: BookFlipProps) {
   const bookRef = useRef<unknown>(null);
+  const viewportWidth = useViewportWidth();
   const isMobile = useIsMobile(768);
   const isTouchDevice = useIsTouchDevice();
   const [canUseFullscreen, setCanUseFullscreen] = useState(false);
@@ -1110,6 +1166,8 @@ export default function BookFlip({
   const effectiveFullscreen = fullscreenActive ?? isFullscreen;
   const dims = useFlipDimensions(isMobile, isTouchDevice, effectiveFullscreen);
   const usePortrait = dims.usePortrait;
+  const isPhoneTypography = isMobile || (isTouchDevice && usePortrait && dims.width <= 430);
+  const isDesktopViewport = viewportWidth > 1366;
 
   const [paginatedPages, setPaginatedPages] = React.useState<PageData[] | null>(
     null
@@ -1144,8 +1202,9 @@ export default function BookFlip({
     bookTitleEl.className =
       "text-tt-tertiary w-full text-center font-extrabold tracking-tight m-0 mt-2 lg:mt-6";
     Object.assign(bookTitleEl.style, {
-      fontSize: "clamp(0.72rem, 1.75vw, 2rem)",
-      lineHeight: "1.15",
+      fontSize: isPhoneTypography ? '1.08rem' : "clamp(0.72rem, 1.75vw, 2rem)",
+      lineHeight: isPhoneTypography ? '1.22' : "1.15",
+      marginTop: isPhoneTypography ? '3.7rem' : '',
     } as Partial<CSSStyleDeclaration>);
     const bookTitleDivider = document.createElement("div");
     bookTitleDivider.className =
@@ -1183,6 +1242,16 @@ export default function BookFlip({
       whiteSpace: "pre-line",
       wordBreak: "break-word",
       overflowWrap: "anywhere",
+      ...(isPhoneTypography
+        ? {
+            fontSize: '0.74rem',
+            lineHeight: '1.56',
+            ['--tt-storybook-font-size']: '0.74rem',
+            ['--tt-storybook-line-height']: '1.56',
+            ['--tt-storybook-para-gap']: '0.62em',
+            ['--tt-storybook-indent']: '0.72em',
+          }
+        : {}),
     } as Partial<CSSStyleDeclaration>);
 
     measureInner.appendChild(measureEl);
@@ -1268,6 +1337,8 @@ export default function BookFlip({
       for (let i = 0; i < paras.length; i++) {
         const p = document.createElement("p");
         p.className = "tt-storybook-paragraph";
+        p.style.lineHeight = 'var(--tt-storybook-line-height, 1.5)';
+        p.style.marginBottom = 'var(--tt-storybook-para-gap, 0.62em)';
         p.textContent = paras[i] === MANUAL_SPACE_SENTINEL ? "\u00A0" : paras[i];
         frag.appendChild(p);
       }
@@ -1475,7 +1546,7 @@ for (let tries = 0; tries < 6; tries++) {
     } finally {
       measureShell.remove();
     }
-  }, [pages, dims.width, dims.height, isTouchDevice]);
+  }, [pages, dims.width, dims.height, isTouchDevice, isPhoneTypography]);
 
   const storyPages = paginatedPages ?? pages;
 
@@ -1488,6 +1559,10 @@ for (let tries = 0; tries < 6; tries++) {
 
   const width = dims.width;
   const height = dims.height;
+  const effectiveFlippingTime = isPhoneTypography
+    ? Math.max(flippingTime, 760)
+    : flippingTime;
+  const effectiveShadowOpacity = isPhoneTypography ? 0.42 : 0.25;
   const flipbookRenderKey = useMemo(
     () =>
       `${effectiveFullscreen ? "fs" : "win"}-${usePortrait ? "p" : "s"}-${width}x${height}-${storyPages
@@ -1504,6 +1579,7 @@ for (let tries = 0; tries < 6; tries++) {
 
   const goNext = React.useCallback(() => getFlipApi()?.flipNext(), []);
   const goPrev = React.useCallback(() => getFlipApi()?.flipPrev(), []);
+  const lastPhoneBackTapAtRef = React.useRef(0);
   const goTo = React.useCallback((targetPageIndex: number) => {
     const attempt = (triesLeft: number) => {
       const api = getFlipApi();
@@ -1532,6 +1608,49 @@ for (let tries = 0; tries < 6; tries++) {
     if (typeof window === 'undefined') return;
     attempt(10);
   }, []);
+
+  /**
+   * Phone-only: tap the left side of the single visible page to flip back.
+   *
+   * Uses the library's own `flipPrev(corner)` which internally triggers the
+   * same page-curl animation used on desktop / tablet when clicking the left
+   * page corner.  No fallback timer is needed because `flipPrev` is a
+   * synchronous call into the page-flip engine that always starts the
+   * animation.
+   *
+   * The overlay `<button>` sits *outside* the library's DOM element, so the
+   * library's own touchstart listener never fires for these taps, which means
+   * `userStop` (the library's touchend handler on `window`) is a no-op —
+   * preventing double-page jumps.
+   */
+  const handlePhoneBackTap = React.useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Debounce: prevent rapid taps from queuing multiple animations
+      const now = Date.now();
+      if (now - lastPhoneBackTapAtRef.current < effectiveFlippingTime) return;
+      lastPhoneBackTapAtRef.current = now;
+
+      const api = getFlipApi();
+      if (!api) return;
+
+      const currentIndex = api.getCurrentPageIndex?.() ?? 0;
+      if (currentIndex <= 0) return; // already on first page
+
+      // Determine which corner to curl from based on where the user tapped
+      const btnRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      const tapY = event.clientY - btnRect.top;
+      const corner: "top" | "bottom" = tapY > btnRect.height / 2 ? "bottom" : "top";
+
+      // flipPrev(corner) triggers the exact same page-curl animation as
+      // clicking the left page on desktop.  The `corner` parameter controls
+      // whether the curl originates from the top-left or bottom-left.
+      (api.flipPrev as (corner?: string) => void)(corner);
+    },
+    [effectiveFlippingTime]
+  );
 
   const getPageIndex = React.useCallback(() => getFlipApi()?.getCurrentPageIndex?.() ?? pageIndex, [pageIndex]);
   const getPageCount = React.useCallback(() => getFlipApi()?.getPageCount?.() ?? pageCount, [pageCount]);
@@ -1602,7 +1721,7 @@ for (let tries = 0; tries < 6; tries++) {
     setShowFullscreenHint(false);
   }, []);
 
-  const shouldShowFullscreenHint = isTouchDevice && canUseFullscreen && !effectiveFullscreen && showFullscreenHint;
+  const shouldShowFullscreenHint = showTip && isTouchDevice && canUseFullscreen && !effectiveFullscreen && showFullscreenHint;
 
   return (
     <div className={effectiveFullscreen ? "py-1" : "py-4"}>
@@ -1635,12 +1754,12 @@ for (let tries = 0; tries < 6; tries++) {
         </>
       ) : null}
       {shouldShowFullscreenHint ? (
-        <div className="max-w-xl ml-64 -mt-6 mb-10 mx-auto ">
-          <div className="rounded-tt border border-tt-border/25 bg-tt-surface/80 dark:bg-tt-ink/60 dark:border-tt-border/20 px-3 py-2 flex items-center justify-between gap-3">
+        <div className="w-full px-3 mt-2 mb-4 sm:max-w-xl sm:mx-auto sm:ml-64 sm:-mt-6 sm:mb-10 sm:px-0">
+          <div className="rounded-tt border border-tt-border/25 bg-tt-surface/80 dark:bg-tt-ink/60 dark:border-tt-border/20 px-3 py-2 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <p className="text-xs text-tt-primary/80 dark:text-gray-200">
               Tip: tap Fullscreen for a better reading view on your device.
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
               <Button
                 onClick={toggleFullscreen}
                 variant="outline"
@@ -1664,6 +1783,9 @@ for (let tries = 0; tries < 6; tries++) {
       
 
       <div className="w-full flex items-center justify-center">
+        <div
+          className="relative"
+        >
         <HTMLFlipBook
           key={flipbookRenderKey}
           style={{}}
@@ -1676,18 +1798,18 @@ for (let tries = 0; tries < 6; tries++) {
           minHeight={dims.minHeight}
           maxHeight={dims.maxHeight}
           drawShadow={true}
-          flippingTime={flippingTime}
+          flippingTime={effectiveFlippingTime}
           usePortrait={usePortrait}
           startZIndex={0}
           autoSize={true}
-          maxShadowOpacity={0.25}
+          maxShadowOpacity={effectiveShadowOpacity}
           showCover={true}
           mobileScrollSupport={true}
           clickEventForward={true}
           useMouseEvents={true}
           swipeDistance={30}
           showPageCorners={true}
-          disableFlipByClick={true}
+          disableFlipByClick={!(isTouchDevice && isPhoneTypography)}
           className="rounded-2xl"
           ref={bookRef as unknown as React.RefObject<unknown>}
           onFlip={(e: unknown) => setPageIndex(isFlipEvent(e) ? e.data : 0)}
@@ -1722,6 +1844,8 @@ for (let tries = 0; tries < 6; tries++) {
                   compactTopSpacing={isTouchDevice}
                   lowerTopMargin={idx > 1}
                   extraTopOffsetPx={storyTextOffsetPx}
+                  isMobileViewport={isPhoneTypography}
+                  isDesktopViewport={isDesktopViewport}
                   isActive={
                     usePortrait
                       ? pageIndex === idx + 1 + frontBlankPageCount
@@ -1756,6 +1880,17 @@ for (let tries = 0; tries < 6; tries++) {
               : []),
           ]}
         </HTMLFlipBook>
+        {isPhoneTypography ? (
+          <div className="pointer-events-none absolute inset-0 z-[999]" aria-hidden="true">
+            <button
+              type="button"
+              className="pointer-events-auto absolute left-0 top-0 h-full w-[38%] bg-transparent"
+              aria-label="Previous page"
+              onPointerDown={handlePhoneBackTap}
+            />
+          </div>
+        ) : null}
+        </div>
       </div>
 
     </div>
