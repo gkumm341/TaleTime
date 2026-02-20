@@ -166,6 +166,23 @@ function useIsTouchDevice() {
   return isTouchDevice;
 }
 
+function useIsPortraitOrientation() {
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsPortrait(window.innerHeight >= window.innerWidth);
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+    };
+  }, []);
+
+  return isPortrait;
+}
+
 function useFlipDimensions(isMobile: boolean, isTouchDevice: boolean, isFullscreen: boolean) {
   const [dims, setDims] = useState(() => ({
     width: isMobile ? 360 : 520,
@@ -218,9 +235,12 @@ export default function AbridgedBookPage() {
   const isMobile = useIsMobile(768);
   const isCompactReaderLayout = useIsMobile(1180);
   const isTouchDevice = useIsTouchDevice();
+  const isPortraitOrientation = useIsPortraitOrientation();
   const [canUseFullscreen, setCanUseFullscreen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isTabletFullscreen = !isMobile && isFullscreen;
+  const isTabletPortrait = !isMobile && isTouchDevice && isPortraitOrientation;
+  const usePhoneLikeTopNav = isMobile || isTabletPortrait;
   const dims = useFlipDimensions(isMobile, isTouchDevice, isFullscreen);
   const useSideControls = !isCompactReaderLayout;
 
@@ -2046,9 +2066,9 @@ const fullFlipPages = useMemo<PageData[]>(() => {
       )}
 
       <div className={`sticky top-0 z-20 dark:bg-gray-950/80 backdrop-blur border-b border-tt-border/20 dark:border-tt-border/10 ${isTouchDevice && isFullscreen ? 'hidden' : ''}`}>
-        <div className={`max-w-7xl mx-auto py-3 ${isMobile ? 'px-3' : 'px-4'}`}>
-          <div className={isMobile ? 'flex flex-col gap-2' : 'grid grid-cols-[1fr_auto_1fr] items-center gap-3'}>
-            <div className={`min-w-0 ${isMobile ? 'relative flex items-center justify-between' : 'flex items-center justify-start'}`}>
+        <div className={`max-w-7xl mx-auto ${isTabletPortrait ? 'py-5' : 'py-3'} ${usePhoneLikeTopNav ? 'px-3' : 'px-4'}`}>
+          <div className={usePhoneLikeTopNav ? `flex flex-col ${isTabletPortrait ? 'gap-4' : 'gap-2'}` : 'grid grid-cols-[1fr_auto_1fr] items-center gap-3'}>
+            <div className={`min-w-0 ${usePhoneLikeTopNav ? 'relative flex items-center justify-between' : 'flex items-center justify-start'}`}>
               <button
                 type="button"
                 onClick={async () => {
@@ -2073,19 +2093,19 @@ const fullFlipPages = useMemo<PageData[]>(() => {
                 }}
               >
                 <div className="relative flex items-center">
-                  <Image src="/owlFace2.png" alt="TaleTime Logo" width={40} height={40} className="h-10 w-10" />
-                  <h2 className="tt-logo font-heading text-3xl">TaleTime</h2>
+                  <Image src="/owlFace2.png" alt="TaleTime Logo" width={40} height={40} className={isTabletPortrait ? 'h-12 w-12' : 'h-10 w-10'} />
+                  <h2 className={`tt-logo font-heading ${isTabletPortrait ? 'text-5xl' : 'text-3xl'}`}>TaleTime</h2>
                 </div>
               </button>
 
-              {isMobile && !isFullscreen && (
+              {usePhoneLikeTopNav && !isFullscreen && (
                 <div className="relative">
                   <Button
                     ref={mobileMenuTriggerRef}
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9"
+                    className={isTabletPortrait ? 'h-11 w-11' : 'h-9 w-9'}
                     aria-label={isMobileMenuOpen ? 'Close reader controls' : 'Open reader controls'}
                     aria-expanded={isMobileMenuOpen}
                     onClick={() => setIsMobileMenuOpen((prev) => !prev)}
@@ -2105,8 +2125,8 @@ const fullFlipPages = useMemo<PageData[]>(() => {
             </div>
 
 
-            <div className={`min-w-0 flex flex-col ${isMobile ? 'items-start justify-start' : 'items-center justify-center'}`}>
-              <div className={`min-w-0 font-semibold text-tt-tertiary dark:text-white truncate ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+            <div className={`min-w-0 flex flex-col ${usePhoneLikeTopNav ? 'items-start justify-start' : 'items-center justify-center'}`}>
+              <div className={`min-w-0 font-semibold text-tt-tertiary dark:text-white truncate ${usePhoneLikeTopNav ? (isTabletPortrait ? 'text-2xl' : 'text-lg') : 'text-2xl'}`}>
                 {data?.title ?? 'Preparing story…'}
               </div>
               {showDebugInfo && data && (
@@ -2118,9 +2138,9 @@ const fullFlipPages = useMemo<PageData[]>(() => {
               )}
             </div>
 
-            <div className={`flex items-center gap-2 overflow-x-auto whitespace-nowrap ${isMobile ? 'justify-start' : 'justify-end'}`}>
+            <div className={`flex items-center gap-2 overflow-x-auto whitespace-nowrap ${usePhoneLikeTopNav ? 'justify-start' : 'justify-end'}`}>
               {/* On desktop, these controls move to the right-side blank area under the bookmark. */}
-              {!isMobile && !useSideControls && (
+              {!usePhoneLikeTopNav && !useSideControls && (
                 <>
                   {/* <Button
                     onClick={() => flipNav?.prev()}
@@ -2304,7 +2324,7 @@ const fullFlipPages = useMemo<PageData[]>(() => {
                 </>
               )}
               {/* Version segmented control */}
-              <div className={`inline-flex rounded-tt border border-black/10 dark:border-white/10 bg-tt-surface/70 dark:bg-gray-950/40 shadow-sm ${isMobile ? 'w-full p-0.5' : 'p-1 shrink-0'}`}>
+              <div className={`inline-flex rounded-tt border border-black/10 dark:border-white/10 bg-tt-surface/70 dark:bg-gray-950/40 shadow-sm ${usePhoneLikeTopNav ? (isTabletPortrait ? 'w-full p-1.5' : 'w-full p-0.5') : 'p-1 shrink-0'}`}>
                 {TIME_OPTIONS.map((opt) => {
                   const isSelected = selectedTimeOptionId === opt.id;
                   const label = opt.id === 'full' ? 'Full story' : 'Bedtime adaptation';
@@ -2323,13 +2343,13 @@ const fullFlipPages = useMemo<PageData[]>(() => {
                       }}
                       className={
                         isSelected
-                          ? `${isMobile ? 'flex-1 px-1.5 py-1 text-[11px]' : 'px-4 py-2 text-sm'} rounded-lg bg-tt-accent text-white font-semibold shadow`
-                          : `${isMobile ? 'flex-1 px-1.5 py-1 text-[11px]' : 'px-4 py-2 text-sm'} rounded-lg font-semibold text-tt-muted dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60`
+                          ? `${usePhoneLikeTopNav ? (isTabletPortrait ? 'flex-1 px-2.5 py-2 text-sm' : 'flex-1 px-1.5 py-1 text-[11px]') : 'px-4 py-2 text-sm'} rounded-lg bg-tt-accent text-white font-semibold shadow`
+                          : `${usePhoneLikeTopNav ? (isTabletPortrait ? 'flex-1 px-2.5 py-2 text-sm' : 'flex-1 px-1.5 py-1 text-[11px]') : 'px-4 py-2 text-sm'} rounded-lg font-semibold text-tt-muted dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-900/60`
                       }
                     >
-                      <span className={`inline-flex items-center ${isMobile ? 'justify-center gap-1.5 w-full' : 'gap-2'}`}>
-                        {opt.id === 'bedtime' && <BsMoonStarsFill className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} aria-hidden="true" />}
-                        {opt.id === 'full' && <GiBookCover className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} aria-hidden="true" />}
+                      <span className={`inline-flex items-center ${usePhoneLikeTopNav ? 'justify-center gap-1.5 w-full' : 'gap-2'}`}>
+                        {opt.id === 'bedtime' && <BsMoonStarsFill className={usePhoneLikeTopNav ? (isTabletPortrait ? 'h-4 w-4' : 'h-3 w-3') : 'h-4 w-4'} aria-hidden="true" />}
+                        {opt.id === 'full' && <GiBookCover className={usePhoneLikeTopNav ? (isTabletPortrait ? 'h-5 w-5' : 'h-4 w-4') : 'h-6 w-6'} aria-hidden="true" />}
                         {label}
                       </span>
                     </button>
@@ -2341,7 +2361,7 @@ const fullFlipPages = useMemo<PageData[]>(() => {
         </div>
       </div>
 
-      {isMobile && isFullscreen && (
+      {usePhoneLikeTopNav && isFullscreen && (
         <div className="fixed top-3 right-3 z-30">
           <div className="relative">
             <Button

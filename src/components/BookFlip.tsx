@@ -799,6 +799,7 @@ function StoryPage({
   extraTopOffsetPx,
   introCard,
   isMobileViewport,
+  isTabletPortraitViewport,
   isDesktopViewport,
 }: {
   title?: string;
@@ -814,6 +815,7 @@ function StoryPage({
   extraTopOffsetPx?: number;
   introCard?: React.ReactNode;
   isMobileViewport?: boolean;
+  isTabletPortraitViewport?: boolean;
   isDesktopViewport?: boolean;
 }) {
   const singlePlaceholderName = useMemo(() => getSinglePlaceholderName(text ?? ''), [text]);
@@ -1047,17 +1049,21 @@ function StoryPage({
     ? baseTopOffset + STORY_TEXT_TOP_OFFSET_AFTER_SECOND_PAGE_DELTA
     : baseTopOffset;
   const mobileTextTopNudge = isMobileViewport ? 58 : 0;
+  const tabletPortraitTextTopNudge = isTabletPortraitViewport ? 56 : 0;
   const mobileFirstPageBodyLift = isMobileViewport && Boolean(bookTitle) ? -20 : 0;
   const desktopTextTopNudge = isDesktopViewport ? 30 : 0;
   const effectiveTopOffset =
     topOffset +
     (extraTopOffsetPx ?? 0) +
     desktopTextTopNudge +
+    tabletPortraitTextTopNudge +
     mobileTextTopNudge +
     mobileFirstPageBodyLift;
   const bookTitleStyle = isMobileViewport
     ? ({ fontSize: '1.08rem', lineHeight: 1.22, marginTop: '3.7rem' } as React.CSSProperties)
-    : ({ fontSize: 'clamp(0.72rem, 1.75vw, 2rem)', lineHeight: 1.15 } as React.CSSProperties);
+    : isTabletPortraitViewport
+      ? ({ fontSize: '2.00rem', lineHeight: 1.5, marginTop: '2.2rem' } as React.CSSProperties)
+      : ({ fontSize: 'clamp(0.72rem, 1.75vw, 2rem)', lineHeight: 1.15 } as React.CSSProperties);
   const proseStyle = isMobileViewport
     ? ({
         fontSize: '0.74rem',
@@ -1067,6 +1073,14 @@ function StoryPage({
         ['--tt-storybook-para-gap' as string]: '1.08em',
         ['--tt-storybook-indent' as string]: '0.72em',
       } as React.CSSProperties)
+    : isTabletPortraitViewport
+      ? ({
+          fontSize: '1.30rem',
+          lineHeight: 1.72,
+          ['--tt-storybook-font-size' as string]: '1.30rem',
+          ['--tt-storybook-line-height' as string]: '1.72',
+          ['--tt-storybook-para-gap' as string]: '1.12em',
+        } as React.CSSProperties)
     : isDesktopViewport
       ? ({
           ['--tt-storybook-font-size' as string]: '.98rem',
@@ -1167,7 +1181,10 @@ export default function BookFlip({
   const dims = useFlipDimensions(isMobile, isTouchDevice, effectiveFullscreen);
   const usePortrait = dims.usePortrait;
   const isPhoneTypography = isMobile || (isTouchDevice && usePortrait && dims.width <= 430);
+  const isTabletViewport = viewportWidth >= 768 && viewportWidth <= 1366;
+  const isTabletPortraitTypography = !isPhoneTypography && isTabletViewport && usePortrait;
   const isDesktopViewport = viewportWidth > 1366;
+  const useSinglePageBackTrigger = isPhoneTypography || isTabletPortraitTypography;
 
   const [paginatedPages, setPaginatedPages] = React.useState<PageData[] | null>(
     null
@@ -1202,9 +1219,13 @@ export default function BookFlip({
     bookTitleEl.className =
       "text-tt-tertiary w-full text-center font-extrabold tracking-tight m-0 mt-2 lg:mt-6";
     Object.assign(bookTitleEl.style, {
-      fontSize: isPhoneTypography ? '1.08rem' : "clamp(0.72rem, 1.75vw, 2rem)",
-      lineHeight: isPhoneTypography ? '1.22' : "1.15",
-      marginTop: isPhoneTypography ? '3.7rem' : '',
+      fontSize: isPhoneTypography
+        ? '1.08rem'
+        : isTabletPortraitTypography
+          ? '1.56rem'
+          : "clamp(0.72rem, 1.75vw, 2rem)",
+      lineHeight: isPhoneTypography ? '1.22' : isTabletPortraitTypography ? '1.2' : "1.15",
+      marginTop: isPhoneTypography ? '3.7rem' : isTabletPortraitTypography ? '2.2rem' : '',
     } as Partial<CSSStyleDeclaration>);
     const bookTitleDivider = document.createElement("div");
     bookTitleDivider.className =
@@ -1248,9 +1269,17 @@ export default function BookFlip({
             lineHeight: '1.56',
             ['--tt-storybook-font-size']: '0.74rem',
             ['--tt-storybook-line-height']: '1.56',
-            ['--tt-storybook-para-gap']: '0.62em',
+            ['--tt-storybook-para-gap']: '1.08em',
             ['--tt-storybook-indent']: '0.72em',
           }
+        : isTabletPortraitTypography
+          ? {
+              fontSize: '1.30rem',
+              lineHeight: '1.72',
+              ['--tt-storybook-font-size']: '1.30rem',
+              ['--tt-storybook-line-height']: '1.72',
+              ['--tt-storybook-para-gap']: '1.12em',
+            }
         : {}),
     } as Partial<CSSStyleDeclaration>);
 
@@ -1491,7 +1520,17 @@ for (let tries = 0; tries < 6; tries++) {
         const topOffset = pageIdx > 1
           ? baseTopOffset + STORY_TEXT_TOP_OFFSET_AFTER_SECOND_PAGE_DELTA
           : baseTopOffset;
-        measureOuter.style.marginTop = `${topOffset}px`;
+        const mobileTextTopNudgeForMeasure = isPhoneTypography ? 58 : 0;
+        const tabletPortraitTextTopNudgeForMeasure = isTabletPortraitTypography ? 56 : 0;
+        const mobileFirstPageBodyLiftForMeasure = isPhoneTypography && pageIdx === 0 ? -20 : 0;
+        const desktopTextTopNudgeForMeasure = isDesktopViewport ? 30 : 0;
+        measureOuter.style.marginTop = `${
+          topOffset +
+          desktopTextTopNudgeForMeasure +
+          tabletPortraitTextTopNudgeForMeasure +
+          mobileTextTopNudgeForMeasure +
+          mobileFirstPageBodyLiftForMeasure
+        }px`;
         const maxHeight = getMaxHeightForCurrentLayout();
         const findChunk = makeFindChunk(maxHeight);
 
@@ -1546,7 +1585,7 @@ for (let tries = 0; tries < 6; tries++) {
     } finally {
       measureShell.remove();
     }
-  }, [pages, dims.width, dims.height, isTouchDevice, isPhoneTypography]);
+  }, [pages, dims.width, dims.height, isTouchDevice, isPhoneTypography, isTabletPortraitTypography, isDesktopViewport]);
 
   const storyPages = paginatedPages ?? pages;
 
@@ -1809,7 +1848,7 @@ for (let tries = 0; tries < 6; tries++) {
           useMouseEvents={true}
           swipeDistance={30}
           showPageCorners={true}
-          disableFlipByClick={!(isTouchDevice && isPhoneTypography)}
+          disableFlipByClick={!(isTouchDevice && useSinglePageBackTrigger)}
           className="rounded-2xl"
           ref={bookRef as unknown as React.RefObject<unknown>}
           onFlip={(e: unknown) => setPageIndex(isFlipEvent(e) ? e.data : 0)}
@@ -1845,6 +1884,7 @@ for (let tries = 0; tries < 6; tries++) {
                   lowerTopMargin={idx > 1}
                   extraTopOffsetPx={storyTextOffsetPx}
                   isMobileViewport={isPhoneTypography}
+                  isTabletPortraitViewport={isTabletPortraitTypography}
                   isDesktopViewport={isDesktopViewport}
                   isActive={
                     usePortrait
@@ -1880,7 +1920,7 @@ for (let tries = 0; tries < 6; tries++) {
               : []),
           ]}
         </HTMLFlipBook>
-        {isPhoneTypography ? (
+        {useSinglePageBackTrigger ? (
           <div className="pointer-events-none absolute inset-0 z-[999]" aria-hidden="true">
             <button
               type="button"
