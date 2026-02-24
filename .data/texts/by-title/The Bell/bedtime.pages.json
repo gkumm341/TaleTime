@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "title": "The Bell",
+  "author": "Unknown",
+  "pages": [
+    {
+      "id": "p1",
+      "paragraphs": [
+        "In a small town not far from the sea, there lived many children.",
+        "They went to school.",
+        "They ran through lanes.",
+        "They played beneath trees.",
+        "And sometimes, when the wind was just right…",
+        "They heard something strange.",
+        "A bell.",
+        "Not a bell from the church.",
+        "Not a bell from a bicycle.",
+        "But a sound that came from far away.",
+        "Soft.",
+        "Clear.",
+        "Like a single silver note in the air."
+      ]
+    },
+    {
+      "id": "p2",
+      "text": "{{image1.png}}"
+    },
+    {
+      "id": "p3",
+      "paragraphs": [
+        "“Where is it?” the children asked.",
+        "Some said it came from the forest.",
+        "Some said it came from the hills.",
+        "Some said it came from the sea.",
+        "The sound made them quiet.",
+        "It made them curious.",
+        "It made them feel as if something gentle was calling.",
+        "One sunny day, a group of children decided to find the bell.",
+        "They packed bread.",
+        "They tied their shoelaces.",
+        "And they set off.",
+        "At first they walked together.",
+        "They laughed.",
+        "They pointed.",
+        "They chased butterflies."
+      ]
+    },
+    {
+      "id": "p4",
+      "text": "{{image2.png}}"
+    },
+    {
+      "id": "p5",
+      "paragraphs": [
+        "But the forest grew thicker.",
+        "Paths became narrow.",
+        "And some children turned back.",
+        "“I’m tired,” one said.",
+        "“I’m hungry,” another said.",
+        "And slowly, the group became smaller.",
+        "Two children kept going.",
+        "A boy and a girl.",
+        "They did not hurry.",
+        "They listened.",
+        "And now the bell sounded clearer.",
+        "They followed it past tall trees.",
+        "Past fern-covered stones.",
+        "Past little streams that whispered over pebbles."
+      ]
+    },
+    {
+      "id": "p6",
+      "text": "{{image3.png}}"
+    },
+    {
+      "id": "p7",
+      "paragraphs": [
+        "Still the bell called.",
+        "Not loudly.",
+        "Not impatiently.",
+        "Just… faithfully.",
+        "At last, they reached the edge of the forest.",
+        "The trees opened like curtains.",
+        "And beyond them lay a wide, bright landscape.",
+        "Green fields.",
+        "Blue sky.",
+        "Sunlight spilling everywhere.",
+        "The children stopped.",
+        "Because the bell was not in a tower.",
+        "It was not hanging from a rope."
+      ]
+    },
+    {
+      "id": "p8",
+      "text": "{{image4.png}}"
+    },
+    {
+      "id": "p9",
+      "paragraphs": [
+        "The bell was in the world itself.",
+        "In the birdsong.",
+        "In the wind.",
+        "In the quiet joy of being alive.",
+        "The boy looked at the girl.",
+        "The girl looked at the boy.",
+        "And they both understood something.",
+        "That sometimes the truest music is not made by metal.",
+        "It is made by wonder.",
+        "And when they walked home, they carried the bell with them.",
+        "Not in their hands.",
+        "But in their hearts."
+      ]
+    },
+    {
+      "id": "p10",
+      "text": "{{video.mp4}}",
+      "imageSrc": "image5.png"
+    },
+    {
+      "id": "p11",
+      "text": "{{image6.png}}"
+    }
+  ]
+}

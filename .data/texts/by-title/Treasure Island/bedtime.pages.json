@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "title": "Treasure Island",
+  "author": "Stevenson, Robert Louis",
+  "pages": [
+    {
+      "id": "p1",
+      "paragraphs": [
+        "Long ago, by a peaceful seaside road, there stood a small inn called the Admiral Benbow.",
+        "It was there that a boy named Jim Hawkins lived with his parents, helping with small chores and listening to the sound of the waves at night.",
+        "Jim’s life was simple… until the day a mysterious old sailor arrived.",
+        "The sailor was called Billy Bones.",
+        "He carried a heavy sea-chest. He sang dark sea songs in a rough voice. And every day, he watched the road as if waiting for danger.",
+        "Before long, danger came to him.",
+        "Strange men appeared at the inn. One called Black Dog. Another, a terrifying blind man named Pew.",
+        "Their visit filled the old sailor with fear.",
+        "And soon after, Billy Bones fell ill and died… leaving behind a secret that would change Jim’s life forever."
+      ]
+    },
+    {
+      "id": "p2",
+      "text": "{{image1.png}}"
+    },
+    {
+      "id": "p3",
+      "paragraphs": [
+        "After the sailor’s death, Jim and his mother opened the sea-chest.",
+        "Inside, they found coins… and a bundle of papers wrapped in oilskin.",
+        "Jim took the papers to two trusted men in the village.",
+        "Dr. Livesey, kind and wise. And Squire Trelawney, brave and generous.",
+        "Together, they opened the bundle.",
+        "Inside was a map.",
+        "A map to buried treasure.",
+        "The treasure of the feared pirate Captain Flint.",
+        "From that moment, their quiet lives were over.",
+        "An adventure had begun.",
+        "Soon, a ship was prepared.",
+        "It was called the Hispaniola."
+      ]
+    },
+    {
+      "id": "p4",
+      "text": "{{image2.png}}"
+    },
+    {
+      "id": "p5",
+      "paragraphs": [
+        "The squire hired a crew and a cook who seemed friendly and cheerful.",
+        "His name was Long John Silver.",
+        "He had only one leg… and a bright smile… and a voice that made people trust him.",
+        "Jim liked him at once.",
+        "But not everyone is what they seem.",
+        "The ship sailed across the wide, quiet sea.",
+        "At first, the days were peaceful.",
+        "But one afternoon, while hiding in an apple barrel, Jim heard something he was never meant to hear.",
+        "Long John Silver was not just a cook.",
+        "He was a pirate.",
+        "And many of the crew were pirates too.",
+        "They planned to steal the treasure… and take the ship.",
+        "Jim’s heart pounded, but he stayed brave."
+      ]
+    },
+    {
+      "id": "p6",
+      "text": "{{image3.png}}"
+    },
+    {
+      "id": "p7",
+      "paragraphs": [
+        "He told Dr. Livesey and the squire everything he had heard.",
+        "And quietly… they prepared to protect themselves.",
+        "At last, the ship reached a distant island.",
+        "A green island with tall trees and hidden beaches.",
+        "Treasure Island.",
+        "Soon after landing, danger showed itself.",
+        "Some of the pirates tried to take control.",
+        "There was fear… and confusion… and the sound of raised voices.",
+        "The loyal crew escaped to an old wooden fort on the island, called the stockade.",
+        "And there they waited… hoping to stay safe.",
+        "One day, Jim wandered alone in the woods.",
+        "There, he met a strange man dressed in animal skins.",
+        "His name was Ben Gunn."
+      ]
+    },
+    {
+      "id": "p8",
+      "text": "{{image4.png}}"
+    },
+    {
+      "id": "p9",
+      "paragraphs": [
+        "He had been left behind on the island years before.",
+        "And he had changed in the quiet loneliness.",
+        "Ben Gunn told Jim something amazing.",
+        "He had already found Captain Flint’s treasure… and moved it to a safe place.",
+        "Hope returned to Jim’s heart.",
+        "Meanwhile, Long John Silver was playing a dangerous game.",
+        "Sometimes he helped the pirates. Sometimes he helped Jim’s friends.",
+        "No one ever knew exactly where his loyalty lay.",
+        "But Jim saw something else in him.",
+        "Not just cunning… but also a strange, careful kindness.",
+        "One night, Jim slipped away.",
+        "He found a small boat and rowed through the dark water.",
+        "He reached the Hispaniola and fought bravely to take it back from the pirates."
+      ]
+    },
+    {
+      "id": "p10",
+      "text": "{{image5.png}}"
+    },
+    {
+      "id": "p11",
+      "paragraphs": [
+        "It was dangerous.",
+        "But Jim did not give up.",
+        "And at last, he returned safely to his friends.",
+        "Soon, the time came to search for the treasure.",
+        "Pirates and honest men walked together across the island, following the old map.",
+        "But when they reached the spot…",
+        "The treasure was gone.",
+        "The pirates cried out in anger.",
+        "But before fear could grow… Dr. Livesey and Ben Gunn appeared.",
+        "They led everyone to a hidden cave.",
+        "And there…",
+        "The treasure lay safely stored.",
+        "Long John Silver, seeing his chance, escaped quietly.",
+        "He vanished into the world beyond the sea… with a small bag of gold."
+      ]
+    },
+    {
+      "id": "p12",
+      "text": "{{image6.png}}"
+    },
+    {
+      "id": "p13",
+      "paragraphs": [
+        "And no one ever knew where he went.",
+        "The treasure was brought home.",
+        "The voyage ended.",
+        "Jim returned to the Admiral Benbow…",
+        "older…",
+        "braver…",
+        "and wiser.",
+        "But sometimes, at night, when the wind blows just right…",
+        "He still hears the echo of a song.",
+        "“Fifteen men on the dead man’s chest…”",
+        "And remembers the island… the friends… and the adventure that once found him."
+      ]
+    },
+    {
+      "id": "p14",
+      "text": "{{video.mp4}}",
+      "imageSrc": "image7.png"
+    },
+    {
+      "id": "p15",
+      "text": "{{image8.png}}"
+    }
+  ]
+}
